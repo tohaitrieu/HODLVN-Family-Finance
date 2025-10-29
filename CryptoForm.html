@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
+    input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #F7931A; }
+    .btn { background-color: #F7931A; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 10px; }
+    .btn:hover { background-color: #E67E00; }
+    .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+    .message { padding: 10px; margin-top: 15px; border-radius: 4px; display: none; }
+    .message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .required { color: red; }
+    input[readonly] { background-color: #f0f0f0; }
+    .radio-group { display: flex; gap: 20px; }
+    .radio-group label { display: inline-flex; align-items: center; font-weight: normal; }
+    .radio-group input[type="radio"] { width: auto; margin-right: 5px; }
+    .total-display { font-size: 18px; font-weight: bold; color: #F7931A; text-align: right; }
+    .hint { font-size: 12px; color: #666; margin-top: 3px; }
+  </style>
+</head>
+<body>
+  <form id="cryptoForm">
+    <div class="form-group">
+      <label for="date">Ngày <span class="required">*</span></label>
+      <input type="date" id="date" required>
+    </div>
+    
+    <div class="form-group">
+      <label>Loại giao dịch <span class="required">*</span></label>
+      <div class="radio-group">
+        <label>
+          <input type="radio" name="type" value="Mua" checked> ₿ Mua
+        </label>
+        <label>
+          <input type="radio" name="type" value="Bán"> 💵 Bán
+        </label>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="coin">Coin <span class="required">*</span></label>
+      <input type="text" id="coin" required placeholder="VD: BTC, ETH, BNB..." style="text-transform: uppercase;">
+      <div class="hint">Mã coin theo chuẩn (BTC, ETH, BNB, SOL...)</div>
+    </div>
+    
+    <div class="form-group">
+      <label for="quantity">Số lượng <span class="required">*</span></label>
+      <input type="number" id="quantity" required min="0.00000001" step="0.00000001" placeholder="VD: 0.5, 1.25...">
+    </div>
+    
+    <div class="form-group">
+      <label for="priceUSD">Giá (USD) <span class="required">*</span></label>
+      <input type="number" id="priceUSD" required min="0" step="0.01" placeholder="Giá mỗi coin bằng USD">
+    </div>
+    
+    <div class="form-group">
+      <label for="exchangeRate">Tỷ giá USD/VND <span class="required">*</span></label>
+      <input type="number" id="exchangeRate" required min="0" step="1" value="24500" placeholder="VD: 24500">
+      <div class="hint">Tỷ giá hiện tại khoảng 24,000 - 25,000 VND/USD</div>
+    </div>
+    
+    <div class="form-group">
+      <label for="totalVND">Tổng giá trị (VND)</label>
+      <input type="text" id="totalVND" readonly class="total-display" value="0">
+    </div>
+    
+    <div class="form-group">
+      <label for="exchange">Sàn giao dịch</label>
+      <input type="text" id="exchange" placeholder="VD: Binance, Coinbase, Bybit...">
+    </div>
+    
+    <div class="form-group">
+      <label for="wallet">Ví lưu trữ</label>
+      <input type="text" id="wallet" placeholder="VD: Metamask, Ledger, Trust Wallet...">
+    </div>
+    
+    <div class="form-group">
+      <label for="note">Ghi chú</label>
+      <textarea id="note" rows="2" placeholder="Thêm ghi chú (không bắt buộc)"></textarea>
+    </div>
+    
+    <button type="submit" class="btn" id="submitBtn">
+      ₿ Thêm giao dịch
+    </button>
+  </form>
+  
+  <div id="message" class="message"></div>
+
+  <script>
+    document.getElementById('date').valueAsDate = new Date();
+    
+    // Tính tự động tổng VND
+    function calculateTotal() {
+      const quantity = parseFloat(document.getElementById('quantity').value) || 0;
+      const priceUSD = parseFloat(document.getElementById('priceUSD').value) || 0;
+      const exchangeRate = parseFloat(document.getElementById('exchangeRate').value) || 24500;
+      const total = quantity * priceUSD * exchangeRate;
+      document.getElementById('totalVND').value = total.toLocaleString('vi-VN') + ' VNĐ';
+    }
+    
+    document.getElementById('quantity').addEventListener('input', calculateTotal);
+    document.getElementById('priceUSD').addEventListener('input', calculateTotal);
+    document.getElementById('exchangeRate').addEventListener('input', calculateTotal);
+    
+    // Tự động chuyển chữ hoa cho mã coin
+    document.getElementById('coin').addEventListener('input', function(e) {
+      e.target.value = e.target.value.toUpperCase();
+    });
+    
+    document.getElementById('cryptoForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      const messageDiv = document.getElementById('message');
+      
+      const typeChecked = document.querySelector('input[name="type"]:checked');
+      if (!typeChecked) {
+        showMessage('Vui lòng chọn loại giao dịch', 'error');
+        return;
+      }
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Đang xử lý...';
+      
+      const data = {
+        date: document.getElementById('date').value,
+        type: typeChecked.value,
+        coin: document.getElementById('coin').value.toUpperCase().trim(),
+        quantity: document.getElementById('quantity').value,
+        priceUSD: document.getElementById('priceUSD').value,
+        exchangeRate: document.getElementById('exchangeRate').value,
+        exchange: document.getElementById('exchange').value,
+        wallet: document.getElementById('wallet').value,
+        note: document.getElementById('note').value
+      };
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            showMessage(result.message, 'success');
+            document.getElementById('cryptoForm').reset();
+            document.getElementById('date').valueAsDate = new Date();
+            document.getElementById('exchangeRate').value = '24500';
+            document.querySelector('input[name="type"][value="Mua"]').checked = true;
+            calculateTotal();
+            setTimeout(function() {
+              google.script.host.close();
+            }, 1500);
+          } else {
+            showMessage(result.message, 'error');
+          }
+          submitBtn.disabled = false;
+          submitBtn.textContent = '₿ Thêm giao dịch';
+        })
+        .withFailureHandler(function(error) {
+          showMessage('Lỗi: ' + error.message, 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = '₿ Thêm giao dịch';
+        })
+        .addCrypto(data);
+    });
+    
+    function showMessage(text, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.textContent = text;
+      messageDiv.className = 'message ' + type;
+      messageDiv.style.display = 'block';
+      setTimeout(function() {
+        messageDiv.style.display = 'none';
+      }, 5000);
+    }
+  </script>
+</body>
+</html>

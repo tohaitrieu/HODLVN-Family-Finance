@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
+    input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #F39C12; }
+    .btn { background-color: #F39C12; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 10px; }
+    .btn:hover { background-color: #E67E22; }
+    .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+    .message { padding: 10px; margin-top: 15px; border-radius: 4px; display: none; }
+    .message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .required { color: red; }
+    input[readonly] { background-color: #f0f0f0; }
+    .radio-group { display: flex; gap: 20px; }
+    .radio-group label { display: inline-flex; align-items: center; font-weight: normal; }
+    .radio-group input[type="radio"] { width: auto; margin-right: 5px; }
+    .total-display { font-size: 18px; font-weight: bold; color: #F39C12; text-align: right; }
+    .inline-group { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+  </style>
+</head>
+<body>
+  <form id="goldForm">
+    <div class="form-group">
+      <label for="date">Ngày <span class="required">*</span></label>
+      <input type="date" id="date" required>
+    </div>
+    
+    <div class="form-group">
+      <label>Loại giao dịch <span class="required">*</span></label>
+      <div class="radio-group">
+        <label>
+          <input type="radio" name="type" value="Mua" checked> 🪙 Mua
+        </label>
+        <label>
+          <input type="radio" name="type" value="Bán"> 💰 Bán
+        </label>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="goldType">Loại vàng <span class="required">*</span></label>
+      <select id="goldType" required>
+        <option value="">-- Chọn loại vàng --</option>
+        <option value="SJC">SJC</option>
+        <option value="PNJ">PNJ</option>
+        <option value="DOJI">DOJI</option>
+        <option value="Nhẫn">Nhẫn</option>
+        <option value="Miếng">Miếng</option>
+        <option value="Khác">Khác</option>
+      </select>
+    </div>
+    
+    <div class="inline-group">
+      <div class="form-group">
+        <label for="quantity">Số lượng <span class="required">*</span></label>
+        <input type="number" id="quantity" required min="0.01" step="0.01" placeholder="VD: 1, 0.5, 2.5...">
+      </div>
+      
+      <div class="form-group">
+        <label for="unit">Đơn vị <span class="required">*</span></label>
+        <select id="unit" required>
+          <option value="">-- Đơn vị --</option>
+          <option value="Chỉ">Chỉ</option>
+          <option value="Lượng">Lượng</option>
+          <option value="Cây">Cây</option>
+          <option value="Gram">Gram</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="price">Giá (VNĐ/đơn vị) <span class="required">*</span></label>
+      <input type="number" id="price" required min="0" step="1000" placeholder="Giá theo đơn vị đã chọn">
+    </div>
+    
+    <div class="form-group">
+      <label for="total">Tổng giá trị</label>
+      <input type="text" id="total" readonly class="total-display" value="0">
+    </div>
+    
+    <div class="form-group">
+      <label for="location">Nơi mua/bán</label>
+      <input type="text" id="location" placeholder="VD: SJC Hà Nội, PNJ Vincom...">
+    </div>
+    
+    <div class="form-group">
+      <label for="note">Ghi chú</label>
+      <textarea id="note" rows="3" placeholder="Thêm ghi chú (không bắt buộc)"></textarea>
+    </div>
+    
+    <button type="submit" class="btn" id="submitBtn">
+      🪙 Thêm giao dịch
+    </button>
+  </form>
+  
+  <div id="message" class="message"></div>
+
+  <script>
+    document.getElementById('date').valueAsDate = new Date();
+    
+    // Tính tự động tổng giá trị
+    function calculateTotal() {
+      const quantity = parseFloat(document.getElementById('quantity').value) || 0;
+      const price = parseFloat(document.getElementById('price').value) || 0;
+      const total = quantity * price;
+      document.getElementById('total').value = total.toLocaleString('vi-VN') + ' VNĐ';
+    }
+    
+    document.getElementById('quantity').addEventListener('input', calculateTotal);
+    document.getElementById('price').addEventListener('input', calculateTotal);
+    
+    document.getElementById('goldForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      const messageDiv = document.getElementById('message');
+      
+      const typeChecked = document.querySelector('input[name="type"]:checked');
+      if (!typeChecked) {
+        showMessage('Vui lòng chọn loại giao dịch', 'error');
+        return;
+      }
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Đang xử lý...';
+      
+      const data = {
+        date: document.getElementById('date').value,
+        type: typeChecked.value,
+        goldType: document.getElementById('goldType').value,
+        quantity: document.getElementById('quantity').value,
+        unit: document.getElementById('unit').value,
+        price: document.getElementById('price').value,
+        location: document.getElementById('location').value,
+        note: document.getElementById('note').value
+      };
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            showMessage(result.message, 'success');
+            document.getElementById('goldForm').reset();
+            document.getElementById('date').valueAsDate = new Date();
+            document.querySelector('input[name="type"][value="Mua"]').checked = true;
+            calculateTotal();
+            setTimeout(function() {
+              google.script.host.close();
+            }, 1500);
+          } else {
+            showMessage(result.message, 'error');
+          }
+          submitBtn.disabled = false;
+          submitBtn.textContent = '🪙 Thêm giao dịch';
+        })
+        .withFailureHandler(function(error) {
+          showMessage('Lỗi: ' + error.message, 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = '🪙 Thêm giao dịch';
+        })
+        .addGold(data);
+    });
+    
+    function showMessage(text, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.textContent = text;
+      messageDiv.className = 'message ' + type;
+      messageDiv.style.display = 'block';
+      setTimeout(function() {
+        messageDiv.style.display = 'none';
+      }, 5000);
+    }
+  </script>
+</body>
+</html>

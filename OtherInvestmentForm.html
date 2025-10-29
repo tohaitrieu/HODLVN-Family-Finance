@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
+    input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #16A085; }
+    .btn { background-color: #16A085; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 10px; }
+    .btn:hover { background-color: #138D75; }
+    .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+    .message { padding: 10px; margin-top: 15px; border-radius: 4px; display: none; }
+    .message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .required { color: red; }
+    input[readonly] { background-color: #f0f0f0; }
+    .total-display { font-size: 18px; font-weight: bold; color: #16A085; text-align: right; }
+    .hint { font-size: 12px; color: #666; margin-top: 3px; }
+    .inline-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  </style>
+</head>
+<body>
+  <form id="otherInvestmentForm">
+    <div class="form-group">
+      <label for="date">Ngày <span class="required">*</span></label>
+      <input type="date" id="date" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="investmentType">Loại đầu tư <span class="required">*</span></label>
+      <select id="investmentType" required>
+        <option value="">-- Chọn loại đầu tư --</option>
+        <option value="Quỹ tiết kiệm">Quỹ tiết kiệm</option>
+        <option value="Bất động sản">Bất động sản</option>
+        <option value="P2P Lending">P2P Lending</option>
+        <option value="Staking">Staking</option>
+        <option value="Trái phiếu">Trái phiếu</option>
+        <option value="Quỹ mở">Quỹ mở</option>
+        <option value="Khác">Khác</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label for="amount">Số tiền đầu tư (VNĐ) <span class="required">*</span></label>
+      <input type="number" id="amount" required min="0" step="1000" placeholder="Số tiền bỏ ra">
+    </div>
+    
+    <div class="inline-group">
+      <div class="form-group">
+        <label for="roi">Lãi suất/ROI (%/năm) <span class="required">*</span></label>
+        <input type="number" id="roi" required min="0" step="0.1" placeholder="VD: 8.5">
+        <div class="hint">Tỷ suất sinh lời hàng năm</div>
+      </div>
+      
+      <div class="form-group">
+        <label for="term">Kỳ hạn (tháng) <span class="required">*</span></label>
+        <input type="number" id="term" required min="1" step="1" placeholder="VD: 12">
+        <div class="hint">Số tháng đầu tư</div>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="expectedReturn">Dự kiến thu về (Gốc + Lãi)</label>
+      <input type="text" id="expectedReturn" readonly class="total-display" value="0">
+    </div>
+    
+    <div class="form-group">
+      <label for="note">Ghi chú</label>
+      <textarea id="note" rows="3" placeholder="Thêm ghi chú: Tên ngân hàng, kênh đầu tư, địa chỉ BĐS..."></textarea>
+    </div>
+    
+    <button type="submit" class="btn" id="submitBtn">
+      💼 Thêm đầu tư
+    </button>
+  </form>
+  
+  <div id="message" class="message"></div>
+
+  <script>
+    document.getElementById('date').valueAsDate = new Date();
+    
+    // Tính tự động dự kiến thu về
+    function calculateExpectedReturn() {
+      const amount = parseFloat(document.getElementById('amount').value) || 0;
+      const roi = parseFloat(document.getElementById('roi').value) || 0;
+      const term = parseFloat(document.getElementById('term').value) || 0;
+      
+      // Tính lãi đơn giản: amount * (roi/100) * (term/12)
+      const interest = amount * (roi / 100) * (term / 12);
+      const total = amount + interest;
+      
+      document.getElementById('expectedReturn').value = total.toLocaleString('vi-VN') + ' VNĐ';
+    }
+    
+    document.getElementById('amount').addEventListener('input', calculateExpectedReturn);
+    document.getElementById('roi').addEventListener('input', calculateExpectedReturn);
+    document.getElementById('term').addEventListener('input', calculateExpectedReturn);
+    
+    document.getElementById('otherInvestmentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      const messageDiv = document.getElementById('message');
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Đang xử lý...';
+      
+      const data = {
+        date: document.getElementById('date').value,
+        investmentType: document.getElementById('investmentType').value,
+        amount: document.getElementById('amount').value,
+        roi: document.getElementById('roi').value,
+        term: document.getElementById('term').value,
+        note: document.getElementById('note').value
+      };
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            showMessage(result.message, 'success');
+            document.getElementById('otherInvestmentForm').reset();
+            document.getElementById('date').valueAsDate = new Date();
+            calculateExpectedReturn();
+            setTimeout(function() {
+              google.script.host.close();
+            }, 1500);
+          } else {
+            showMessage(result.message, 'error');
+          }
+          submitBtn.disabled = false;
+          submitBtn.textContent = '💼 Thêm đầu tư';
+        })
+        .withFailureHandler(function(error) {
+          showMessage('Lỗi: ' + error.message, 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = '💼 Thêm đầu tư';
+        })
+        .addOtherInvestment(data);
+    });
+    
+    function showMessage(text, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.textContent = text;
+      messageDiv.className = 'message ' + type;
+      messageDiv.style.display = 'block';
+      setTimeout(function() {
+        messageDiv.style.display = 'none';
+      }, 5000);
+    }
+  </script>
+</body>
+</html>
