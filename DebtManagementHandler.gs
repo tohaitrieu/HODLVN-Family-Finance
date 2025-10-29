@@ -1,12 +1,11 @@
 /**
  * ===============================================
- * DEBT MANAGEMENT HANDLER v2.0
+ * DEBT MANAGEMENT HANDLER v3.3.2 - FINAL FIX
  * ===============================================
  * 
- * Function xử lý thêm khoản nợ mới vào QUẢN LÝ NỢ
- * TỰ ĐỘNG thêm khoản thu nếu tên nợ có từ khóa "Margin"
- * 
- * FIXED: Trực tiếp thêm vào sheet THU thay vì gọi function
+ * CHANGELOG v3.3.2:
+ * - Fix lỗi mất công thức cột J khi insert dữ liệu
+ * - Chia insert thành 2 phần: A-I và K-L, bỏ qua cột J
  */
 
 /**
@@ -73,113 +72,110 @@ function addDebtManagement(data) {
     const maturityDate = new Date(date);
     maturityDate.setMonth(maturityDate.getMonth() + term);
     
-    // Tìm dòng trống để thêm (bỏ qua header)
-    let lastRow = debtSheet.getLastRow();
-    let emptyRow = lastRow + 1;
+    // ✅ FIX: Sử dụng findEmptyRow() thay vì getLastRow()
+    // Cột 2 (B) = Tên khoản nợ - cột dữ liệu thực
+    const emptyRow = findEmptyRow(debtSheet, 2);
+    const stt = getNextSTT(debtSheet, 2);
     
-    // Nếu có dữ liệu, tìm dòng trống thực sự
-    if (lastRow > 1) {
-      const dataRange = debtSheet.getRange(2, 2, lastRow - 1, 1).getValues();
-      for (let i = 0; i < dataRange.length; i++) {
-        if (!dataRange[i][0]) {
-          emptyRow = i + 2;
-          break;
-        }
-      }
-    }
+    Logger.log('QUẢN LÝ NỢ - Dòng trống tìm được: ' + emptyRow);
+    Logger.log('QUẢN LÝ NỢ - STT: ' + stt);
     
-    // STT tự động
-    const stt = emptyRow - 1;
+    // ============================================
+    // CRITICAL FIX v3.3.2: Chia làm 2 phần để KHÔNG ghi đè công thức cột J
+    // ============================================
     
-    // Thêm dữ liệu vào sheet QUẢN LÝ NỢ
-    // Columns: STT | Tên | Gốc | Lãi suất | Kỳ hạn | Ngày vay | Đáo hạn | Đã trả gốc | Đã trả lãi | Còn nợ | Trạng thái | Loại | Ghi chú
-    debtSheet.getRange(emptyRow, 1, 1, 13).setValues([[
+    // Phần 1: Cột A-I (STT đến Đã trả lãi) - 9 cột
+    const rowDataPart1 = [
       stt,                    // A: STT
       debtName,               // B: Tên khoản nợ
       principal,              // C: Gốc
-      interestRate,           // D: Lãi suất
+      interestRate / 100,     // D: Lãi suất (chuyển % sang decimal)
       term,                   // E: Kỳ hạn
       date,                   // F: Ngày vay
       maturityDate,           // G: Đáo hạn
       0,                      // H: Đã trả gốc
-      0,                      // I: Đã trả lãi
-      principal,              // J: Còn nợ (ban đầu = gốc)
-      'Đang trả',             // K: Trạng thái (phải khớp với validation!)
-      debtType,               // L: Loại nợ
-      note                    // M: Ghi chú
-    ]]);
+      0                       // I: Đã trả lãi
+    ];
+    
+    // Phần 2: Cột K-L (Trạng thái và Ghi chú) - 2 cột
+    const rowDataPart2 = [
+      'Chưa trả',             // K: Trạng thái
+      note                    // L: Ghi chú
+    ];
+    
+    // ✅ Insert Phần 1: Cột A-I (9 cột)
+    debtSheet.getRange(emptyRow, 1, 1, rowDataPart1.length).setValues([rowDataPart1]);
+    
+    // ✅ BỎ QUA cột J (cột 10) - GIỮ NGUYÊN CÔNG THỨC =C-H
+    
+    // ✅ Insert Phần 2: Cột K-L (2 cột, bắt đầu từ cột 11)
+    debtSheet.getRange(emptyRow, 11, 1, rowDataPart2.length).setValues([rowDataPart2]);
+    
+    Logger.log('✅ ĐÃ INSERT XONG! Công thức cột J được giữ nguyên.');
     
     // Format
-    debtSheet.getRange(emptyRow, 3, 1, 1).setNumberFormat('#,##0'); // Gốc
-    debtSheet.getRange(emptyRow, 4, 1, 1).setNumberFormat('0.00"%"'); // Lãi suất
-    debtSheet.getRange(emptyRow, 6, 1, 2).setNumberFormat('dd/mm/yyyy'); // Ngày vay & Đáo hạn
-    debtSheet.getRange(emptyRow, 8, 1, 3).setNumberFormat('#,##0'); // Đã trả gốc, lãi, còn nợ
+    formatNewRow(debtSheet, emptyRow, {
+      3: '#,##0',           // Gốc
+      4: '0.00"%"',         // Lãi suất
+      6: 'dd/mm/yyyy',      // Ngày vay
+      7: 'dd/mm/yyyy',      // Đáo hạn
+      8: '#,##0',           // Đã trả gốc
+      9: '#,##0',           // Đã trả lãi
+      10: '#,##0'           // Còn nợ (công thức đã có sẵn)
+    });
     
     // ============================================
-    // BƯỚC 2: TỰ ĐỘNG THÊM KHOẢN THU CHO MỌI KHOẢN NỢ
+    // BƯỚC 2: TỰ ĐỘNG THÊM KHOẢN THU
     // ============================================
-    // Logic: Khi vay nợ = tiền mặt tăng = phải ghi nhận thu
     let autoIncomeMessage = '';
     
-    Logger.log('Bắt đầu thêm khoản thu tự động cho khoản vay...');
-    
-    // ============================================
-    // BƯỚC 3: TỰ ĐỘNG THÊM VÀO SHEET THU
-    // ============================================
-    // ============================================
-    // BƯỚC 3: TỰ ĐỘNG THÊM VÀO SHEET THU
-    // ============================================
     const incomeSheet = ss.getSheetByName('THU');
     
     if (!incomeSheet) {
       autoIncomeMessage = '\n⚠️ Không tìm thấy sheet THU. Không thể tự động thêm khoản thu!';
       Logger.log('ERROR: Không tìm thấy sheet THU');
     } else {
-      // Tìm dòng trống trong sheet THU
-      let incomeLastRow = incomeSheet.getLastRow();
-      let incomeEmptyRow = incomeLastRow + 1;
+      // ✅ FIX: Sử dụng findEmptyRow() thay vì getLastRow()
+      // Cột 2 (B) = Ngày - cột dữ liệu thực
+      const incomeEmptyRow = findEmptyRow(incomeSheet, 2);
+      const incomeStt = getNextSTT(incomeSheet, 2);
       
-      if (incomeLastRow > 1) {
-        const incomeDataRange = incomeSheet.getRange(2, 2, incomeLastRow - 1, 1).getValues();
-        for (let i = 0; i < incomeDataRange.length; i++) {
-          if (!incomeDataRange[i][0]) {
-            incomeEmptyRow = i + 2;
-            break;
-          }
-        }
-      }
-      
-      // STT tự động cho sheet THU
-      const incomeStt = incomeEmptyRow - 1;
+      Logger.log('THU - Dòng trống tìm được: ' + incomeEmptyRow);
+      Logger.log('THU - STT: ' + incomeStt);
       
       // Xác định nguồn thu dựa vào loại nợ
       let incomeSource = 'Vay ' + debtType;
       
       // Thêm dữ liệu vào sheet THU
       // Columns: STT | Ngày | Số tiền | Nguồn thu | Ghi chú
-      incomeSheet.getRange(incomeEmptyRow, 1, 1, 5).setValues([[
+      const incomeRowData = [
         incomeStt,
         date,
         principal,
         incomeSource,
         `Vay: ${debtName}`
-      ]]);
+      ];
+      
+      incomeSheet.getRange(incomeEmptyRow, 1, 1, incomeRowData.length).setValues([incomeRowData]);
       
       // Format
-      incomeSheet.getRange(incomeEmptyRow, 2, 1, 1).setNumberFormat('dd/mm/yyyy');
-      incomeSheet.getRange(incomeEmptyRow, 3, 1, 1).setNumberFormat('#,##0');
+      formatNewRow(incomeSheet, incomeEmptyRow, {
+        2: 'dd/mm/yyyy',
+        3: '#,##0'
+      });
       
       autoIncomeMessage = `\n✅ Đã TỰ ĐỘNG thêm khoản thu "${incomeSource}" vào sheet THU`;
       Logger.log('SUCCESS: Đã thêm khoản thu vào sheet THU tại dòng ' + incomeEmptyRow);
     }
     
     // ============================================
-    // BƯỚC 4: TRẢ VỀ KẾT QUẢ
+    // BƯỚC 3: TRẢ VỀ KẾT QUẢ
     // ============================================
     const resultMessage = `✅ Đã thêm khoản nợ: ${debtName}\n` +
                `💰 Số tiền: ${principal.toLocaleString('vi-VN')} VNĐ\n` +
                `📅 Kỳ hạn: ${term} tháng\n` +
-               `💳 Loại: ${debtType}` +
+               `💳 Loại: ${debtType}\n` +
+               `📊 Trạng thái: Chưa trả` +
                autoIncomeMessage;
     
     Logger.log('=== KẾT QUẢ ===');
@@ -202,18 +198,18 @@ function addDebtManagement(data) {
 
 /**
  * ============================================
- * FUNCTION TEST - Để test riêng
+ * FUNCTION TEST
  * ============================================
  */
 function testAddDebtManagement() {
   const testData = {
     date: '2025-10-29',
-    debtName: 'Margin SSI test',
+    debtName: 'Test Margin SSI',
     debtType: 'Margin chứng khoán',
-    principal: 30000000,
-    interestRate: 9,
-    term: 1,
-    note: 'Test margin auto'
+    principal: 25000000,
+    interestRate: 9.5,
+    term: 3,
+    note: 'Test với findEmptyRow() và giữ công thức cột J'
   };
   
   Logger.log('=== BẮT ĐẦU TEST ===');
@@ -224,5 +220,47 @@ function testAddDebtManagement() {
     SpreadsheetApp.getUi().alert('Test thành công!', result.message, SpreadsheetApp.getUi().ButtonSet.OK);
   } else {
     SpreadsheetApp.getUi().alert('Test thất bại!', result.message, SpreadsheetApp.getUi().ButtonSet.OK);
+  }
+}
+
+/**
+ * ============================================
+ * FUNCTION TEST - Kiểm tra công thức cột J
+ * ============================================
+ */
+function testFormulaColumnJ() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('QUẢN LÝ NỢ');
+  
+  if (!sheet) {
+    Logger.log('ERROR: Không tìm thấy sheet QUẢN LÝ NỢ');
+    return;
+  }
+  
+  // Tìm dòng dữ liệu cuối cùng
+  const emptyRow = findEmptyRow(sheet, 2);
+  const lastDataRow = emptyRow - 1;
+  
+  if (lastDataRow < 2) {
+    Logger.log('Không có dữ liệu để test');
+    return;
+  }
+  
+  Logger.log('=== KIỂM TRA CÔNG THỨC CỘT J ===');
+  
+  for (let row = 2; row <= lastDataRow; row++) {
+    const cellJ = sheet.getRange(row, 10); // Cột J
+    const formula = cellJ.getFormula();
+    const value = cellJ.getValue();
+    
+    Logger.log(`Dòng ${row}:`);
+    Logger.log(`  - Công thức: ${formula || '(không có)'}`);
+    Logger.log(`  - Giá trị: ${value}`);
+    
+    if (!formula) {
+      Logger.log(`  ⚠️ CẢNH BÁO: Dòng ${row} không có công thức!`);
+    } else {
+      Logger.log(`  ✅ OK`);
+    }
   }
 }

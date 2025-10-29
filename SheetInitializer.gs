@@ -8,13 +8,14 @@
  * - Tạo header, validation, công thức
  * - Áp dụng format và màu sắc nhất quán
  * 
- * VERSION: 3.1 - Fixed #DIV/0! errors with IFERROR
+ * VERSION: 3.3 - FIXED: Xóa tất cả dữ liệu mẫu + Thêm trạng thái "Chưa trả"
  */
 
 const SheetInitializer = {
   
   /**
    * Khởi tạo Sheet THU
+   * ✅ FIXED: Xóa dữ liệu mẫu
    */
   initializeIncomeSheet() {
     const ss = getSpreadsheet();
@@ -62,26 +63,23 @@ const SheetInitializer = {
         'Bán Crypto',
         'Lãi đầu tư',
         'Thu hồi nợ',
+        'Vay ngân hàng',
+        'Vay cá nhân',
         'Khác'
       ])
       .setAllowInvalid(false)
       .build();
     sourceRange.setDataValidation(sourceRule);
     
-    // Dữ liệu mẫu
-    sheet.getRange(2, 1, 1, 5).setValues([[
-      1,
-      new Date(),
-      10000000,
-      'Lương',
-      'Lương tháng ' + (new Date().getMonth() + 1)
-    ]]);
+    // ✅ FIX: KHÔNG THÊM DỮ LIỆU MẪU
+    // Để sheet hoàn toàn trống, chỉ có header
     
     return sheet;
   },
   
   /**
    * Khởi tạo Sheet CHI
+   * ✅ FIXED: Xóa dữ liệu mẫu
    */
   initializeExpenseSheet() {
     const ss = getSpreadsheet();
@@ -135,15 +133,8 @@ const SheetInitializer = {
       .build();
     categoryRange.setDataValidation(categoryRule);
     
-    // Dữ liệu mẫu
-    sheet.getRange(2, 1, 1, 6).setValues([[
-      1,
-      new Date(),
-      50000,
-      'Ăn uống',
-      'Ăn sáng',
-      ''
-    ]]);
+    // ✅ FIX: KHÔNG THÊM DỮ LIỆU MẪU
+    // Để sheet hoàn toàn trống, chỉ có header
     
     return sheet;
   },
@@ -195,6 +186,7 @@ const SheetInitializer = {
   
   /**
    * Khởi tạo Sheet QUẢN LÝ NỢ
+   * ✅ FIXED: Xóa dữ liệu mẫu + Thêm trạng thái "Chưa trả"
    */
   initializeDebtManagementSheet() {
     const ss = getSpreadsheet();
@@ -254,10 +246,10 @@ const SheetInitializer = {
     // Công thức Còn nợ - FIXED: Thêm IFERROR
     sheet.getRange('J2:J1000').setFormula('=IFERROR(C2-H2, 0)');
     
-    // Data validation cho Trạng thái
+    // ✅ FIX: Data validation cho Trạng thái - THÊM "Chưa trả"
     const statusRange = sheet.getRange('K2:K1000');
     const statusRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['Đang trả', 'Đã thanh toán', 'Quá hạn'])
+      .requireValueInList(['Chưa trả', 'Đang trả', 'Đã thanh toán', 'Quá hạn'])
       .setAllowInvalid(false)
       .build();
     statusRange.setDataValidation(statusRule);
@@ -265,21 +257,9 @@ const SheetInitializer = {
     // Freeze header
     sheet.setFrozenRows(1);
     
-    // Dữ liệu mẫu
-    sheet.getRange(2, 1, 1, 12).setValues([[
-      1,
-      'Vay ngân hàng',
-      50000000,
-      12,
-      24,
-      new Date(),
-      new Date(new Date().setMonth(new Date().getMonth() + 24)),
-      0,
-      0,
-      '',
-      '',
-      'Vay ngân hàng'
-    ]]);
+    // ✅ FIX: KHÔNG THÊM DỮ LIỆU MẪU
+    // Để sheet hoàn toàn trống, chỉ có header và công thức
+    // Công thức sẽ tự động tính toán khi có dữ liệu
     
     return sheet;
   },
@@ -298,18 +278,7 @@ const SheetInitializer = {
     sheet = ss.insertSheet(APP_CONFIG.SHEETS.STOCK);
     
     // Header
-    const headers = [
-      'STT',
-      'Ngày',
-      'Loại GD',
-      'Mã CK',
-      'Số lượng',
-      'Giá',
-      'Tổng giá trị',
-      'Phí GD',
-      'Ghi chú'
-    ];
-    
+    const headers = ['STT', 'Ngày', 'Loại GD', 'Mã CK', 'Số lượng', 'Giá', 'Phí', 'Tổng', 'Ghi chú'];
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])
       .setFontWeight('bold')
@@ -322,31 +291,27 @@ const SheetInitializer = {
     sheet.setColumnWidth(2, 100);  // Ngày
     sheet.setColumnWidth(3, 80);   // Loại GD
     sheet.setColumnWidth(4, 80);   // Mã CK
-    sheet.setColumnWidth(5, 100);  // Số lượng
+    sheet.setColumnWidth(5, 80);   // Số lượng
     sheet.setColumnWidth(6, 100);  // Giá
-    sheet.setColumnWidth(7, 120);  // Tổng
-    sheet.setColumnWidth(8, 100);  // Phí
+    sheet.setColumnWidth(7, 100);  // Phí
+    sheet.setColumnWidth(8, 120);  // Tổng
     sheet.setColumnWidth(9, 250);  // Ghi chú
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('E2:E').setNumberFormat('#,##0');
     sheet.getRange('F2:H').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
     
-    // Công thức Tổng giá trị - FIXED: Thêm IFERROR
-    sheet.getRange('G2:G1000').setFormula('=IFERROR(E2*F2, 0)');
+    // Freeze header
+    sheet.setFrozenRows(1);
     
-    // Data validation
+    // Data validation cho Loại GD
     const typeRange = sheet.getRange('C2:C1000');
     const typeRule = SpreadsheetApp.newDataValidation()
       .requireValueInList(['Mua', 'Bán'])
       .setAllowInvalid(false)
       .build();
     typeRange.setDataValidation(typeRule);
-    
-    // Freeze header
-    sheet.setFrozenRows(1);
     
     return sheet;
   },
@@ -365,19 +330,7 @@ const SheetInitializer = {
     sheet = ss.insertSheet(APP_CONFIG.SHEETS.GOLD);
     
     // Header
-    const headers = [
-      'STT',
-      'Ngày',
-      'Loại GD',
-      'Loại vàng',
-      'Số lượng',
-      'Đơn vị',
-      'Giá',
-      'Tổng giá trị',
-      'Nơi mua/bán',
-      'Ghi chú'
-    ];
-    
+    const headers = ['STT', 'Ngày', 'Loại GD', 'Loại vàng', 'Số lượng', 'Đơn vị', 'Giá', 'Tổng', 'Nơi lưu', 'Ghi chú'];
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])
       .setFontWeight('bold')
@@ -391,22 +344,21 @@ const SheetInitializer = {
     sheet.setColumnWidth(3, 80);   // Loại GD
     sheet.setColumnWidth(4, 100);  // Loại vàng
     sheet.setColumnWidth(5, 80);   // Số lượng
-    sheet.setColumnWidth(6, 80);   // Đơn vị
-    sheet.setColumnWidth(7, 120);  // Giá
+    sheet.setColumnWidth(6, 70);   // Đơn vị
+    sheet.setColumnWidth(7, 100);  // Giá
     sheet.setColumnWidth(8, 120);  // Tổng
-    sheet.setColumnWidth(9, 150);  // Nơi mua/bán
+    sheet.setColumnWidth(9, 120);  // Nơi lưu
     sheet.setColumnWidth(10, 200); // Ghi chú
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('E2:E').setNumberFormat('#,##0.00');
     sheet.getRange('G2:H').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
     
-    // Công thức Tổng giá trị - FIXED: Thêm IFERROR
-    sheet.getRange('H2:H1000').setFormula('=IFERROR(E2*G2, 0)');
+    // Freeze header
+    sheet.setFrozenRows(1);
     
-    // Data validation
+    // Data validation cho Loại GD
     const typeRange = sheet.getRange('C2:C1000');
     const typeRule = SpreadsheetApp.newDataValidation()
       .requireValueInList(['Mua', 'Bán'])
@@ -414,22 +366,21 @@ const SheetInitializer = {
       .build();
     typeRange.setDataValidation(typeRule);
     
+    // Data validation cho Loại vàng
     const goldTypeRange = sheet.getRange('D2:D1000');
     const goldTypeRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['SJC', '9999', '24K', '18K', 'Khác'])
+      .requireValueInList(['SJC', '24K', '18K', '14K', '10K', 'Khác'])
       .setAllowInvalid(false)
       .build();
     goldTypeRange.setDataValidation(goldTypeRule);
     
+    // Data validation cho Đơn vị
     const unitRange = sheet.getRange('F2:F1000');
     const unitRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['Chỉ', 'Lượng', 'Gram', 'Kg'])
+      .requireValueInList(['chỉ', 'lượng', 'cây', 'gram'])
       .setAllowInvalid(false)
       .build();
     unitRange.setDataValidation(unitRule);
-    
-    // Freeze header
-    sheet.setFrozenRows(1);
     
     return sheet;
   },
@@ -448,19 +399,7 @@ const SheetInitializer = {
     sheet = ss.insertSheet(APP_CONFIG.SHEETS.CRYPTO);
     
     // Header
-    const headers = [
-      'STT',
-      'Ngày',
-      'Loại GD',
-      'Tên coin',
-      'Số lượng',
-      'Giá (USD)',
-      'Tổng giá trị (USD)',
-      'Phí GD',
-      'Sàn giao dịch',
-      'Ghi chú'
-    ];
-    
+    const headers = ['STT', 'Ngày', 'Loại GD', 'Coin', 'Số lượng', 'Giá (USD)', 'Tỷ giá', 'Giá (VNĐ)', 'Tổng (VNĐ)', 'Sàn', 'Ví', 'Ghi chú'];
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])
       .setFontWeight('bold')
@@ -472,40 +411,32 @@ const SheetInitializer = {
     sheet.setColumnWidth(1, 50);   // STT
     sheet.setColumnWidth(2, 100);  // Ngày
     sheet.setColumnWidth(3, 80);   // Loại GD
-    sheet.setColumnWidth(4, 100);  // Tên coin
+    sheet.setColumnWidth(4, 80);   // Coin
     sheet.setColumnWidth(5, 100);  // Số lượng
-    sheet.setColumnWidth(6, 120);  // Giá
-    sheet.setColumnWidth(7, 150);  // Tổng
-    sheet.setColumnWidth(8, 100);  // Phí
-    sheet.setColumnWidth(9, 150);  // Sàn
-    sheet.setColumnWidth(10, 200); // Ghi chú
+    sheet.setColumnWidth(6, 100);  // Giá USD
+    sheet.setColumnWidth(7, 80);   // Tỷ giá
+    sheet.setColumnWidth(8, 100);  // Giá VNĐ
+    sheet.setColumnWidth(9, 120);  // Tổng VNĐ
+    sheet.setColumnWidth(10, 100); // Sàn
+    sheet.setColumnWidth(11, 150); // Ví
+    sheet.setColumnWidth(12, 200); // Ghi chú
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('E2:E').setNumberFormat('#,##0.00000000');
-    sheet.getRange('F2:H').setNumberFormat('#,##0.00');
-    
-    // Công thức Tổng giá trị - FIXED: Thêm IFERROR
-    sheet.getRange('G2:G1000').setFormula('=IFERROR(E2*F2, 0)');
-    
-    // Data validation
-    const typeRange = sheet.getRange('C2:C1000');
-    const typeRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['Mua', 'Bán', 'Stake', 'Unstake'])
-      .setAllowInvalid(false)
-      .build();
-    typeRange.setDataValidation(typeRule);
-    
-    const coinRange = sheet.getRange('D2:D1000');
-    const coinRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['BTC', 'ETH', 'BNB', 'USDT', 'SOL', 'ADA', 'XRP', 'DOT', 'Khác'])
-      .setAllowInvalid(false)
-      .build();
-    coinRange.setDataValidation(coinRule);
+    sheet.getRange('F2:F').setNumberFormat('#,##0.00" USD"');
+    sheet.getRange('H2:I').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
     
     // Freeze header
     sheet.setFrozenRows(1);
+    
+    // Data validation cho Loại GD
+    const typeRange = sheet.getRange('C2:C1000');
+    const typeRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Mua', 'Bán', 'Swap', 'Stake', 'Unstake'])
+      .setAllowInvalid(false)
+      .build();
+    typeRange.setDataValidation(typeRule);
     
     return sheet;
   },
@@ -524,20 +455,7 @@ const SheetInitializer = {
     sheet = ss.insertSheet(APP_CONFIG.SHEETS.OTHER_INVESTMENT);
     
     // Header
-    const headers = [
-      'STT',
-      'Ngày',
-      'Loại đầu tư',
-      'Loại GD',
-      'Số tiền',
-      'Lãi suất (%/năm)',
-      'Kỳ hạn (tháng)',
-      'Ngày đáo hạn',
-      'Lãi dự kiến',
-      'Trạng thái',
-      'Ghi chú'
-    ];
-    
+    const headers = ['STT', 'Ngày', 'Loại đầu tư', 'Số tiền', 'Lãi suất (%)', 'Kỳ hạn (tháng)', 'Dự kiến thu về', 'Ghi chú'];
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])
       .setFontWeight('bold')
@@ -548,58 +466,30 @@ const SheetInitializer = {
     // Column widths
     sheet.setColumnWidth(1, 50);   // STT
     sheet.setColumnWidth(2, 100);  // Ngày
-    sheet.setColumnWidth(3, 120);  // Loại đầu tư
-    sheet.setColumnWidth(4, 80);   // Loại GD
-    sheet.setColumnWidth(5, 120);  // Số tiền
-    sheet.setColumnWidth(6, 100);  // Lãi suất
-    sheet.setColumnWidth(7, 100);  // Kỳ hạn
-    sheet.setColumnWidth(8, 120);  // Ngày đáo hạn
-    sheet.setColumnWidth(9, 120);  // Lãi dự kiến
-    sheet.setColumnWidth(10, 100); // Trạng thái
-    sheet.setColumnWidth(11, 200); // Ghi chú
+    sheet.setColumnWidth(3, 150);  // Loại
+    sheet.setColumnWidth(4, 120);  // Số tiền
+    sheet.setColumnWidth(5, 100);  // Lãi suất
+    sheet.setColumnWidth(6, 100);  // Kỳ hạn
+    sheet.setColumnWidth(7, 120);  // Dự kiến
+    sheet.setColumnWidth(8, 250);  // Ghi chú
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('E2:E').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
-    sheet.getRange('F2:F').setNumberFormat('0.00"%"');
-    sheet.getRange('G2:G').setNumberFormat('0');
-    sheet.getRange('H2:H').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('I2:I').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
-    
-    // Công thức Lãi dự kiến - FIXED: Thêm IFERROR
-    sheet.getRange('I2:I1000').setFormula('=IFERROR(E2*F2/100*G2/12, 0)');
-    
-    // Data validation
-    const typeRange = sheet.getRange('C2:C1000');
-    const typeRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList([
-        'Tiết kiệm',
-        'Trái phiếu',
-        'Quỹ đầu tư',
-        'Bất động sản',
-        'Khác'
-      ])
-      .setAllowInvalid(false)
-      .build();
-    typeRange.setDataValidation(typeRule);
-    
-    const transactionRange = sheet.getRange('D2:D1000');
-    const transactionRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['Gửi', 'Rút', 'Mua', 'Bán'])
-      .setAllowInvalid(false)
-      .build();
-    transactionRange.setDataValidation(transactionRule);
-    
-    const statusRange = sheet.getRange('J2:J1000');
-    const statusRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['Đang đầu tư', 'Đã đáo hạn', 'Đã rút'])
-      .setAllowInvalid(false)
-      .build();
-    statusRange.setDataValidation(statusRule);
+    sheet.getRange('D2:D').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    sheet.getRange('E2:E').setNumberFormat('0.00"%"');
+    sheet.getRange('G2:G').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
     
     // Freeze header
     sheet.setFrozenRows(1);
+    
+    // Data validation cho Loại đầu tư
+    const typeRange = sheet.getRange('C2:C1000');
+    const typeRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Gửi tiết kiệm', 'Quỹ đầu tư', 'Bất động sản', 'Trái phiếu', 'P2P Lending', 'Khác'])
+      .setAllowInvalid(false)
+      .build();
+    typeRange.setDataValidation(typeRule);
     
     return sheet;
   },

@@ -8,10 +8,133 @@
  * - Validation dữ liệu
  * - Format & conversion
  * - Các helper functions khác
+ * Lấy danh sách khoản nợ từ QUẢN LÝ NỢ
  */
 
 /**
- * Lấy danh sách khoản nợ từ QUẢN LÝ NỢ
+ * Tìm dòng trống thực sự trong sheet
+ * 
+ * VẤN ĐỀ: Khi khởi tạo sheet, các công thức được điền vào 1000 dòng
+ * → getLastRow() trả về 1000
+ * → appendRow() chèn dữ liệu vào dòng 1001!
+ * 
+ * GIẢI PHÁP: Tìm dòng trống dựa vào CÁC CỘT DỮ LIỆU THỰC
+ * (không phải cột có công thức)
+ * 
+ * @param {Sheet} sheet - Sheet cần tìm
+ * @param {number} dataColumn - Cột chứa dữ liệu thực (không phải công thức)
+ *                              Ví dụ: Cột B (Ngày), Cột C (Số tiền), etc.
+ * @return {number} Số dòng trống đầu tiên
+ */
+function findEmptyRow(sheet, dataColumn) {
+  dataColumn = dataColumn || 2; // Mặc định cột B
+  
+  const lastRow = sheet.getLastRow();
+  
+  // Nếu chỉ có header, trả về dòng 2
+  if (lastRow <= 1) {
+    return 2;
+  }
+  
+  // Lấy tất cả dữ liệu từ cột dataColumn, bắt đầu từ dòng 2
+  const dataRange = sheet.getRange(2, dataColumn, lastRow - 1, 1).getValues();
+  
+  // Tìm dòng đầu tiên có giá trị rỗng
+  for (let i = 0; i < dataRange.length; i++) {
+    const cellValue = dataRange[i][0];
+    
+    // Kiểm tra xem ô có thực sự trống không
+    if (!cellValue || cellValue === '' || cellValue === null) {
+      return i + 2; // +2 vì: i bắt đầu từ 0, và dòng đầu tiên là dòng 2
+    }
+  }
+  
+  // Nếu không tìm thấy dòng trống, trả về dòng tiếp theo
+  return lastRow + 1;
+}
+
+/**
+ * Thêm dữ liệu vào sheet ở dòng trống đầu tiên
+ * 
+ * @param {Sheet} sheet - Sheet cần thêm
+ * @param {Array} rowData - Mảng dữ liệu cần thêm
+ * @param {number} dataColumn - Cột dùng để kiểm tra dòng trống (mặc định: 2 = cột B)
+ * @return {number} Số dòng đã thêm dữ liệu
+ */
+function insertRowAtEmptyPosition(sheet, rowData, dataColumn) {
+  dataColumn = dataColumn || 2;
+  const emptyRow = findEmptyRow(sheet, dataColumn);
+  
+  // Thêm dữ liệu vào dòng trống
+  sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+  
+  return emptyRow;
+}
+
+/**
+ * Lấy STT tự động dựa vào số dòng có dữ liệu thực
+ * 
+ * @param {Sheet} sheet - Sheet cần đếm
+ * @param {number} dataColumn - Cột dùng để kiểm tra dữ liệu
+ * @return {number} STT tiếp theo
+ */
+function getNextSTT(sheet, dataColumn) {
+  dataColumn = dataColumn || 2;
+  const emptyRow = findEmptyRow(sheet, dataColumn);
+  return emptyRow - 1; // STT = số dòng - 1 (vì có header)
+}
+
+/**
+ * Format dòng dữ liệu mới được thêm
+ * 
+ * @param {Sheet} sheet - Sheet chứa dữ liệu
+ * @param {number} row - Số dòng cần format
+ * @param {Object} formats - Object chứa format cho từng cột
+ *                           Ví dụ: {2: 'dd/mm/yyyy', 3: '#,##0" VNĐ"'}
+ */
+function formatNewRow(sheet, row, formats) {
+  for (const [col, format] of Object.entries(formats)) {
+    sheet.getRange(row, parseInt(col)).setNumberFormat(format);
+  }
+}
+
+/**
+ * ========================================
+ * HÀM TEST - Kiểm tra findEmptyRow()
+ * ========================================
+ */
+function testFindEmptyRow() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Test với sheet THU
+  const incomeSheet = ss.getSheetByName('THU');
+  if (incomeSheet) {
+    Logger.log('=== TEST SHEET THU ===');
+    Logger.log('getLastRow(): ' + incomeSheet.getLastRow());
+    Logger.log('findEmptyRow(): ' + findEmptyRow(incomeSheet, 2)); // Cột B = Ngày
+  }
+  
+  // Test với sheet QUẢN LÝ NỢ
+  const debtSheet = ss.getSheetByName('QUẢN LÝ NỢ');
+  if (debtSheet) {
+    Logger.log('=== TEST SHEET QUẢN LÝ NỢ ===');
+    Logger.log('getLastRow(): ' + debtSheet.getLastRow());
+    Logger.log('findEmptyRow(): ' + findEmptyRow(debtSheet, 2)); // Cột B = Tên khoản nợ
+  }
+  
+  // Test với sheet CHỨNG KHOÁN
+  const stockSheet = ss.getSheetByName('CHỨNG KHOÁN');
+  if (stockSheet) {
+    Logger.log('=== TEST SHEET CHỨNG KHOÁN ===');
+    Logger.log('getLastRow(): ' + stockSheet.getLastRow());
+    Logger.log('findEmptyRow(): ' + findEmptyRow(stockSheet, 2)); // Cột B = Ngày
+  }
+}
+
+// ==================== ORIGINAL UTILS FUNCTIONS ====================
+
+/**
+ * Lấy danh sách khoản nợ từ QUẢN LÝ NỢ - FIXED VERSION
  */
 function getDebtList() {
   try {
@@ -20,12 +143,20 @@ function getDebtList() {
       return ['Chưa có khoản nợ'];
     }
     
-    const data = sheet.getDataRange().getValues();
+    // ✅ FIX: Sử dụng findEmptyRow() thay vì getDataRange()
+    const emptyRow = findEmptyRow(sheet, 2);
+    const dataRows = emptyRow - 2; // Trừ header và bắt đầu từ 0
+    
+    if (dataRows <= 0) {
+      return ['Chưa có khoản nợ'];
+    }
+    
+    const data = sheet.getRange(2, 2, dataRows, 1).getValues();
     const debtList = [];
     
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][1]) { // Cột B: Tên khoản nợ
-        debtList.push(data[i][1]);
+    for (let i = 0; i < data.length; i++) {
+      if (data[i][0]) { // Cột B: Tên khoản nợ
+        debtList.push(data[i][0]);
       }
     }
     
@@ -420,4 +551,38 @@ function getActiveUserEmail() {
  */
 function isOwner() {
   return Session.getActiveUser().getEmail() === getSpreadsheet().getOwner().getEmail();
+}
+
+/**
+ * Format số tiền (wrapper for formatCurrency in Main.gs)
+ */
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(amount);
+}
+
+/**
+ * Lấy spreadsheet hiện tại
+ */
+function getSpreadsheet() {
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+
+/**
+ * Lấy sheet theo tên
+ */
+function getSheet(sheetName) {
+  return getSpreadsheet().getSheetByName(sheetName);
+}
+
+/**
+ * Force recalculate toàn bộ sheet
+ */
+function forceRecalculate() {
+  SpreadsheetApp.flush();
+  getSpreadsheet().getSheets().forEach(sheet => {
+    sheet.getDataRange().getValues();
+  });
 }

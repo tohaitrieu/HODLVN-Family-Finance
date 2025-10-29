@@ -1,6 +1,6 @@
 /**
  * ===============================================
- * MAIN.GS - FILE CHÍNH HỆ THỐNG QUẢN LÝ TÀI CHÍNH v3.2
+ * MAIN.GS - FILE CHÍNH HỆ THỐNG QUẢN LÝ TÀI CHÍNH v3.3
  * ===============================================
  * 
  * Kiến trúc Module:
@@ -11,13 +11,19 @@
  * - BudgetManager.gs: Quản lý ngân sách
  * - DashboardManager.gs: Quản lý dashboard & thống kê
  * 
- * VERSION: 3.2 - Added Setup Wizard
+ * VERSION: 3.3 - Fixed appendRow issue in Setup Wizard
+ * CHANGELOG v3.3:
+ * - Fix lỗi appendRow() trong processSetupWizard chèn dữ liệu vào dòng 1001
+ * - Thay appendRow() bằng getRange().setValues() để insert đúng vị trí
+ * - Sửa trạng thái ban đầu từ "Đang trả" thành "Chưa trả"
+ * - Fix format lãi suất (chia 100 để chuyển từ % sang decimal)
+ * - Thêm tính năng tự động thêm khoản thu khi thêm nợ trong Setup Wizard
  */
 
 // ==================== CẤU HÌNH TOÀN CỤC ====================
 
 const APP_CONFIG = {
-  VERSION: '3.2',
+  VERSION: '3.3',
   APP_NAME: '💰 Quản lý Tài chính',
   
   // Danh sách các sheet
@@ -218,7 +224,7 @@ function showSetupWizard() {
     const html = HtmlService.createHtmlOutputFromFile('SetupWizard')
       .setWidth(700)
       .setHeight(650);
-    SpreadsheetApp.getUi().showModalDialog(html, '🚀 Thiết lập Hệ thống Quản lý Tài chính v3.2');
+    SpreadsheetApp.getUi().showModalDialog(html, '🚀 Thiết lập Hệ thống Quản lý Tài chính v3.3');
   } catch (error) {
     showError('Không thể mở Setup Wizard', 
       'Vui lòng đảm bảo file SetupWizard.html đã được tạo trong Apps Script.\n\n' +
@@ -263,24 +269,10 @@ function processSetupWizard(setupData) {
     sheet.getRange('C2:C').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
     sheet.setFrozenRows(1);
     
-    // Data validation cho Nguồn thu
+    // ⚠️ QUAN TRỌNG: KHÔNG set validation ngay - sẽ set SAU khi đã insert dữ liệu
+    // Vì setupData.balance.source có thể là giá trị bất kỳ
     const sourceRange = sheet.getRange('D2:D1000');
-    sourceRange.setNumberFormat('@'); // Set as plain text TRƯỚC validation
-    const sourceRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList([
-        'Lương',
-        'MMO (Make Money Online)',
-        'Thưởng',
-        'Bán CK',
-        'Bán Vàng',
-        'Bán Crypto',
-        'Lãi đầu tư',
-        'Thu hồi nợ',
-        'Khác'
-      ])
-      .setAllowInvalid(false)
-      .build();
-    sourceRange.setDataValidation(sourceRule);
+    sourceRange.setNumberFormat('@'); // Set as plain text
     
     // Sheet CHI - Khởi tạo thủ công để không có dữ liệu mẫu
     sheet = ss.getSheetByName(APP_CONFIG.SHEETS.EXPENSE);
@@ -344,10 +336,16 @@ function processSetupWizard(setupData) {
       setupData.balance.source,
       'Số dư ban đầu (Setup Wizard)'
     ];
-    incomeSheet.appendRow(incomeData);
+    
+    // ✅ FIX: Sử dụng getRange() thay vì appendRow()
+    incomeSheet.getRange(2, 1, 1, incomeData.length).setValues([incomeData]);
+    
+    // Format dòng vừa thêm
+    incomeSheet.getRange(2, 2).setNumberFormat('dd/mm/yyyy');
+    incomeSheet.getRange(2, 3).setNumberFormat('#,##0');
     
     // ============================================================
-    // BƯỚC 3: Thêm khoản nợ (nếu có)
+    // BƯỚC 3: Thêm khoản nợ (nếu có) - FIXED VERSION
     // ============================================================
     if (setupData.debt) {
       const debtSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
@@ -355,22 +353,83 @@ function processSetupWizard(setupData) {
       const dueDate = new Date(startDate);
       dueDate.setMonth(dueDate.getMonth() + setupData.debt.term);
       
-      const debtData = [
-        1, // STT
-        setupData.debt.name,
-        setupData.debt.principal,
-        setupData.debt.rate,
-        setupData.debt.term,
-        startDate,
-        dueDate,
-        0, // Đã trả gốc
-        0, // Đã trả lãi
-        setupData.debt.principal, // Còn nợ
-        'Đang trả',
-        'Khởi tạo từ Setup Wizard'
+      // ✅ CRITICAL: Chia làm 2 phần để KHÔNG ghi đè công thức ở cột J
+      
+      // Phần 1: Cột A-I (STT đến Đã trả lãi) - 9 cột
+      const debtDataPart1 = [
+        1, // A: STT
+        setupData.debt.name, // B: Tên khoản nợ
+        setupData.debt.principal, // C: Gốc
+        setupData.debt.rate / 100, // D: Lãi suất (chuyển % sang decimal)
+        setupData.debt.term, // E: Kỳ hạn
+        startDate, // F: Ngày vay
+        dueDate, // G: Đáo hạn
+        0, // H: Đã trả gốc
+        0  // I: Đã trả lãi
       ];
-      debtSheet.appendRow(debtData);
+      
+      // Phần 2: Cột K-L (Trạng thái và Ghi chú) - 2 cột
+      const debtDataPart2 = [
+        'Chưa trả', // K: Trạng thái
+        'Khởi tạo từ Setup Wizard' // L: Ghi chú
+      ];
+      
+      // ✅ Insert Phần 1: Cột A-I (9 cột)
+      debtSheet.getRange(2, 1, 1, debtDataPart1.length).setValues([debtDataPart1]);
+      
+      // ✅ Bỏ qua cột J (cột 10) - GIỮ NGUYÊN CÔNG THỨC =C2-H2
+      
+      // ✅ Insert Phần 2: Cột K-L (2 cột, bắt đầu từ cột 11)
+      debtSheet.getRange(2, 11, 1, debtDataPart2.length).setValues([debtDataPart2]);
+      
+      // ✅ FIX: Format các cột
+      debtSheet.getRange(2, 3).setNumberFormat('#,##0'); // Cột C: Gốc
+      debtSheet.getRange(2, 4).setNumberFormat('0.00"%"'); // Cột D: Lãi suất
+      debtSheet.getRange(2, 6).setNumberFormat('dd/mm/yyyy'); // Cột F: Ngày vay
+      debtSheet.getRange(2, 7).setNumberFormat('dd/mm/yyyy'); // Cột G: Đáo hạn
+      debtSheet.getRange(2, 8).setNumberFormat('#,##0'); // Cột H: Đã trả gốc
+      debtSheet.getRange(2, 9).setNumberFormat('#,##0'); // Cột I: Đã trả lãi
+      // Cột J có công thức nên không cần format
+      
+      // ✅ THÊM: Tự động thêm khoản thu tương ứng
+      const incomeRow = 3; // Dòng 2 đã có số dư ban đầu, thêm vào dòng 3
+      
+      const autoIncomeData = [
+        2, // STT = 2
+        startDate,
+        setupData.debt.principal,
+        'Vay nợ',
+        `Vay: ${setupData.debt.name}`
+      ];
+      
+      incomeSheet.getRange(incomeRow, 1, 1, autoIncomeData.length).setValues([autoIncomeData]);
+      
+      // Format
+      incomeSheet.getRange(incomeRow, 2).setNumberFormat('dd/mm/yyyy');
+      incomeSheet.getRange(incomeRow, 3).setNumberFormat('#,##0');
     }
+    
+    // ============================================================
+    // BƯỚC 3.5: Set Data Validation cho sheet THU SAU KHI ĐÃ INSERT DỮ LIỆU
+    // ============================================================
+    // ✅ FIX: Set validation SAU để tránh conflict với dữ liệu từ Setup Wizard
+    const incomeSourceRange = incomeSheet.getRange('D2:D1000');
+    const incomeSourceRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList([
+        'Lương',
+        'MMO (Make Money Online)',
+        'Thưởng',
+        'Bán CK',
+        'Bán Vàng',
+        'Bán Crypto',
+        'Lãi đầu tư',
+        'Thu hồi nợ',
+        'Vay nợ',
+        'Khác'
+      ])
+      .setAllowInvalid(true) // ✅ Cho phép giá trị ngoài danh sách
+      .build();
+    incomeSourceRange.setDataValidation(incomeSourceRule);
     
     // ============================================================
     // BƯỚC 4: Khởi tạo Budget với giá trị từ form
@@ -513,7 +572,8 @@ function processSetupWizard(setupData) {
         '━━━━━━━━━━━━━━━━━━━━━━\n' +
         '💰 Số dư ban đầu: ' + formatCurrency(setupData.balance.amount) + '\n' +
         (setupData.debt ? 
-          '📋 Khoản nợ: ' + setupData.debt.name + ' - ' + formatCurrency(setupData.debt.principal) + '\n' : 
+          '📋 Khoản nợ: ' + setupData.debt.name + ' - ' + formatCurrency(setupData.debt.principal) + '\n' +
+          '   → Đã tự động thêm khoản thu "Vay nợ"\n' : 
           '📋 Khoản nợ: Không có\n') +
         '📊 Tổng ngân sách/tháng: ' + formatCurrency(totalBudget) + '\n' +
         '━━━━━━━━━━━━━━━━━━━━━━\n\n' +
@@ -655,10 +715,10 @@ function showAbout() {
   ui.alert(
     'Giới thiệu hệ thống',
     `💰 ${APP_CONFIG.APP_NAME} v${APP_CONFIG.VERSION}\n\n` +
-    '✨ MỚI TRONG v3.2:\n' +
-    '   • Setup Wizard 3 bước chuyên nghiệp\n' +
-    '   • Khởi tạo với dữ liệu thật của bạn\n' +
-    '   • Không còn dữ liệu mẫu gây nhầm lẫn\n\n' +
+    '✨ MỚI TRONG v3.3:\n' +
+    '   • Fix lỗi Setup Wizard chèn dữ liệu sai vị trí\n' +
+    '   • Tự động thêm khoản thu khi thêm nợ\n' +
+    '   • Cải thiện logic trạng thái nợ\n\n' +
     '🎯 Tính năng:\n' +
     '   • Quản lý thu chi hàng ngày\n' +
     '   • Theo dõi nợ và lãi\n' +
