@@ -64,6 +64,7 @@ function onOpen() {
     .addSubMenu(ui.createMenu('📝 Nhập liệu')
       .addItem('📥 Nhập Thu nhập', 'showIncomeForm')
       .addItem('📤 Nhập Chi tiêu', 'showExpenseForm')
+      .addItem('💳 Thêm Khoản Nợ', 'showDebtManagementForm')
       .addItem('💳 Trả nợ', 'showDebtPaymentForm')
       .addSeparator()
       .addItem('📈 Giao dịch Chứng khoán', 'showStockForm')
@@ -72,8 +73,35 @@ function onOpen() {
       .addItem('💼 Đầu tư khác', 'showOtherInvestmentForm'))
     
     .addSeparator()
+
+    // === NHÓM 2: BUDGET ===
+    .addSubMenu(ui.createMenu('💵 Ngân sách')
+      .addItem('⚠️ Kiểm tra Budget', 'checkBudgetWarnings')
+      .addItem('📊 Báo cáo Chi tiêu', 'showExpenseReport')
+      .addItem('💰 Báo cáo Đầu tư', 'showInvestmentReport'))
     
-    // === NHÓM 2: KHỞI TẠO SHEET ===
+    .addSeparator()
+    
+    // === NHÓM 3: THỐNG KÊ ===
+    .addSubMenu(ui.createMenu('📊 Thống kê & Dashboard')
+      .addItem('🔄 Cập nhật Dashboard', 'refreshDashboard')
+      .addSeparator()
+      .addItem('📅 Xem Tất cả', 'viewAll')
+      .addItem('📊 Xem Năm hiện tại', 'viewCurrentYear')
+      .addItem('🗓️ Xem Quý hiện tại', 'viewCurrentQuarter')
+      .addItem('📆 Xem Tháng hiện tại', 'viewCurrentMonth'))
+    
+    .addSeparator()
+    
+    // === NHÓM 4: TIỆN ÍCH ===
+    .addSubMenu(ui.createMenu('🛠️ Tiện ích')
+      .addItem('🔍 Tìm kiếm giao dịch', 'searchTransaction')
+      .addItem('📤 Xuất báo cáo PDF', 'exportToPDF')
+      .addItem('🗑️ Xóa dữ liệu test', 'clearTestData'))
+    
+    .addSeparator()
+
+    // === NHÓM 5: KHỞI TẠO SHEET ===
     .addSubMenu(ui.createMenu('⚙️ Khởi tạo Sheet')
       .addItem('🔄 Khởi tạo TẤT CẢ Sheet', 'initializeAllSheets')
       .addSeparator()
@@ -89,33 +117,6 @@ function onOpen() {
       .addSeparator()
       .addItem('💰 Khởi tạo Sheet BUDGET', 'initializeBudgetSheet')
       .addItem('📊 Khởi tạo Sheet TỔNG QUAN', 'initializeDashboardSheet'))
-    
-    .addSeparator()
-    
-    // === NHÓM 3: THỐNG KÊ ===
-    .addSubMenu(ui.createMenu('📊 Thống kê & Dashboard')
-      .addItem('🔄 Cập nhật Dashboard', 'refreshDashboard')
-      .addSeparator()
-      .addItem('📅 Xem Tất cả', 'viewAll')
-      .addItem('📊 Xem Năm hiện tại', 'viewCurrentYear')
-      .addItem('🗓️ Xem Quý hiện tại', 'viewCurrentQuarter')
-      .addItem('📆 Xem Tháng hiện tại', 'viewCurrentMonth'))
-    
-    .addSeparator()
-    
-    // === NHÓM 4: BUDGET ===
-    .addSubMenu(ui.createMenu('💵 Ngân sách')
-      .addItem('⚠️ Kiểm tra Budget', 'checkBudgetWarnings')
-      .addItem('📊 Báo cáo Chi tiêu', 'showExpenseReport')
-      .addItem('💰 Báo cáo Đầu tư', 'showInvestmentReport'))
-    
-    .addSeparator()
-    
-    // === NHÓM 5: TIỆN ÍCH ===
-    .addSubMenu(ui.createMenu('🛠️ Tiện ích')
-      .addItem('🔍 Tìm kiếm giao dịch', 'searchTransaction')
-      .addItem('📤 Xuất báo cáo PDF', 'exportToPDF')
-      .addItem('🗑️ Xóa dữ liệu test', 'clearTestData'))
     
     .addSeparator()
     
@@ -148,7 +149,12 @@ function showExpenseForm() {
 function showDebtPaymentForm() {
   showForm('DebtPaymentForm', '💳 Trả nợ', 450, 450);
 }
-
+/**
+ * Hiển thị form thêm khoản nợ mới
+ */
+function showDebtManagementForm() {
+  showForm('DebtManagementForm', '💳 Thêm Khoản Nợ Mới', 500, 650);
+}
 /**
  * Hiển thị form giao dịch chứng khoán
  */
