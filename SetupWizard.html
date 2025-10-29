@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      
+      body {
+        font-family: 'Google Sans', Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+      }
+      
+      .wizard-container {
+        max-width: 650px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        overflow: hidden;
+      }
+      
+      .wizard-header {
+        background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+      
+      .wizard-header h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
+      
+      .wizard-header p {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+      
+      .progress-container {
+        background: #f5f5f5;
+        padding: 20px 30px;
+      }
+      
+      .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+      }
+      
+      .progress-step {
+        text-align: center;
+        flex: 1;
+        position: relative;
+        z-index: 1;
+      }
+      
+      .progress-step-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #ddd;
+        margin: 0 auto 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #666;
+        transition: all 0.3s;
+      }
+      
+      .progress-step.active .progress-step-circle {
+        background: #4285f4;
+        color: white;
+        transform: scale(1.1);
+      }
+      
+      .progress-step.completed .progress-step-circle {
+        background: #34a853;
+        color: white;
+      }
+      
+      .progress-step-label {
+        font-size: 12px;
+        color: #666;
+        font-weight: 500;
+      }
+      
+      .progress-step.active .progress-step-label {
+        color: #4285f4;
+        font-weight: bold;
+      }
+      
+      .progress-line {
+        position: absolute;
+        top: 20px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #ddd;
+        z-index: 0;
+      }
+      
+      .progress-line-fill {
+        height: 100%;
+        background: #4285f4;
+        transition: width 0.3s;
+        width: 0%;
+      }
+      
+      .wizard-content {
+        padding: 30px;
+      }
+      
+      .step {
+        display: none;
+      }
+      
+      .step.active {
+        display: block;
+        animation: fadeIn 0.3s;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .step-title {
+        font-size: 20px;
+        color: #333;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      
+      .step-description {
+        color: #666;
+        margin-bottom: 25px;
+        font-size: 14px;
+      }
+      
+      .input-group {
+        margin-bottom: 20px;
+      }
+      
+      label {
+        display: block;
+        font-weight: 500;
+        color: #444;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+      
+      label .required {
+        color: #e74c3c;
+        margin-left: 3px;
+      }
+      
+      input, select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border 0.3s;
+        font-family: inherit;
+      }
+      
+      input:focus, select:focus {
+        outline: none;
+        border-color: #4285f4;
+      }
+      
+      input.error {
+        border-color: #e74c3c;
+      }
+      
+      .radio-group {
+        display: flex;
+        gap: 20px;
+        margin-top: 10px;
+      }
+      
+      .radio-label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        font-weight: normal;
+      }
+      
+      .radio-label input[type="radio"] {
+        width: auto;
+        margin-right: 8px;
+      }
+      
+      .collapsible-content {
+        margin-top: 20px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+      }
+      
+      .info-box {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        color: #1976d2;
+      }
+      
+      .budget-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+      
+      .buttons {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e0e0e0;
+      }
+      
+      button {
+        padding: 12px 30px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s;
+        font-family: inherit;
+      }
+      
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      
+      .btn-next {
+        background: #4285f4;
+        color: white;
+      }
+      
+      .btn-next:hover:not(:disabled) {
+        background: #3367d6;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
+      }
+      
+      .btn-prev {
+        background: #f5f5f5;
+        color: #666;
+      }
+      
+      .btn-prev:hover {
+        background: #e0e0e0;
+      }
+      
+      .btn-finish {
+        background: #34a853;
+        color: white;
+      }
+      
+      .btn-finish:hover:not(:disabled) {
+        background: #2d8e47;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(52, 168, 83, 0.3);
+      }
+      
+      .btn-skip {
+        background: transparent;
+        color: #666;
+        text-decoration: underline;
+        padding: 12px 20px;
+      }
+      
+      .btn-skip:hover {
+        color: #333;
+      }
+      
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 40px;
+      }
+      
+      .loading.active {
+        display: block;
+      }
+      
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #4285f4;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .helper-text {
+        font-size: 12px;
+        color: #999;
+        margin-top: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wizard-container">
+      <!-- Header -->
+      <div class="wizard-header">
+        <h1>🎉 Chào mừng đến với Hệ thống Quản lý Tài chính v3.0!</h1>
+        <p>Thiết lập một số thông tin cơ bản để bắt đầu quản lý tài chính hiệu quả</p>
+      </div>
+      
+      <!-- Progress -->
+      <div class="progress-container">
+        <div class="progress-steps">
+          <div class="progress-line">
+            <div class="progress-line-fill" id="progressLineFill"></div>
+          </div>
+          <div class="progress-step active" data-step="1">
+            <div class="progress-step-circle">1</div>
+            <div class="progress-step-label">Số dư</div>
+          </div>
+          <div class="progress-step" data-step="2">
+            <div class="progress-step-circle">2</div>
+            <div class="progress-step-label">Khoản nợ</div>
+          </div>
+          <div class="progress-step" data-step="3">
+            <div class="progress-step-circle">3</div>
+            <div class="progress-step-label">Ngân sách</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Content -->
+      <div class="wizard-content">
+        <!-- BƯỚC 1: SỐ DƯ BAN ĐẦU -->
+        <div class="step active" id="step1">
+          <h2 class="step-title">💰 Số dư ban đầu</h2>
+          <p class="step-description">Nhập số tiền bạn hiện có để bắt đầu theo dõi tài chính</p>
+          
+          <div class="info-box">
+            💡 Đây sẽ được ghi nhận là khoản thu nhập đầu tiên trong hệ thống
+          </div>
+          
+          <div class="input-group">
+            <label>Số dư hiện tại của bạn: <span class="required">*</span></label>
+            <input type="number" id="initialBalance" placeholder="Ví dụ: 50000000" required min="0">
+            <div class="helper-text">Nhập số tiền bạn đang có (VNĐ)</div>
+          </div>
+          
+          <div class="input-group">
+            <label>Ngày ghi nhận: <span class="required">*</span></label>
+            <input type="date" id="balanceDate" required>
+            <div class="helper-text">Ngày bắt đầu quản lý tài chính</div>
+          </div>
+          
+          <div class="input-group">
+            <label>Nguồn số dư:</label>
+            <select id="balanceSource">
+              <option value="Tiết kiệm">Tiết kiệm tích lũy</option>
+              <option value="Lương">Lương</option>
+              <option value="MMO (Make Money Online)">MMO (Make Money Online)</option>
+              <option value="Thưởng">Thưởng</option>
+              <option value="Khác">Khác</option>
+            </select>
+          </div>
+          
+          <div class="buttons">
+            <div></div>
+            <button class="btn-next" onclick="goToStep(2)">Tiếp theo →</button>
+          </div>
+        </div>
+
+        <!-- BƯỚC 2: KHOẢN NỢ -->
+        <div class="step" id="step2">
+          <h2 class="step-title">📋 Khoản nợ hiện tại</h2>
+          <p class="step-description">Thông tin về các khoản nợ cần quản lý (nếu có)</p>
+          
+          <div class="input-group">
+            <label>Bạn có khoản nợ nào cần theo dõi không?</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="hasDebt" value="no" checked onchange="toggleDebtFields()">
+                Không có nợ
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="hasDebt" value="yes" onchange="toggleDebtFields()">
+                Có khoản nợ
+              </label>
+            </div>
+          </div>
+          
+          <div id="debtFields" class="collapsible-content" style="display: none;">
+            <div class="info-box">
+              💡 Bạn có thể thêm nhiều khoản nợ khác sau qua Menu > Nhập liệu > Nhập Trả nợ
+            </div>
+            
+            <div class="input-group">
+              <label>Tên khoản nợ: <span class="required">*</span></label>
+              <input type="text" id="debtName" placeholder="Ví dụ: Vay mua nhà, Thẻ tín dụng">
+            </div>
+            
+            <div class="input-group">
+              <label>Tổng nợ gốc: <span class="required">*</span></label>
+              <input type="number" id="debtPrincipal" placeholder="Ví dụ: 500000000" min="0">
+              <div class="helper-text">Số tiền gốc cần trả (VNĐ)</div>
+            </div>
+            
+            <div class="input-group">
+              <label>Lãi suất (%/năm): <span class="required">*</span></label>
+              <input type="number" id="debtRate" placeholder="Ví dụ: 8.5" step="0.01" min="0" max="100">
+              <div class="helper-text">Lãi suất hàng năm (không phải lãi tháng)</div>
+            </div>
+            
+            <div class="input-group">
+              <label>Kỳ hạn (tháng): <span class="required">*</span></label>
+              <input type="number" id="debtTerm" placeholder="Ví dụ: 240" min="1">
+              <div class="helper-text">Tổng số tháng trả nợ</div>
+            </div>
+            
+            <div class="input-group">
+              <label>Ngày vay: <span class="required">*</span></label>
+              <input type="date" id="debtDate">
+            </div>
+          </div>
+          
+          <div class="buttons">
+            <button class="btn-prev" onclick="goToStep(1)">← Quay lại</button>
+            <div>
+              <button class="btn-skip" onclick="skipDebt()">Bỏ qua</button>
+              <button class="btn-next" onclick="goToStep(3)">Tiếp theo →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BƯỚC 3: NGÂN SÁCH -->
+        <div class="step" id="step3">
+          <h2 class="step-title">📊 Ngân sách hàng tháng</h2>
+          <p class="step-description">Thiết lập mức chi tiêu mục tiêu cho từng danh mục</p>
+          
+          <div class="info-box">
+            💡 Hệ thống sẽ cảnh báo khi chi tiêu vượt ngân sách. Bạn có thể điều chỉnh sau!
+          </div>
+          
+          <div class="budget-grid">
+            <div class="input-group">
+              <label>🍜 Ăn uống:</label>
+              <input type="number" id="budgetFood" placeholder="3000000" min="0" value="3000000">
+            </div>
+            
+            <div class="input-group">
+              <label>🚗 Đi lại:</label>
+              <input type="number" id="budgetTransport" placeholder="1000000" min="0" value="1000000">
+            </div>
+            
+            <div class="input-group">
+              <label>🏠 Nhà ở:</label>
+              <input type="number" id="budgetHousing" placeholder="5000000" min="0" value="5000000">
+            </div>
+            
+            <div class="input-group">
+              <label>💊 Y tế:</label>
+              <input type="number" id="budgetHealth" placeholder="500000" min="0" value="500000">
+            </div>
+            
+            <div class="input-group">
+              <label>📚 Giáo dục:</label>
+              <input type="number" id="budgetEducation" placeholder="1000000" min="0" value="1000000">
+            </div>
+            
+            <div class="input-group">
+              <label>🛍️ Mua sắm:</label>
+              <input type="number" id="budgetShopping" placeholder="2000000" min="0" value="2000000">
+            </div>
+            
+            <div class="input-group">
+              <label>🎮 Giải trí:</label>
+              <input type="number" id="budgetEntertainment" placeholder="1500000" min="0" value="1500000">
+            </div>
+            
+            <div class="input-group">
+              <label>📦 Khác:</label>
+              <input type="number" id="budgetOther" placeholder="1000000" min="0" value="1000000">
+            </div>
+          </div>
+          
+          <div class="buttons">
+            <button class="btn-prev" onclick="goToStep(2)">← Quay lại</button>
+            <button class="btn-finish" onclick="finishSetup()">✅ Hoàn tất thiết lập</button>
+          </div>
+        </div>
+        
+        <!-- LOADING -->
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <h3>Đang khởi tạo hệ thống...</h3>
+          <p style="color: #666; margin-top: 10px;">Vui lòng đợi trong giây lát</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentStep = 1;
+      
+      // Set ngày mặc định là hôm nay
+      document.getElementById('balanceDate').valueAsDate = new Date();
+      document.getElementById('debtDate').valueAsDate = new Date();
+      
+      function toggleDebtFields() {
+        const hasDebt = document.querySelector('input[name="hasDebt"]:checked').value === 'yes';
+        const debtFields = document.getElementById('debtFields');
+        debtFields.style.display = hasDebt ? 'block' : 'none';
+        
+        // Clear required if not shown
+        if (!hasDebt) {
+          document.getElementById('debtName').removeAttribute('required');
+          document.getElementById('debtPrincipal').removeAttribute('required');
+          document.getElementById('debtRate').removeAttribute('required');
+          document.getElementById('debtTerm').removeAttribute('required');
+          document.getElementById('debtDate').removeAttribute('required');
+        } else {
+          document.getElementById('debtName').setAttribute('required', 'required');
+          document.getElementById('debtPrincipal').setAttribute('required', 'required');
+          document.getElementById('debtRate').setAttribute('required', 'required');
+          document.getElementById('debtTerm').setAttribute('required', 'required');
+          document.getElementById('debtDate').setAttribute('required', 'required');
+        }
+      }
+      
+      function goToStep(stepNumber) {
+        // Validate current step
+        if (!validateStep(currentStep)) {
+          return;
+        }
+        
+        // Hide current step
+        document.getElementById('step' + currentStep).classList.remove('active');
+        document.querySelector('.progress-step[data-step="' + currentStep + '"]').classList.remove('active');
+        document.querySelector('.progress-step[data-step="' + currentStep + '"]').classList.add('completed');
+        
+        // Show new step
+        currentStep = stepNumber;
+        document.getElementById('step' + currentStep).classList.add('active');
+        document.querySelector('.progress-step[data-step="' + currentStep + '"]').classList.add('active');
+        
+        // Update progress line
+        const progress = ((currentStep - 1) / 2) * 100;
+        document.getElementById('progressLineFill').style.width = progress + '%';
+        
+        // Scroll to top
+        window.scrollTo(0, 0);
+      }
+      
+      function validateStep(step) {
+        const stepElement = document.getElementById('step' + step);
+        const inputs = stepElement.querySelectorAll('input[required], select[required]');
+        let isValid = true;
+        
+        inputs.forEach(input => {
+          // Skip validation for hidden fields
+          if (input.offsetParent === null) {
+            input.classList.remove('error');
+            return;
+          }
+          
+          if (!input.value || (input.type === 'number' && parseFloat(input.value) < 0)) {
+            input.classList.add('error');
+            isValid = false;
+          } else {
+            input.classList.remove('error');
+          }
+        });
+        
+        if (!isValid) {
+          alert('⚠️ Vui lòng điền đầy đủ thông tin bắt buộc (đánh dấu *)');
+        }
+        
+        return isValid;
+      }
+      
+      function skipDebt() {
+        // Clear debt fields
+        document.querySelector('input[name="hasDebt"][value="no"]').checked = true;
+        toggleDebtFields();
+        goToStep(3);
+      }
+      
+      function finishSetup() {
+        // Validate final step
+        if (!validateStep(3)) {
+          return;
+        }
+        
+        // Show loading
+        document.querySelectorAll('.step').forEach(s => s.style.display = 'none');
+        document.getElementById('loading').classList.add('active');
+        
+        // Collect data
+        const setupData = {
+          balance: {
+            amount: parseFloat(document.getElementById('initialBalance').value),
+            date: document.getElementById('balanceDate').value,
+            source: document.getElementById('balanceSource').value
+          },
+          debt: null,
+          budget: {
+            food: parseFloat(document.getElementById('budgetFood').value) || 0,
+            transport: parseFloat(document.getElementById('budgetTransport').value) || 0,
+            housing: parseFloat(document.getElementById('budgetHousing').value) || 0,
+            health: parseFloat(document.getElementById('budgetHealth').value) || 0,
+            education: parseFloat(document.getElementById('budgetEducation').value) || 0,
+            shopping: parseFloat(document.getElementById('budgetShopping').value) || 0,
+            entertainment: parseFloat(document.getElementById('budgetEntertainment').value) || 0,
+            other: parseFloat(document.getElementById('budgetOther').value) || 0
+          }
+        };
+        
+        // Check if has debt
+        const hasDebt = document.querySelector('input[name="hasDebt"]:checked').value === 'yes';
+        if (hasDebt) {
+          setupData.debt = {
+            name: document.getElementById('debtName').value,
+            principal: parseFloat(document.getElementById('debtPrincipal').value),
+            rate: parseFloat(document.getElementById('debtRate').value),
+            term: parseInt(document.getElementById('debtTerm').value),
+            date: document.getElementById('debtDate').value
+          };
+        }
+        
+        // Call Apps Script
+        google.script.run
+          .withSuccessHandler(onSetupComplete)
+          .withFailureHandler(onSetupError)
+          .processSetupWizard(setupData);
+      }
+      
+      function onSetupComplete(result) {
+        if (result.success) {
+          alert('🎉 ' + result.message);
+          google.script.host.close();
+        } else {
+          document.getElementById('loading').classList.remove('active');
+          document.getElementById('step3').classList.add('active');
+          alert('❌ ' + result.message);
+        }
+      }
+      
+      function onSetupError(error) {
+        document.getElementById('loading').classList.remove('active');
+        document.getElementById('step3').classList.add('active');
+        alert('❌ Lỗi: ' + error.message);
+      }
+      
+      // Remove error styling on input
+      document.querySelectorAll('input, select').forEach(input => {
+        input.addEventListener('input', function() {
+          this.classList.remove('error');
+        });
+      });
+    </script>
+  </body>
+</html>

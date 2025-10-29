@@ -1,21 +1,23 @@
 /**
  * ===============================================
- * MAIN.GS - FILE CHÍNH HỆ THỐNG QUẢN LÝ TÀI CHÍNH v3.0
+ * MAIN.GS - FILE CHÍNH HỆ THỐNG QUẢN LÝ TÀI CHÍNH v3.2
  * ===============================================
  * 
  * Kiến trúc Module:
- * - Main.gs: Điều phối, Menu, UI
+ * - Main.gs: Điều phối, Menu, UI, Setup Wizard
  * - SheetInitializer.gs: Khởi tạo các sheet
  * - FormHandlers.gs: Xử lý form nhập liệu
  * - DataProcessors.gs: Xử lý giao dịch
  * - BudgetManager.gs: Quản lý ngân sách
  * - DashboardManager.gs: Quản lý dashboard & thống kê
+ * 
+ * VERSION: 3.2 - Added Setup Wizard
  */
 
 // ==================== CẤU HÌNH TOÀN CỤC ====================
 
 const APP_CONFIG = {
-  VERSION: '3.0',
+  VERSION: '3.2',
   APP_NAME: '💰 Quản lý Tài chính',
   
   // Danh sách các sheet
@@ -197,67 +199,334 @@ function showForm(formName, title, width, height) {
   }
 }
 
-// ==================== KHỞI TẠO TẤT CẢ SHEET ====================
+// ==================== SETUP WIZARD - NEW IN v3.2 ====================
 
 /**
- * Khởi tạo tất cả các sheet
+ * Khởi tạo tất cả các sheet - PHIÊN BẢN MỚI VỚI SETUP WIZARD
+ * Thay thế quy trình khởi tạo cũ bằng wizard 3 bước
  */
 function initializeAllSheets() {
-  const ui = SpreadsheetApp.getUi();
-  const response = ui.alert(
-    'Xác nhận khởi tạo',
-    '⚠️ Bạn có chắc muốn khởi tạo TẤT CẢ sheet?\n\n' +
-    'Lưu ý: Các sheet đã tồn tại sẽ BỊ XÓA và tạo lại từ đầu!',
-    ui.ButtonSet.YES_NO
-  );
-  
-  if (response !== ui.Button.YES) {
-    return;
-  }
-  
+  // Hiển thị Setup Wizard thay vì confirm dialog
+  showSetupWizard();
+}
+
+/**
+ * Hiển thị Setup Wizard
+ */
+function showSetupWizard() {
   try {
-    const progress = [];
+    const html = HtmlService.createHtmlOutputFromFile('SetupWizard')
+      .setWidth(700)
+      .setHeight(650);
+    SpreadsheetApp.getUi().showModalDialog(html, '🚀 Thiết lập Hệ thống Quản lý Tài chính v3.2');
+  } catch (error) {
+    showError('Không thể mở Setup Wizard', 
+      'Vui lòng đảm bảo file SetupWizard.html đã được tạo trong Apps Script.\n\n' +
+      'Lỗi: ' + error.message);
+  }
+}
+
+/**
+ * Xử lý dữ liệu từ Setup Wizard
+ * @param {Object} setupData - Dữ liệu từ form wizard
+ * @return {Object} Kết quả thực thi
+ */
+function processSetupWizard(setupData) {
+  try {
+    const ss = getSpreadsheet();
     
-    // Khởi tạo từng sheet
-    progress.push('📥 Khởi tạo Sheet THU...');
-    initializeIncomeSheet(true);
+    // ============================================================
+    // BƯỚC 1: Khởi tạo tất cả sheets (KHÔNG có dữ liệu mẫu)
+    // ============================================================
     
-    progress.push('📤 Khởi tạo Sheet CHI...');
-    initializeExpenseSheet(true);
+    // Sheet THU - Khởi tạo thủ công để không có dữ liệu mẫu
+    let sheet = ss.getSheetByName(APP_CONFIG.SHEETS.INCOME);
+    if (sheet) ss.deleteSheet(sheet);
+    sheet = ss.insertSheet(APP_CONFIG.SHEETS.INCOME);
     
-    progress.push('💳 Khởi tạo Sheet TRẢ NỢ...');
-    initializeDebtPaymentSheet(true);
+    const incomeHeaders = ['STT', 'Ngày', 'Số tiền', 'Nguồn thu', 'Ghi chú'];
+    sheet.getRange(1, 1, 1, incomeHeaders.length)
+      .setValues([incomeHeaders])
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center')
+      .setBackground(APP_CONFIG.COLORS.HEADER_BG)
+      .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
     
-    progress.push('📊 Khởi tạo Sheet QUẢN LÝ NỢ...');
-    initializeDebtManagementSheet(true);
+    sheet.setColumnWidth(1, 50);
+    sheet.setColumnWidth(2, 100);
+    sheet.setColumnWidth(3, 120);
+    sheet.setColumnWidth(4, 150);
+    sheet.setColumnWidth(5, 300);
     
-    progress.push('📈 Khởi tạo Sheet CHỨNG KHOÁN...');
-    initializeStockSheet(true);
+    sheet.getRange('A2:A').setNumberFormat('0');
+    sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
+    sheet.getRange('C2:C').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    sheet.setFrozenRows(1);
     
-    progress.push('🪙 Khởi tạo Sheet VÀNG...');
-    initializeGoldSheet(true);
+    // Data validation cho Nguồn thu
+    const sourceRange = sheet.getRange('D2:D1000');
+    sourceRange.setNumberFormat('@'); // Set as plain text TRƯỚC validation
+    const sourceRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList([
+        'Lương',
+        'MMO (Make Money Online)',
+        'Thưởng',
+        'Bán CK',
+        'Bán Vàng',
+        'Bán Crypto',
+        'Lãi đầu tư',
+        'Thu hồi nợ',
+        'Khác'
+      ])
+      .setAllowInvalid(false)
+      .build();
+    sourceRange.setDataValidation(sourceRule);
     
-    progress.push('₿ Khởi tạo Sheet CRYPTO...');
-    initializeCryptoSheet(true);
+    // Sheet CHI - Khởi tạo thủ công để không có dữ liệu mẫu
+    sheet = ss.getSheetByName(APP_CONFIG.SHEETS.EXPENSE);
+    if (sheet) ss.deleteSheet(sheet);
+    sheet = ss.insertSheet(APP_CONFIG.SHEETS.EXPENSE);
     
-    progress.push('💼 Khởi tạo Sheet ĐẦU TƯ KHÁC...');
-    initializeOtherInvestmentSheet(true);
+    const expenseHeaders = ['STT', 'Ngày', 'Số tiền', 'Danh mục', 'Chi tiết', 'Ghi chú'];
+    sheet.getRange(1, 1, 1, expenseHeaders.length)
+      .setValues([expenseHeaders])
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center')
+      .setBackground(APP_CONFIG.COLORS.HEADER_BG)
+      .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
     
-    progress.push('💰 Khởi tạo Sheet BUDGET...');
-    initializeBudgetSheet(true);
+    sheet.setColumnWidth(1, 50);
+    sheet.setColumnWidth(2, 100);
+    sheet.setColumnWidth(3, 120);
+    sheet.setColumnWidth(4, 120);
+    sheet.setColumnWidth(5, 200);
+    sheet.setColumnWidth(6, 250);
     
-    progress.push('📊 Khởi tạo Sheet TỔNG QUAN...');
-    initializeDashboardSheet(true);
+    sheet.getRange('A2:A').setNumberFormat('0');
+    sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
+    sheet.getRange('C2:C').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    sheet.setFrozenRows(1);
     
-    showSuccess(
-      'Hoàn thành!',
-      '✅ Đã khởi tạo thành công TẤT CẢ sheet!\n\n' +
-      progress.join('\n') +
-      '\n\n🎉 Hệ thống sẵn sàng sử dụng!'
-    );
+    // Data validation cho Danh mục
+    const categoryRange = sheet.getRange('D2:D1000');
+    categoryRange.setNumberFormat('@');
+    const categoryRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList([
+        'Ăn uống',
+        'Đi lại',
+        'Nhà ở',
+        'Y tế',
+        'Giáo dục',
+        'Mua sắm',
+        'Giải trí',
+        'Khác'
+      ])
+      .setAllowInvalid(false)
+      .build();
+    categoryRange.setDataValidation(categoryRule);
+    
+    // Khởi tạo các sheet còn lại bằng SheetInitializer
+    SheetInitializer.initializeDebtPaymentSheet();
+    SheetInitializer.initializeDebtManagementSheet();
+    SheetInitializer.initializeStockSheet();
+    SheetInitializer.initializeGoldSheet();
+    SheetInitializer.initializeCryptoSheet();
+    SheetInitializer.initializeOtherInvestmentSheet();
+    
+    // ============================================================
+    // BƯỚC 2: Thêm số dư ban đầu vào THU
+    // ============================================================
+    const incomeSheet = ss.getSheetByName(APP_CONFIG.SHEETS.INCOME);
+    const incomeData = [
+      1, // STT
+      new Date(setupData.balance.date),
+      setupData.balance.amount,
+      setupData.balance.source,
+      'Số dư ban đầu (Setup Wizard)'
+    ];
+    incomeSheet.appendRow(incomeData);
+    
+    // ============================================================
+    // BƯỚC 3: Thêm khoản nợ (nếu có)
+    // ============================================================
+    if (setupData.debt) {
+      const debtSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
+      const startDate = new Date(setupData.debt.date);
+      const dueDate = new Date(startDate);
+      dueDate.setMonth(dueDate.getMonth() + setupData.debt.term);
+      
+      const debtData = [
+        1, // STT
+        setupData.debt.name,
+        setupData.debt.principal,
+        setupData.debt.rate,
+        setupData.debt.term,
+        startDate,
+        dueDate,
+        0, // Đã trả gốc
+        0, // Đã trả lãi
+        setupData.debt.principal, // Còn nợ
+        'Đang trả',
+        'Khởi tạo từ Setup Wizard'
+      ];
+      debtSheet.appendRow(debtData);
+    }
+    
+    // ============================================================
+    // BƯỚC 4: Khởi tạo Budget với giá trị từ form
+    // ============================================================
+    sheet = ss.getSheetByName(APP_CONFIG.SHEETS.BUDGET);
+    if (sheet) ss.deleteSheet(sheet);
+    sheet = ss.insertSheet(APP_CONFIG.SHEETS.BUDGET);
+    
+    // Header
+    sheet.getRange('A1').setValue('NGÂN SÁCH THÁNG')
+      .setFontSize(16)
+      .setFontWeight('bold')
+      .setBackground('#4472C4')
+      .setFontColor('white');
+    sheet.getRange('A1:D1').merge();
+    
+    // Section 1: CHI TIÊU
+    sheet.getRange('A2').setValue('📊 CHI TIÊU')
+      .setFontWeight('bold')
+      .setBackground('#E7E6E6');
+    sheet.getRange('A2:D2').merge();
+    
+    const categoryHeaders = ['Danh mục', 'Ngân sách', 'Đã chi', 'Tỷ lệ %'];
+    sheet.getRange(3, 1, 1, 4)
+      .setValues([categoryHeaders])
+      .setFontWeight('bold')
+      .setBackground('#D9D9D9');
+    
+    // Categories với budget values từ form
+    const categories = [
+      ['Ăn uống', setupData.budget.food],
+      ['Đi lại', setupData.budget.transport],
+      ['Nhà ở', setupData.budget.housing],
+      ['Y tế', setupData.budget.health],
+      ['Giáo dục', setupData.budget.education],
+      ['Mua sắm', setupData.budget.shopping],
+      ['Giải trí', setupData.budget.entertainment],
+      ['Khác', setupData.budget.other]
+    ];
+    
+    categories.forEach((cat, idx) => {
+      const row = 4 + idx;
+      sheet.getRange(row, 1).setValue(cat[0]);
+      sheet.getRange(row, 2).setValue(cat[1]);
+      sheet.getRange(row, 3).setValue(0);
+      sheet.getRange(row, 4).setFormula(`=IFERROR(C${row}/B${row}, 0)`);
+    });
+    
+    // Format
+    sheet.getRange('B4:C11').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    sheet.getRange('D4:D11').setNumberFormat('0.00%');
+    
+    // Conditional formatting cho tỷ lệ
+    const percentRange = sheet.getRange('D4:D11');
+    
+    // Xanh: < 70%
+    const rule1 = SpreadsheetApp.newConditionalFormatRule()
+      .whenNumberLessThan(0.7)
+      .setBackground('#C6EFCE')
+      .setRanges([percentRange])
+      .build();
+    
+    // Vàng: 70-90%
+    const rule2 = SpreadsheetApp.newConditionalFormatRule()
+      .whenNumberBetween(0.7, 0.9)
+      .setBackground('#FFEB9C')
+      .setRanges([percentRange])
+      .build();
+    
+    // Đỏ: > 90%
+    const rule3 = SpreadsheetApp.newConditionalFormatRule()
+      .whenNumberGreaterThan(0.9)
+      .setBackground('#FFC7CE')
+      .setRanges([percentRange])
+      .build();
+    
+    sheet.setConditionalFormatRules([rule1, rule2, rule3]);
+    
+    // Tổng cộng
+    sheet.getRange('A12').setValue('TỔNG').setFontWeight('bold');
+    sheet.getRange('B12').setFormula('=SUM(B4:B11)');
+    sheet.getRange('C12').setFormula('=SUM(C4:C11)');
+    sheet.getRange('D12').setFormula('=IFERROR(C12/B12, 0)');
+    sheet.getRange('B12:C12').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    sheet.getRange('D12').setNumberFormat('0.00%');
+    
+    // Section 2: ĐẦU TƯ & TRẢ NỢ
+    sheet.getRange('A14').setValue('💰 ĐẦU TƯ & TRẢ NỢ')
+      .setFontWeight('bold')
+      .setBackground('#E7E6E6');
+    sheet.getRange('A14:D14').merge();
+    
+    sheet.getRange(15, 1, 1, 4)
+      .setValues([['Loại', 'Target', 'Đã đầu tư/trả', 'Tỷ lệ %']])
+      .setFontWeight('bold')
+      .setBackground('#D9D9D9');
+    
+    const investmentTypes = [
+      ['Chứng khoán', 0],
+      ['Vàng', 0],
+      ['Crypto', 0],
+      ['Đầu tư khác', 0],
+      ['Trả nợ', 0]
+    ];
+    
+    investmentTypes.forEach((type, idx) => {
+      const row = 16 + idx;
+      sheet.getRange(row, 1).setValue(type[0]);
+      sheet.getRange(row, 2).setValue(type[1]);
+      sheet.getRange(row, 3).setValue(0);
+      sheet.getRange(row, 4).setFormula(`=IFERROR(C${row}/B${row}, 0)`);
+    });
+    
+    sheet.getRange('B16:C20').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    sheet.getRange('D16:D20').setNumberFormat('0.00%');
+    
+    // Column widths
+    sheet.setColumnWidth(1, 150);
+    sheet.setColumnWidth(2, 130);
+    sheet.setColumnWidth(3, 130);
+    sheet.setColumnWidth(4, 100);
+    
+    // ============================================================
+    // BƯỚC 5: Khởi tạo Dashboard
+    // ============================================================
+    DashboardManager.setupDashboard();
+    
+    // ============================================================
+    // BƯỚC 6: Thành công
+    // ============================================================
+    const totalBudget = setupData.budget.food + setupData.budget.transport + 
+                        setupData.budget.housing + setupData.budget.health +
+                        setupData.budget.education + setupData.budget.shopping +
+                        setupData.budget.entertainment + setupData.budget.other;
+    
+    return {
+      success: true,
+      message: 
+        '✅ Khởi tạo thành công!\n\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━\n' +
+        '💰 Số dư ban đầu: ' + formatCurrency(setupData.balance.amount) + '\n' +
+        (setupData.debt ? 
+          '📋 Khoản nợ: ' + setupData.debt.name + ' - ' + formatCurrency(setupData.debt.principal) + '\n' : 
+          '📋 Khoản nợ: Không có\n') +
+        '📊 Tổng ngân sách/tháng: ' + formatCurrency(totalBudget) + '\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+        '🎉 Hệ thống đã sẵn sàng!\n' +
+        'Bạn có thể bắt đầu nhập liệu qua Menu > Nhập liệu'
+    };
     
   } catch (error) {
-    showError('Lỗi khởi tạo', error.message);
+    Logger.log('Error in processSetupWizard: ' + error.toString());
+    return {
+      success: false,
+      message: 'Lỗi khởi tạo: ' + error.message + '\n\nVui lòng thử lại hoặc liên hệ hỗ trợ.'
+    };
   }
 }
 
@@ -364,7 +633,8 @@ function showInstructions() {
     'Hướng dẫn sử dụng',
     '📖 HƯỚNG DẪN NHANH:\n\n' +
     '1️⃣ KHỞI TẠO:\n' +
-    '   Menu > Khởi tạo Sheet > Khởi tạo TẤT CẢ Sheet\n\n' +
+    '   Menu > Khởi tạo Sheet > Khởi tạo TẤT CẢ Sheet\n' +
+    '   → Setup Wizard sẽ hướng dẫn bạn từng bước!\n\n' +
     '2️⃣ NHẬP LIỆU:\n' +
     '   Menu > Nhập liệu > Chọn loại giao dịch\n\n' +
     '3️⃣ XEM THỐNG KÊ:\n' +
@@ -385,6 +655,10 @@ function showAbout() {
   ui.alert(
     'Giới thiệu hệ thống',
     `💰 ${APP_CONFIG.APP_NAME} v${APP_CONFIG.VERSION}\n\n` +
+    '✨ MỚI TRONG v3.2:\n' +
+    '   • Setup Wizard 3 bước chuyên nghiệp\n' +
+    '   • Khởi tạo với dữ liệu thật của bạn\n' +
+    '   • Không còn dữ liệu mẫu gây nhầm lẫn\n\n' +
     '🎯 Tính năng:\n' +
     '   • Quản lý thu chi hàng ngày\n' +
     '   • Theo dõi nợ và lãi\n' +
@@ -521,7 +795,12 @@ function getCurrentDate() {
 
 /**
  * Format số tiền
+ * @param {number} amount
+ * @return {string}
  */
 function formatCurrency(amount) {
-  return amount.toLocaleString('vi-VN') + ' VNĐ';
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(amount);
 }
