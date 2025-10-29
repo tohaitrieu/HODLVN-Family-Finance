@@ -16,7 +16,7 @@
       }
       
       .wizard-container {
-        max-width: 650px;
+        max-width: 700px;
         margin: 0 auto;
         background: white;
         border-radius: 12px;
@@ -179,6 +179,12 @@
         border-color: #e74c3c;
       }
       
+      .helper-text {
+        font-size: 12px;
+        color: #888;
+        margin-top: 5px;
+      }
+      
       .radio-group {
         display: flex;
         gap: 20px;
@@ -215,10 +221,119 @@
         color: #1976d2;
       }
       
-      .budget-grid {
+      .preset-buttons {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      
+      .preset-btn {
+        padding: 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+        background: white;
+      }
+      
+      .preset-btn:hover {
+        border-color: #4285f4;
+        background: #f0f7ff;
+      }
+      
+      .preset-btn.active {
+        border-color: #4285f4;
+        background: #e3f2fd;
+      }
+      
+      .preset-btn-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+        font-size: 14px;
+      }
+      
+      .preset-btn-desc {
+        font-size: 12px;
+        opacity: 0.8;
+      }
+      
+      .percentage-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      
+      .percentage-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      
+      .percentage-item label {
+        margin: 0;
+        flex: 1;
+      }
+      
+      .percentage-item input {
+        width: 80px;
+        text-align: center;
+        padding: 8px;
+      }
+      
+      .total-check {
+        padding: 12px;
+        border-radius: 8px;
+        margin-top: 10px;
+        font-weight: bold;
+        text-align: center;
+      }
+      
+      .total-check.valid {
+        background: #d4edda;
+        color: #155724;
+      }
+      
+      .total-check.invalid {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      
+      .summary-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+      }
+      
+      .summary-table th,
+      .summary-table td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #e0e0e0;
+        font-size: 13px;
+      }
+      
+      .summary-table th {
+        background: #f5f5f5;
+        font-weight: bold;
+        color: #333;
+      }
+      
+      .summary-table tr:hover {
+        background: #f9f9f9;
+      }
+      
+      .summary-value {
+        font-weight: bold;
+        color: #667eea;
+      }
+      
+      .summary-section-header {
+        background: #fff3cd !important;
+        font-weight: bold !important;
+        color: #856404 !important;
       }
       
       .buttons {
@@ -257,12 +372,23 @@
       }
       
       .btn-prev {
-        background: #f5f5f5;
-        color: #666;
+        background: #e0e0e0;
+        color: #333;
       }
       
       .btn-prev:hover {
-        background: #e0e0e0;
+        background: #d0d0d0;
+      }
+      
+      .btn-skip {
+        background: #fff;
+        color: #666;
+        border: 1px solid #ddd;
+        margin-right: 10px;
+      }
+      
+      .btn-skip:hover {
+        background: #f5f5f5;
       }
       
       .btn-finish {
@@ -276,21 +402,10 @@
         box-shadow: 0 4px 8px rgba(52, 168, 83, 0.3);
       }
       
-      .btn-skip {
-        background: transparent;
-        color: #666;
-        text-decoration: underline;
-        padding: 12px 20px;
-      }
-      
-      .btn-skip:hover {
-        color: #333;
-      }
-      
       .loading {
         display: none;
         text-align: center;
-        padding: 40px;
+        padding: 60px 20px;
       }
       
       .loading.active {
@@ -312,72 +427,76 @@
         100% { transform: rotate(360deg); }
       }
       
-      .helper-text {
-        font-size: 12px;
-        color: #999;
-        margin-top: 5px;
+      .amount-display {
+        text-align: right;
+        color: #667eea;
+        font-weight: bold;
+        font-size: 13px;
       }
     </style>
   </head>
   <body>
     <div class="wizard-container">
-      <!-- Header -->
       <div class="wizard-header">
-        <h1>🎉 Chào mừng đến với Hệ thống Quản lý Tài chính v3.0!</h1>
-        <p>Thiết lập một số thông tin cơ bản để bắt đầu quản lý tài chính hiệu quả</p>
+        <h1>🚀 Thiết lập hệ thống HODLVN</h1>
+        <p>Khởi tạo nhanh dữ liệu ban đầu cho gia đình bạn</p>
       </div>
       
-      <!-- Progress -->
       <div class="progress-container">
         <div class="progress-steps">
           <div class="progress-line">
             <div class="progress-line-fill" id="progressLineFill"></div>
           </div>
+          
           <div class="progress-step active" data-step="1">
             <div class="progress-step-circle">1</div>
             <div class="progress-step-label">Số dư</div>
           </div>
+          
           <div class="progress-step" data-step="2">
             <div class="progress-step-circle">2</div>
-            <div class="progress-step-label">Khoản nợ</div>
+            <div class="progress-step-label">Nợ</div>
           </div>
+          
           <div class="progress-step" data-step="3">
             <div class="progress-step-circle">3</div>
             <div class="progress-step-label">Ngân sách</div>
           </div>
+          
+          <div class="progress-step" data-step="4">
+            <div class="progress-step-circle">4</div>
+            <div class="progress-step-label">Xác nhận</div>
+          </div>
         </div>
       </div>
       
-      <!-- Content -->
       <div class="wizard-content">
         <!-- BƯỚC 1: SỐ DƯ BAN ĐẦU -->
         <div class="step active" id="step1">
           <h2 class="step-title">💰 Số dư ban đầu</h2>
-          <p class="step-description">Nhập số tiền bạn hiện có để bắt đầu theo dõi tài chính</p>
+          <p class="step-description">Nhập số tiền hiện có của gia đình bạn</p>
           
           <div class="info-box">
-            💡 Đây sẽ được ghi nhận là khoản thu nhập đầu tiên trong hệ thống
+            💡 Đây là số tiền bạn đang có (tiền mặt, tài khoản ngân hàng, v.v.)
           </div>
           
           <div class="input-group">
-            <label>Số dư hiện tại của bạn: <span class="required">*</span></label>
-            <input type="number" id="initialBalance" placeholder="Ví dụ: 50000000" required min="0">
-            <div class="helper-text">Nhập số tiền bạn đang có (VNĐ)</div>
+            <label>Số dư hiện tại (VNĐ): <span class="required">*</span></label>
+            <input type="number" id="initialBalance" placeholder="Ví dụ: 10000000" min="0" required>
           </div>
           
           <div class="input-group">
             <label>Ngày ghi nhận: <span class="required">*</span></label>
             <input type="date" id="balanceDate" required>
-            <div class="helper-text">Ngày bắt đầu quản lý tài chính</div>
           </div>
           
           <div class="input-group">
-            <label>Nguồn số dư:</label>
-            <select id="balanceSource">
-              <option value="Tiết kiệm">Tiết kiệm tích lũy</option>
-              <option value="Lương">Lương</option>
-              <option value="MMO (Make Money Online)">MMO (Make Money Online)</option>
-              <option value="Thưởng">Thưởng</option>
+            <label>Nguồn tiền: <span class="required">*</span></label>
+            <select id="balanceSource" required>
+              <option value="">-- Chọn nguồn --</option>
+              <option value="Tiền mặt">Tiền mặt</option>
+              <option value="Ngân hàng">Ngân hàng</option>
+              <option value="Ví điện tử">Ví điện tử</option>
               <option value="Khác">Khác</option>
             </select>
           </div>
@@ -388,37 +507,38 @@
           </div>
         </div>
 
-        <!-- BƯỚC 2: KHOẢN NỢ -->
+        <!-- BƯỚC 2: THÔNG TIN NỢ -->
         <div class="step" id="step2">
-          <h2 class="step-title">📋 Khoản nợ hiện tại</h2>
-          <p class="step-description">Thông tin về các khoản nợ cần quản lý (nếu có)</p>
+          <h2 class="step-title">💳 Thông tin nợ</h2>
+          <p class="step-description">Bạn có khoản nợ nào cần quản lý không?</p>
+          
+          <div class="info-box">
+            💡 Nếu bạn có khoản vay (ngân hàng, thân nhân, v.v.), hãy nhập thông tin để hệ thống giúp theo dõi
+          </div>
           
           <div class="input-group">
-            <label>Bạn có khoản nợ nào cần theo dõi không?</label>
+            <label>Bạn có khoản nợ cần quản lý?</label>
             <div class="radio-group">
               <label class="radio-label">
-                <input type="radio" name="hasDebt" value="no" checked onchange="toggleDebtFields()">
-                Không có nợ
+                <input type="radio" name="hasDebt" value="yes" onchange="toggleDebtFields()">
+                Có
               </label>
               <label class="radio-label">
-                <input type="radio" name="hasDebt" value="yes" onchange="toggleDebtFields()">
-                Có khoản nợ
+                <input type="radio" name="hasDebt" value="no" checked onchange="toggleDebtFields()">
+                Không
               </label>
             </div>
           </div>
           
-          <div id="debtFields" class="collapsible-content" style="display: none;">
-            <div class="info-box">
-              💡 Bạn có thể thêm nhiều khoản nợ khác sau qua Menu > Nhập liệu > Nhập Trả nợ
-            </div>
-            
+          <div class="collapsible-content" id="debtFields" style="display: none;">
             <div class="input-group">
               <label>Tên khoản nợ: <span class="required">*</span></label>
-              <input type="text" id="debtName" placeholder="Ví dụ: Vay mua nhà, Thẻ tín dụng">
+              <input type="text" id="debtName" placeholder="Ví dụ: Vay mua nhà">
+              <div class="helper-text">Đặt tên để dễ nhớ</div>
             </div>
             
             <div class="input-group">
-              <label>Tổng nợ gốc: <span class="required">*</span></label>
+              <label>Số tiền gốc (VNĐ): <span class="required">*</span></label>
               <input type="number" id="debtPrincipal" placeholder="Ví dụ: 500000000" min="0">
               <div class="helper-text">Số tiền gốc cần trả (VNĐ)</div>
             </div>
@@ -453,56 +573,125 @@
         <!-- BƯỚC 3: NGÂN SÁCH -->
         <div class="step" id="step3">
           <h2 class="step-title">📊 Ngân sách hàng tháng</h2>
-          <p class="step-description">Thiết lập mức chi tiêu mục tiêu cho từng danh mục</p>
+          <p class="step-description">Thiết lập kế hoạch tài chính thông minh</p>
           
-          <div class="info-box">
-            💡 Hệ thống sẽ cảnh báo khi chi tiêu vượt ngân sách. Bạn có thể điều chỉnh sau!
+          <!-- 3A: Thu nhập -->
+          <div id="step3a">
+            <div class="info-box">
+              💡 <strong>Bước 3A:</strong> Nhập tổng thu nhập dự kiến trong tháng
+            </div>
+            
+            <div class="input-group">
+              <label>Thu nhập dự kiến tháng này (VNĐ): <span class="required">*</span></label>
+              <input type="number" id="income" placeholder="Ví dụ: 50000000" min="0" step="100000" required>
+            </div>
+            
+            <div class="buttons">
+              <button class="btn-prev" onclick="goToStep(2)">← Quay lại</button>
+              <button class="btn-next" onclick="goToStep3B()">Tiếp theo →</button>
+            </div>
           </div>
           
-          <div class="budget-grid">
-            <div class="input-group">
-              <label>🍜 Ăn uống:</label>
-              <input type="number" id="budgetFood" placeholder="3000000" min="0" value="3000000">
+          <!-- 3B: Phân bổ tổng thể -->
+          <div id="step3b" style="display: none;">
+            <div class="info-box">
+              💡 <strong>Bước 3B:</strong> Chọn cách phân bổ thu nhập vào 3 nhóm: Chi tiêu, Đầu tư, Trả nợ
             </div>
             
             <div class="input-group">
-              <label>🚗 Đi lại:</label>
-              <input type="number" id="budgetTransport" placeholder="1000000" min="0" value="1000000">
+              <label>Chọn preset hoặc tự điều chỉnh:</label>
+              <div class="preset-buttons">
+                <div class="preset-btn" onclick="selectPreset('balanced')">
+                  <div class="preset-btn-title">⚖️ Cân bằng</div>
+                  <div class="preset-btn-desc">Chi 50% • ĐT 30% • Nợ 20%</div>
+                </div>
+                <div class="preset-btn" onclick="selectPreset('aggressive')">
+                  <div class="preset-btn-title">💰 Tích cực</div>
+                  <div class="preset-btn-desc">Chi 40% • ĐT 45% • Nợ 15%</div>
+                </div>
+                <div class="preset-btn" onclick="selectPreset('debt')">
+                  <div class="preset-btn-title">💳 Trả nợ</div>
+                  <div class="preset-btn-desc">Chi 40% • ĐT 10% • Nợ 50%</div>
+                </div>
+                <div class="preset-btn active" onclick="selectPreset('custom')">
+                  <div class="preset-btn-title">🎨 Tùy chỉnh</div>
+                  <div class="preset-btn-desc">Tự điều chỉnh</div>
+                </div>
+              </div>
             </div>
             
             <div class="input-group">
-              <label>🏠 Nhà ở:</label>
-              <input type="number" id="budgetHousing" placeholder="5000000" min="0" value="5000000">
+              <label>Điều chỉnh tỷ lệ (%):</label>
+              <div class="percentage-grid">
+                <div class="percentage-item">
+                  <label>📤 Chi tiêu:</label>
+                  <input type="number" id="pctChi" min="0" max="100" step="5" value="50" oninput="updateTotal()">
+                  <span>%</span>
+                </div>
+                <div class="amount-display" id="amountChi">0 VNĐ</div>
+                
+                <div class="percentage-item">
+                  <label>💰 Đầu tư:</label>
+                  <input type="number" id="pctDautu" min="0" max="100" step="5" value="30" oninput="updateTotal()">
+                  <span>%</span>
+                </div>
+                <div class="amount-display" id="amountDautu">0 VNĐ</div>
+                
+                <div class="percentage-item">
+                  <label>💳 Trả nợ:</label>
+                  <input type="number" id="pctTrano" min="0" max="100" step="5" value="20" oninput="updateTotal()">
+                  <span>%</span>
+                </div>
+                <div class="amount-display" id="amountTrano">0 VNĐ</div>
+              </div>
+              
+              <div class="total-check" id="totalCheck">
+                Tổng: 100% ✓
+              </div>
             </div>
             
-            <div class="input-group">
-              <label>💊 Y tế:</label>
-              <input type="number" id="budgetHealth" placeholder="500000" min="0" value="500000">
-            </div>
-            
-            <div class="input-group">
-              <label>📚 Giáo dục:</label>
-              <input type="number" id="budgetEducation" placeholder="1000000" min="0" value="1000000">
-            </div>
-            
-            <div class="input-group">
-              <label>🛍️ Mua sắm:</label>
-              <input type="number" id="budgetShopping" placeholder="2000000" min="0" value="2000000">
-            </div>
-            
-            <div class="input-group">
-              <label>🎮 Giải trí:</label>
-              <input type="number" id="budgetEntertainment" placeholder="1500000" min="0" value="1500000">
-            </div>
-            
-            <div class="input-group">
-              <label>📦 Khác:</label>
-              <input type="number" id="budgetOther" placeholder="1000000" min="0" value="1000000">
+            <div class="buttons">
+              <button class="btn-prev" onclick="backToStep3A()">← Quay lại</button>
+              <button class="btn-next" id="btnStep3B" onclick="goToStep3C()">Tiếp theo →</button>
             </div>
           </div>
+          
+          <!-- 3C: Chi tiết từng nhóm -->
+          <div id="step3c" style="display: none;">
+            <div class="info-box">
+              💡 <strong>Bước 3C:</strong> Điều chỉnh % cho từng danh mục (tổng mỗi nhóm = 100%)
+            </div>
+            
+            <!-- Chi tiêu chi tiết -->
+            <div class="input-group">
+              <label>📤 Chi tiêu chi tiết:</label>
+              <div class="percentage-grid" id="chiDetail"></div>
+              <div class="total-check" id="totalChi">Tổng: 100% ✓</div>
+            </div>
+            
+            <!-- Đầu tư chi tiết -->
+            <div class="input-group">
+              <label>💰 Đầu tư chi tiết:</label>
+              <div class="percentage-grid" id="dautuDetail"></div>
+              <div class="total-check" id="totalDautu">Tổng: 100% ✓</div>
+            </div>
+            
+            <div class="buttons">
+              <button class="btn-prev" onclick="backToStep3B()">← Quay lại</button>
+              <button class="btn-next" id="btnStep3C" onclick="goToStep(4)">Tiếp theo →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BƯỚC 4: XÁC NHẬN -->
+        <div class="step" id="step4">
+          <h2 class="step-title">✅ Xác nhận thông tin</h2>
+          <p class="step-description">Kiểm tra lại toàn bộ thông tin trước khi hoàn tất</p>
+          
+          <table class="summary-table" id="summaryTable"></table>
           
           <div class="buttons">
-            <button class="btn-prev" onclick="goToStep(2)">← Quay lại</button>
+            <button class="btn-prev" onclick="goToStep(3)">← Quay lại</button>
             <button class="btn-finish" onclick="finishSetup()">✅ Hoàn tất thiết lập</button>
           </div>
         </div>
@@ -518,17 +707,57 @@
 
     <script>
       let currentStep = 1;
+      let budgetData = {
+        income: 0,
+        pctChi: 50,
+        pctDautu: 30,
+        pctTrano: 20,
+        chi: {},
+        dautu: {}
+      };
+      
+      // Preset data
+      const presets = {
+        balanced: { chi: 50, dautu: 30, trano: 20 },
+        aggressive: { chi: 40, dautu: 45, trano: 15 },
+        debt: { chi: 40, dautu: 10, trano: 50 },
+        custom: { chi: 50, dautu: 30, trano: 20 }
+      };
+      
+      // Chi tiêu categories
+      const chiCategories = [
+        { name: 'Ăn uống', pct: 35 },
+        { name: 'Đi lại', pct: 10 },
+        { name: 'Nhà ở', pct: 30 },
+        { name: 'Y tế', pct: 5 },
+        { name: 'Giáo dục', pct: 10 },
+        { name: 'Mua sắm', pct: 7 },
+        { name: 'Giải trí', pct: 2 },
+        { name: 'Khác', pct: 1 }
+      ];
+      
+      // Đầu tư categories
+      const dautuCategories = [
+        { name: 'Chứng khoán', pct: 50 },
+        { name: 'Vàng', pct: 20 },
+        { name: 'Crypto', pct: 20 },
+        { name: 'Đầu tư khác', pct: 10 }
+      ];
       
       // Set ngày mặc định là hôm nay
       document.getElementById('balanceDate').valueAsDate = new Date();
       document.getElementById('debtDate').valueAsDate = new Date();
+      
+      // Format currency
+      function formatCurrency(amount) {
+        return new Intl.NumberFormat('vi-VN').format(Math.round(amount)) + ' VNĐ';
+      }
       
       function toggleDebtFields() {
         const hasDebt = document.querySelector('input[name="hasDebt"]:checked').value === 'yes';
         const debtFields = document.getElementById('debtFields');
         debtFields.style.display = hasDebt ? 'block' : 'none';
         
-        // Clear required if not shown
         if (!hasDebt) {
           document.getElementById('debtName').removeAttribute('required');
           document.getElementById('debtPrincipal').removeAttribute('required');
@@ -546,35 +775,57 @@
       
       function goToStep(stepNumber) {
         // Validate current step
-        if (!validateStep(currentStep)) {
+        if (stepNumber > currentStep && !validateStep(currentStep)) {
           return;
+        }
+        
+        // Hide all sub-steps of step 3
+        if (currentStep === 3) {
+          document.getElementById('step3a').style.display = 'none';
+          document.getElementById('step3b').style.display = 'none';
+          document.getElementById('step3c').style.display = 'none';
         }
         
         // Hide current step
         document.getElementById('step' + currentStep).classList.remove('active');
         document.querySelector('.progress-step[data-step="' + currentStep + '"]').classList.remove('active');
-        document.querySelector('.progress-step[data-step="' + currentStep + '"]').classList.add('completed');
+        if (stepNumber > currentStep) {
+          document.querySelector('.progress-step[data-step="' + currentStep + '"]').classList.add('completed');
+        }
         
         // Show new step
         currentStep = stepNumber;
         document.getElementById('step' + currentStep).classList.add('active');
         document.querySelector('.progress-step[data-step="' + currentStep + '"]').classList.add('active');
         
+        // Show first sub-step if going to step 3
+        if (currentStep === 3) {
+          document.getElementById('step3a').style.display = 'block';
+        }
+        
+        // Generate summary if going to step 4
+        if (currentStep === 4) {
+          generateSummary();
+        }
+        
         // Update progress line
-        const progress = ((currentStep - 1) / 2) * 100;
+        const progress = ((currentStep - 1) / 3) * 100;
         document.getElementById('progressLineFill').style.width = progress + '%';
         
-        // Scroll to top
         window.scrollTo(0, 0);
       }
       
       function validateStep(step) {
+        if (step === 3) {
+          // Step 3 validation handled in sub-steps
+          return true;
+        }
+        
         const stepElement = document.getElementById('step' + step);
         const inputs = stepElement.querySelectorAll('input[required], select[required]');
         let isValid = true;
         
         inputs.forEach(input => {
-          // Skip validation for hidden fields
           if (input.offsetParent === null) {
             input.classList.remove('error');
             return;
@@ -596,23 +847,299 @@
       }
       
       function skipDebt() {
-        // Clear debt fields
         document.querySelector('input[name="hasDebt"][value="no"]').checked = true;
         toggleDebtFields();
         goToStep(3);
       }
       
-      function finishSetup() {
-        // Validate final step
-        if (!validateStep(3)) {
+      // Step 3 navigation
+      function goToStep3B() {
+        const income = parseFloat(document.getElementById('income').value);
+        if (!income || income <= 0) {
+          alert('⚠️ Vui lòng nhập thu nhập dự kiến!');
           return;
         }
         
+        budgetData.income = income;
+        document.getElementById('step3a').style.display = 'none';
+        document.getElementById('step3b').style.display = 'block';
+        updateTotal();
+        window.scrollTo(0, 0);
+      }
+      
+      function backToStep3A() {
+        document.getElementById('step3b').style.display = 'none';
+        document.getElementById('step3a').style.display = 'block';
+        window.scrollTo(0, 0);
+      }
+      
+      function goToStep3C() {
+        budgetData.pctChi = parseFloat(document.getElementById('pctChi').value);
+        budgetData.pctDautu = parseFloat(document.getElementById('pctDautu').value);
+        budgetData.pctTrano = parseFloat(document.getElementById('pctTrano').value);
+        
+        document.getElementById('step3b').style.display = 'none';
+        document.getElementById('step3c').style.display = 'block';
+        generateCategoryInputs();
+        window.scrollTo(0, 0);
+      }
+      
+      function backToStep3B() {
+        document.getElementById('step3c').style.display = 'none';
+        document.getElementById('step3b').style.display = 'block';
+        window.scrollTo(0, 0);
+      }
+      
+      // Preset selection
+      function selectPreset(type) {
+        document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.closest('.preset-btn').classList.add('active');
+        
+        const preset = presets[type];
+        document.getElementById('pctChi').value = preset.chi;
+        document.getElementById('pctDautu').value = preset.dautu;
+        document.getElementById('pctTrano').value = preset.trano;
+        
+        updateTotal();
+      }
+      
+      // Update total percentage
+      function updateTotal() {
+        const income = budgetData.income || parseFloat(document.getElementById('income').value) || 0;
+        const chi = parseFloat(document.getElementById('pctChi').value) || 0;
+        const dautu = parseFloat(document.getElementById('pctDautu').value) || 0;
+        const trano = parseFloat(document.getElementById('pctTrano').value) || 0;
+        
+        const total = chi + dautu + trano;
+        const totalCheck = document.getElementById('totalCheck');
+        const btn = document.getElementById('btnStep3B');
+        
+        document.getElementById('amountChi').textContent = formatCurrency(income * chi / 100);
+        document.getElementById('amountDautu').textContent = formatCurrency(income * dautu / 100);
+        document.getElementById('amountTrano').textContent = formatCurrency(income * trano / 100);
+        
+        if (total === 100) {
+          totalCheck.className = 'total-check valid';
+          totalCheck.textContent = 'Tổng: 100% ✓';
+          btn.disabled = false;
+        } else {
+          totalCheck.className = 'total-check invalid';
+          totalCheck.textContent = `Tổng: ${total}% (Cần = 100%)`;
+          btn.disabled = true;
+        }
+      }
+      
+      // Generate category inputs
+      function generateCategoryInputs() {
+        const chiDetail = document.getElementById('chiDetail');
+        chiDetail.innerHTML = '';
+        chiCategories.forEach(cat => {
+          chiDetail.innerHTML += `
+            <div class="percentage-item">
+              <label>${cat.name}:</label>
+              <input type="number" class="cat-chi" data-name="${cat.name}" min="0" max="100" step="1" value="${cat.pct}" oninput="updateCategoryTotal('chi')">
+              <span>%</span>
+            </div>
+            <div class="amount-display" id="amount-chi-${cat.name}">0 VNĐ</div>
+          `;
+        });
+        
+        const dautuDetail = document.getElementById('dautuDetail');
+        dautuDetail.innerHTML = '';
+        dautuCategories.forEach(cat => {
+          dautuDetail.innerHTML += `
+            <div class="percentage-item">
+              <label>${cat.name}:</label>
+              <input type="number" class="cat-dautu" data-name="${cat.name}" min="0" max="100" step="1" value="${cat.pct}" oninput="updateCategoryTotal('dautu')">
+              <span>%</span>
+            </div>
+            <div class="amount-display" id="amount-dautu-${cat.name}">0 VNĐ</div>
+          `;
+        });
+        
+        updateCategoryAmounts();
+        updateCategoryTotal('chi');
+        updateCategoryTotal('dautu');
+      }
+      
+      // Update category amounts
+      function updateCategoryAmounts() {
+        const income = budgetData.income;
+        const pctChi = budgetData.pctChi / 100;
+        const pctDautu = budgetData.pctDautu / 100;
+        
+        document.querySelectorAll('.cat-chi').forEach(input => {
+          const pct = parseFloat(input.value) || 0;
+          const amount = income * pctChi * (pct / 100);
+          const name = input.dataset.name;
+          const el = document.getElementById(`amount-chi-${name}`);
+          if (el) el.textContent = formatCurrency(amount);
+        });
+        
+        document.querySelectorAll('.cat-dautu').forEach(input => {
+          const pct = parseFloat(input.value) || 0;
+          const amount = income * pctDautu * (pct / 100);
+          const name = input.dataset.name;
+          const el = document.getElementById(`amount-dautu-${name}`);
+          if (el) el.textContent = formatCurrency(amount);
+        });
+      }
+      
+      // Update category total
+      function updateCategoryTotal(type) {
+        const inputs = document.querySelectorAll(`#${type}Detail input`);
+        let total = 0;
+        inputs.forEach(input => {
+          total += parseFloat(input.value) || 0;
+        });
+        
+        const totalDiv = document.getElementById(`total${type.charAt(0).toUpperCase() + type.slice(1)}`);
+        const btn = document.getElementById('btnStep3C');
+        
+        if (Math.abs(total - 100) < 0.01) {
+          totalDiv.className = 'total-check valid';
+          totalDiv.textContent = 'Tổng: 100% ✓';
+        } else {
+          totalDiv.className = 'total-check invalid';
+          totalDiv.textContent = `Tổng: ${total.toFixed(1)}% (Cần = 100%)`;
+        }
+        
+        const chiTotal = Array.from(document.querySelectorAll('#chiDetail input'))
+          .reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
+        const dautuTotal = Array.from(document.querySelectorAll('#dautuDetail input'))
+          .reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
+        
+        btn.disabled = Math.abs(chiTotal - 100) >= 0.01 || Math.abs(dautuTotal - 100) >= 0.01;
+        
+        updateCategoryAmounts();
+      }
+      
+      // Generate summary
+      function generateSummary() {
+        // Collect chi data
+        budgetData.chi = {};
+        document.querySelectorAll('.cat-chi').forEach(input => {
+          budgetData.chi[input.dataset.name] = parseFloat(input.value);
+        });
+        
+        // Collect dautu data
+        budgetData.dautu = {};
+        document.querySelectorAll('.cat-dautu').forEach(input => {
+          budgetData.dautu[input.dataset.name] = parseFloat(input.value);
+        });
+        
+        const income = budgetData.income;
+        const pctChi = budgetData.pctChi / 100;
+        const pctDautu = budgetData.pctDautu / 100;
+        const pctTrano = budgetData.pctTrano / 100;
+        
+        let html = `
+          <tr>
+            <th colspan="3" style="background: #4285f4; color: white;">💰 SỐ DƯ BAN ĐẦU</th>
+          </tr>
+          <tr>
+            <td>Số dư</td>
+            <td colspan="2" class="summary-value">${formatCurrency(parseFloat(document.getElementById('initialBalance').value))}</td>
+          </tr>
+          <tr>
+            <td>Nguồn</td>
+            <td colspan="2">${document.getElementById('balanceSource').value}</td>
+          </tr>
+          <tr>
+            <td>Ngày</td>
+            <td colspan="2">${document.getElementById('balanceDate').value}</td>
+          </tr>
+        `;
+        
+        // Debt info
+        const hasDebt = document.querySelector('input[name="hasDebt"]:checked').value === 'yes';
+        if (hasDebt) {
+          html += `
+            <tr>
+              <th colspan="3" style="background: #ea4335; color: white;">💳 THÔNG TIN NỢ</th>
+            </tr>
+            <tr>
+              <td>Tên khoản nợ</td>
+              <td colspan="2">${document.getElementById('debtName').value}</td>
+            </tr>
+            <tr>
+              <td>Số tiền gốc</td>
+              <td colspan="2" class="summary-value">${formatCurrency(parseFloat(document.getElementById('debtPrincipal').value))}</td>
+            </tr>
+            <tr>
+              <td>Lãi suất</td>
+              <td colspan="2">${document.getElementById('debtRate').value}% /năm</td>
+            </tr>
+            <tr>
+              <td>Kỳ hạn</td>
+              <td colspan="2">${document.getElementById('debtTerm').value} tháng</td>
+            </tr>
+          `;
+        }
+        
+        // Budget summary
+        html += `
+          <tr>
+            <th colspan="3" style="background: #34a853; color: white;">📊 NGÂN SÁCH THÁNG</th>
+          </tr>
+          <tr>
+            <td><strong>Thu nhập dự kiến</strong></td>
+            <td>100%</td>
+            <td class="summary-value">${formatCurrency(income)}</td>
+          </tr>
+          <tr class="summary-section-header">
+            <td colspan="3">📤 CHI TIÊU (${budgetData.pctChi}%)</td>
+          </tr>
+        `;
+        
+        Object.entries(budgetData.chi).forEach(([name, pct]) => {
+          const amount = income * pctChi * (pct / 100);
+          html += `
+            <tr>
+              <td>&nbsp;&nbsp;• ${name}</td>
+              <td>${pct.toFixed(1)}%</td>
+              <td class="summary-value">${formatCurrency(amount)}</td>
+            </tr>
+          `;
+        });
+        
+        html += `
+          <tr class="summary-section-header">
+            <td colspan="3">💰 ĐẦU TƯ (${budgetData.pctDautu}%)</td>
+          </tr>
+        `;
+        
+        Object.entries(budgetData.dautu).forEach(([name, pct]) => {
+          const amount = income * pctDautu * (pct / 100);
+          html += `
+            <tr>
+              <td>&nbsp;&nbsp;• ${name}</td>
+              <td>${pct.toFixed(1)}%</td>
+              <td class="summary-value">${formatCurrency(amount)}</td>
+            </tr>
+          `;
+        });
+        
+        html += `
+          <tr class="summary-section-header">
+            <td colspan="3">💳 TRẢ NỢ (${budgetData.pctTrano}%)</td>
+          </tr>
+          <tr>
+            <td>&nbsp;&nbsp;• Trả nợ</td>
+            <td>100%</td>
+            <td class="summary-value">${formatCurrency(income * pctTrano)}</td>
+          </tr>
+        `;
+        
+        document.getElementById('summaryTable').innerHTML = html;
+      }
+      
+      function finishSetup() {
         // Show loading
         document.querySelectorAll('.step').forEach(s => s.style.display = 'none');
         document.getElementById('loading').classList.add('active');
         
-        // Collect data
+        // Collect all data
         const setupData = {
           balance: {
             amount: parseFloat(document.getElementById('initialBalance').value),
@@ -621,18 +1148,15 @@
           },
           debt: null,
           budget: {
-            food: parseFloat(document.getElementById('budgetFood').value) || 0,
-            transport: parseFloat(document.getElementById('budgetTransport').value) || 0,
-            housing: parseFloat(document.getElementById('budgetHousing').value) || 0,
-            health: parseFloat(document.getElementById('budgetHealth').value) || 0,
-            education: parseFloat(document.getElementById('budgetEducation').value) || 0,
-            shopping: parseFloat(document.getElementById('budgetShopping').value) || 0,
-            entertainment: parseFloat(document.getElementById('budgetEntertainment').value) || 0,
-            other: parseFloat(document.getElementById('budgetOther').value) || 0
+            income: budgetData.income,
+            pctChi: budgetData.pctChi,
+            pctDautu: budgetData.pctDautu,
+            pctTrano: budgetData.pctTrano,
+            chi: budgetData.chi,
+            dautu: budgetData.dautu
           }
         };
         
-        // Check if has debt
         const hasDebt = document.querySelector('input[name="hasDebt"]:checked').value === 'yes';
         if (hasDebt) {
           setupData.debt = {
@@ -657,14 +1181,14 @@
           google.script.host.close();
         } else {
           document.getElementById('loading').classList.remove('active');
-          document.getElementById('step3').classList.add('active');
+          document.getElementById('step4').classList.add('active');
           alert('❌ ' + result.message);
         }
       }
       
       function onSetupError(error) {
         document.getElementById('loading').classList.remove('active');
-        document.getElementById('step3').classList.add('active');
+        document.getElementById('step4').classList.add('active');
         alert('❌ Lỗi: ' + error.message);
       }
       

@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đặt Ngân sách tháng</title>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      overflow: hidden;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px;
+      text-align: center;
+    }
+
+    .header h2 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .step-indicator {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .step-indicator::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #E0E0E0;
+      z-index: 0;
+    }
+
+    .step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #E0E0E0;
+      color: #999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 8px;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+
+    .step.active .step-circle {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      transform: scale(1.1);
+    }
+
+    .step.completed .step-circle {
+      background: #70AD47;
+      color: white;
+    }
+
+    .step-label {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .step.active .step-label {
+      color: #667eea;
+      font-weight: bold;
+    }
+
+    .form-section {
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .form-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .form-group {
+      margin-bottom: 25px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #E0E0E0;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.3s;
+      background: white;
+    }
+
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .preset-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .preset-btn {
+      padding: 15px;
+      border: 2px solid #E0E0E0;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: left;
+    }
+
+    .preset-btn:hover {
+      border-color: #667eea;
+      background: #F5F7FF;
+    }
+
+    .preset-btn.active {
+      border-color: #667eea;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .preset-btn-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .preset-btn-desc {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .percentage-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .percentage-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .percentage-item label {
+      margin: 0;
+      flex: 1;
+    }
+
+    .percentage-item input {
+      width: 80px;
+      text-align: center;
+    }
+
+    .total-check {
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .total-check.valid {
+      background: #D4EDDA;
+      color: #155724;
+    }
+
+    .total-check.invalid {
+      background: #F8D7DA;
+      color: #721C24;
+    }
+
+    .info-box {
+      background: #E7F3FF;
+      border-left: 4px solid #2196F3;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .info-box-title {
+      font-weight: bold;
+      color: #2196F3;
+      margin-bottom: 8px;
+    }
+
+    .info-box-content {
+      font-size: 13px;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    .summary-table th,
+    .summary-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #E0E0E0;
+    }
+
+    .summary-table th {
+      background: #F5F5F5;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .summary-table tr:hover {
+      background: #F9F9F9;
+    }
+
+    .summary-value {
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 25px;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-secondary {
+      background: #E0E0E0;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #D0D0D0;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #error {
+      display: none;
+      background: #F8D7DA;
+      color: #721C24;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #F5C6CB;
+      animation: shake 0.5s;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+
+    #success {
+      display: none;
+      background: #D4EDDA;
+      color: #155724;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #C3E6CB;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>📊 Đặt Ngân sách tháng</h2>
+      <p>Thiết lập kế hoạch tài chính thông minh</p>
+    </div>
+
+    <div class="content">
+      <!-- Step Indicator -->
+      <div class="step-indicator">
+        <div class="step active" id="step1-indicator">
+          <div class="step-circle">1</div>
+          <div class="step-label">Thu nhập</div>
+        </div>
+        <div class="step" id="step2-indicator">
+          <div class="step-circle">2</div>
+          <div class="step-label">Phân bổ</div>
+        </div>
+        <div class="step" id="step3-indicator">
+          <div class="step-circle">3</div>
+          <div class="step-label">Chi tiết</div>
+        </div>
+        <div class="step" id="step4-indicator">
+          <div class="step-circle">4</div>
+          <div class="step-label">Xác nhận</div>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div id="error"></div>
+      <div id="success"></div>
+      <div id="loading">
+        <div class="spinner"></div>
+        <p>Đang xử lý...</p>
+      </div>
+
+      <!-- Step 1: Thu nhập -->
+      <div class="form-section active" id="step1">
+        <div class="info-box">
+          <div class="info-box-title">💡 Bước 1: Thu nhập dự kiến</div>
+          <div class="info-box-content">
+            Nhập tổng thu nhập dự kiến trong tháng từ tất cả các nguồn (lương, thưởng, thu nhập phụ, etc.)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="income">Thu nhập dự kiến tháng này (VNĐ):</label>
+          <input type="number" id="income" placeholder="Ví dụ: 50000000" min="0" step="100000" required>
+        </div>
+
+        <div class="button-group">
+          <button type="button" class="btn-secondary" onclick="google.script.host.close()">✕ Hủy</button>
+          <button type="button" class="btn-primary" onclick="nextStep(2)">Tiếp theo →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Phân bổ nhóm -->
+      <div class="form-section" id="step2">
+        <div class="info-box">
+          <div class="info-box-title">📊 Bước 2: Phân bổ tổng thể</div>
+          <div class="info-box-content">
+            Chọn cách phân bổ thu nhập vào 3 nhóm: Chi tiêu, Đầu tư, và Trả nợ
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Chọn preset hoặc tự điều chỉnh:</label>
+          <div class="preset-buttons">
+            <div class="preset-btn" onclick="selectPreset('balanced')">
+              <div class="preset-btn-title">⚖️ Cân bằng</div>
+              <div class="preset-btn-desc">Chi 50% • ĐT 30% • Nợ 20%</div>
+            </div>
+            <div class="preset-btn" onclick="selectPreset('aggressive')">
+              <div class="preset-btn-title">💰 Tích cực</div>
+              <div class="preset-btn-desc">Chi 40% • ĐT 45% • Nợ 15%</div>
+            </div>
+            <div class="preset-btn" onclick="selectPreset('debt')">
+              <div class="preset-btn-title">💳 Trả nợ</div>
+              <div class="preset-btn-desc">Chi 40% • ĐT 10% • Nợ 50%</div>
+            </div>
+            <div class="preset-btn active" onclick="selectPreset('custom')">
+              <div class="preset-btn-title">🎨 Tùy chỉnh</div>
+              <div class="preset-btn-desc">Tự điều chỉnh theo nhu cầu</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Điều chỉnh tỷ lệ (%):</label>
+          <div class="percentage-grid">
+            <div class="percentage-item">
+              <label>📤 Chi tiêu:</label>
+              <input type="number" id="pctChi" min="0" max="100" step="5" value="50" oninput="updateTotal()">
+              <span>%</span>
+            </div>
+            <div style="text-align: right; color: #667eea; font-weight: bold;" id="amountChi">0 VNĐ</div>
+            
+            <div class="percentage-item">
+              <label>💰 Đầu tư:</label>
+              <input type="number" id="pctDautu" min="0" max="100" step="5" value="30" oninput="updateTotal()">
+              <span>%</span>
+            </div>
+            <div style="text-align: right; color: #667eea; font-weight: bold;" id="amountDautu">0 VNĐ</div>
+            
+            <div class="percentage-item">
+              <label>💳 Trả nợ:</label>
+              <input type="number" id="pctTrano" min="0" max="100" step="5" value="20" oninput="updateTotal()">
+              <span>%</span>
+            </div>
+            <div style="text-align: right; color: #667eea; font-weight: bold;" id="amountTrano">0 VNĐ</div>
+          </div>
+          
+          <div class="total-check" id="totalCheck">
+            Tổng: 100% ✓
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button type="button" class="btn-secondary" onclick="prevStep(1)">← Quay lại</button>
+          <button type="button" class="btn-primary" id="btn-step2" onclick="nextStep(3)">Tiếp theo →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Chi tiết từng nhóm -->
+      <div class="form-section" id="step3">
+        <div class="info-box">
+          <div class="info-box-title">📝 Bước 3: Chi tiết danh mục</div>
+          <div class="info-box-content">
+            Điều chỉnh % cho từng danh mục trong mỗi nhóm (tổng mỗi nhóm = 100%)
+          </div>
+        </div>
+
+        <!-- Chi tiêu chi tiết -->
+        <div class="form-group">
+          <label>📤 Chi tiêu chi tiết:</label>
+          <div class="percentage-grid" id="chiDetail"></div>
+          <div class="total-check" id="totalChi">Tổng: 100% ✓</div>
+        </div>
+
+        <!-- Đầu tư chi tiết -->
+        <div class="form-group">
+          <label>💰 Đầu tư chi tiết:</label>
+          <div class="percentage-grid" id="dautuDetail"></div>
+          <div class="total-check" id="totalDautu">Tổng: 100% ✓</div>
+        </div>
+
+        <div class="button-group">
+          <button type="button" class="btn-secondary" onclick="prevStep(2)">← Quay lại</button>
+          <button type="button" class="btn-primary" id="btn-step3" onclick="nextStep(4)">Tiếp theo →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Xác nhận -->
+      <div class="form-section" id="step4">
+        <div class="info-box">
+          <div class="info-box-title">✅ Bước 4: Xác nhận</div>
+          <div class="info-box-content">
+            Kiểm tra lại thông tin trước khi áp dụng ngân sách
+          </div>
+        </div>
+
+        <table class="summary-table" id="summaryTable"></table>
+
+        <div class="button-group">
+          <button type="button" class="btn-secondary" onclick="prevStep(3)">← Quay lại</button>
+          <button type="button" class="btn-primary" onclick="submitBudget()">✓ Xác nhận</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentStep = 1;
+    let budgetData = {
+      income: 0,
+      pctChi: 50,
+      pctDautu: 30,
+      pctTrano: 20,
+      chi: {},
+      dautu: {}
+    };
+
+    // Preset data
+    const presets = {
+      balanced: { chi: 50, dautu: 30, trano: 20 },
+      aggressive: { chi: 40, dautu: 45, trano: 15 },
+      debt: { chi: 40, dautu: 10, trano: 50 },
+      custom: { chi: 50, dautu: 30, trano: 20 }
+    };
+
+    // Chi tiêu categories
+    const chiCategories = [
+      { name: 'Ăn uống', pct: 35 },
+      { name: 'Đi lại', pct: 10 },
+      { name: 'Nhà ở', pct: 30 },
+      { name: 'Y tế', pct: 5 },
+      { name: 'Giáo dục', pct: 10 },
+      { name: 'Mua sắm', pct: 7 },
+      { name: 'Giải trí', pct: 2 },
+      { name: 'Khác', pct: 1 }
+    ];
+
+    // Đầu tư categories
+    const dautuCategories = [
+      { name: 'Chứng khoán', pct: 50 },
+      { name: 'Vàng', pct: 20 },
+      { name: 'Crypto', pct: 20 },
+      { name: 'Đầu tư khác', pct: 10 }
+    ];
+
+    // Format currency
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('vi-VN').format(amount) + ' VNĐ';
+    }
+
+    // Select preset
+    function selectPreset(type) {
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.closest('.preset-btn').classList.add('active');
+      
+      const preset = presets[type];
+      document.getElementById('pctChi').value = preset.chi;
+      document.getElementById('pctDautu').value = preset.dautu;
+      document.getElementById('pctTrano').value = preset.trano;
+      
+      updateTotal();
+    }
+
+    // Update total percentage
+    function updateTotal() {
+      const income = parseFloat(document.getElementById('income').value) || 0;
+      const chi = parseFloat(document.getElementById('pctChi').value) || 0;
+      const dautu = parseFloat(document.getElementById('pctDautu').value) || 0;
+      const trano = parseFloat(document.getElementById('pctTrano').value) || 0;
+      
+      const total = chi + dautu + trano;
+      const totalCheck = document.getElementById('totalCheck');
+      const btn = document.getElementById('btn-step2');
+      
+      // Update amounts
+      document.getElementById('amountChi').textContent = formatCurrency(income * chi / 100);
+      document.getElementById('amountDautu').textContent = formatCurrency(income * dautu / 100);
+      document.getElementById('amountTrano').textContent = formatCurrency(income * trano / 100);
+      
+      if (total === 100) {
+        totalCheck.className = 'total-check valid';
+        totalCheck.textContent = 'Tổng: 100% ✓';
+        btn.disabled = false;
+      } else {
+        totalCheck.className = 'total-check invalid';
+        totalCheck.textContent = `Tổng: ${total}% (Cần = 100%)`;
+        btn.disabled = true;
+      }
+    }
+
+    // Update category detail total
+    function updateCategoryTotal(type) {
+      const inputs = document.querySelectorAll(`#${type}Detail input`);
+      let total = 0;
+      inputs.forEach(input => {
+        total += parseFloat(input.value) || 0;
+      });
+      
+      const totalDiv = document.getElementById(`total${type.charAt(0).toUpperCase() + type.slice(1)}`);
+      const btn = document.getElementById('btn-step3');
+      
+      if (Math.abs(total - 100) < 0.01) {
+        totalDiv.className = 'total-check valid';
+        totalDiv.textContent = 'Tổng: 100% ✓';
+      } else {
+        totalDiv.className = 'total-check invalid';
+        totalDiv.textContent = `Tổng: ${total.toFixed(1)}% (Cần = 100%)`;
+      }
+      
+      // Check both totals
+      const chiTotal = Array.from(document.querySelectorAll('#chiDetail input'))
+        .reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
+      const dautuTotal = Array.from(document.querySelectorAll('#dautuDetail input'))
+        .reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
+      
+      btn.disabled = Math.abs(chiTotal - 100) >= 0.01 || Math.abs(dautuTotal - 100) >= 0.01;
+    }
+
+    // Generate category inputs
+    function generateCategoryInputs() {
+      const chiDetail = document.getElementById('chiDetail');
+      chiDetail.innerHTML = '';
+      chiCategories.forEach(cat => {
+        chiDetail.innerHTML += `
+          <div class="percentage-item">
+            <label>${cat.name}:</label>
+            <input type="number" class="cat-chi" data-name="${cat.name}" min="0" max="100" step="1" value="${cat.pct}" oninput="updateCategoryTotal('chi')">
+            <span>%</span>
+          </div>
+          <div style="text-align: right; color: #667eea; font-weight: bold;" id="amount-chi-${cat.name}"></div>
+        `;
+      });
+      
+      const dautuDetail = document.getElementById('dautuDetail');
+      dautuDetail.innerHTML = '';
+      dautuCategories.forEach(cat => {
+        dautuDetail.innerHTML += `
+          <div class="percentage-item">
+            <label>${cat.name}:</label>
+            <input type="number" class="cat-dautu" data-name="${cat.name}" min="0" max="100" step="1" value="${cat.pct}" oninput="updateCategoryTotal('dautu')">
+            <span>%</span>
+          </div>
+          <div style="text-align: right; color: #667eea; font-weight: bold;" id="amount-dautu-${cat.name}"></div>
+        `;
+      });
+      
+      updateCategoryAmounts();
+      updateCategoryTotal('chi');
+      updateCategoryTotal('dautu');
+    }
+
+    // Update category amounts
+    function updateCategoryAmounts() {
+      const income = budgetData.income;
+      const pctChi = budgetData.pctChi / 100;
+      const pctDautu = budgetData.pctDautu / 100;
+      
+      document.querySelectorAll('.cat-chi').forEach(input => {
+        const pct = parseFloat(input.value) || 0;
+        const amount = income * pctChi * (pct / 100);
+        const name = input.dataset.name;
+        const el = document.getElementById(`amount-chi-${name}`);
+        if (el) el.textContent = formatCurrency(amount);
+      });
+      
+      document.querySelectorAll('.cat-dautu').forEach(input => {
+        const pct = parseFloat(input.value) || 0;
+        const amount = income * pctDautu * (pct / 100);
+        const name = input.dataset.name;
+        const el = document.getElementById(`amount-dautu-${name}`);
+        if (el) el.textContent = formatCurrency(amount);
+      });
+    }
+
+    // Generate summary table
+    function generateSummary() {
+      const income = budgetData.income;
+      const pctChi = budgetData.pctChi / 100;
+      const pctDautu = budgetData.pctDautu / 100;
+      const pctTrano = budgetData.pctTrano / 100;
+      
+      let html = `
+        <tr>
+          <th>Hạng mục</th>
+          <th>Tỷ lệ</th>
+          <th>Số tiền</th>
+        </tr>
+        <tr>
+          <td><strong>Thu nhập dự kiến</strong></td>
+          <td>100%</td>
+          <td class="summary-value">${formatCurrency(income)}</td>
+        </tr>
+        <tr>
+          <td colspan="3" style="background: #FFF3CD; font-weight: bold;">📤 CHI TIÊU (${budgetData.pctChi}%)</td>
+        </tr>
+      `;
+      
+      Object.entries(budgetData.chi).forEach(([name, pct]) => {
+        const amount = income * pctChi * (pct / 100);
+        html += `
+          <tr>
+            <td>&nbsp;&nbsp;• ${name}</td>
+            <td>${pct.toFixed(1)}%</td>
+            <td class="summary-value">${formatCurrency(amount)}</td>
+          </tr>
+        `;
+      });
+      
+      html += `
+        <tr>
+          <td colspan="3" style="background: #D4EDDA; font-weight: bold;">💰 ĐẦU TƯ (${budgetData.pctDautu}%)</td>
+        </tr>
+      `;
+      
+      Object.entries(budgetData.dautu).forEach(([name, pct]) => {
+        const amount = income * pctDautu * (pct / 100);
+        html += `
+          <tr>
+            <td>&nbsp;&nbsp;• ${name}</td>
+            <td>${pct.toFixed(1)}%</td>
+            <td class="summary-value">${formatCurrency(amount)}</td>
+          </tr>
+        `;
+      });
+      
+      html += `
+        <tr>
+          <td colspan="3" style="background: #FFF3CD; font-weight: bold;">💳 TRẢ NỢ (${budgetData.pctTrano}%)</td>
+        </tr>
+        <tr>
+          <td>&nbsp;&nbsp;• Trả nợ</td>
+          <td>100%</td>
+          <td class="summary-value">${formatCurrency(income * pctTrano)}</td>
+        </tr>
+      `;
+      
+      document.getElementById('summaryTable').innerHTML = html;
+    }
+
+    // Navigation
+    function nextStep(step) {
+      // Validate current step
+      if (currentStep === 1) {
+        const income = parseFloat(document.getElementById('income').value);
+        if (!income || income <= 0) {
+          showError('Vui lòng nhập thu nhập dự kiến!');
+          return;
+        }
+        budgetData.income = income;
+        updateTotal();
+      } else if (currentStep === 2) {
+        budgetData.pctChi = parseFloat(document.getElementById('pctChi').value);
+        budgetData.pctDautu = parseFloat(document.getElementById('pctDautu').value);
+        budgetData.pctTrano = parseFloat(document.getElementById('pctTrano').value);
+        
+        if (currentStep === 2 && step === 3) {
+          generateCategoryInputs();
+        }
+      } else if (currentStep === 3) {
+        // Collect chi data
+        budgetData.chi = {};
+        document.querySelectorAll('.cat-chi').forEach(input => {
+          budgetData.chi[input.dataset.name] = parseFloat(input.value);
+        });
+        
+        // Collect dautu data
+        budgetData.dautu = {};
+        document.querySelectorAll('.cat-dautu').forEach(input => {
+          budgetData.dautu[input.dataset.name] = parseFloat(input.value);
+        });
+        
+        generateSummary();
+      }
+      
+      // Update UI
+      document.getElementById(`step${currentStep}`).classList.remove('active');
+      document.getElementById(`step${currentStep}-indicator`).classList.remove('active');
+      document.getElementById(`step${currentStep}-indicator`).classList.add('completed');
+      
+      currentStep = step;
+      
+      document.getElementById(`step${currentStep}`).classList.add('active');
+      document.getElementById(`step${currentStep}-indicator`).classList.add('active');
+      
+      hideError();
+    }
+
+    function prevStep(step) {
+      document.getElementById(`step${currentStep}`).classList.remove('active');
+      document.getElementById(`step${currentStep}-indicator`).classList.remove('active');
+      
+      currentStep = step;
+      
+      document.getElementById(`step${currentStep}`).classList.add('active');
+      document.getElementById(`step${currentStep}-indicator`).classList.add('active');
+      document.getElementById(`step${currentStep}-indicator`).classList.remove('completed');
+      
+      if (step === 2) {
+        updateTotal();
+      } else if (step === 3) {
+        updateCategoryAmounts();
+      }
+    }
+
+    // Submit budget
+    function submitBudget() {
+      showLoading();
+      hideError();
+      
+      google.script.run
+        .withSuccessHandler(onSuccess)
+        .withFailureHandler(onFailure)
+        .setBudgetForMonth(budgetData);
+    }
+
+    function onSuccess(result) {
+      hideLoading();
+      if (result.success) {
+        showSuccess('✅ Đã thiết lập ngân sách thành công!\n\nVui lòng kiểm tra sheet BUDGET.');
+        setTimeout(() => {
+          google.script.host.close();
+        }, 2000);
+      } else {
+        showError(result.message || 'Có lỗi xảy ra!');
+      }
+    }
+
+    function onFailure(error) {
+      hideLoading();
+      showError('Lỗi: ' + error.message);
+    }
+
+    // UI helpers
+    function showError(message) {
+      const errorDiv = document.getElementById('error');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+    }
+
+    function hideError() {
+      document.getElementById('error').style.display = 'none';
+    }
+
+    function showSuccess(message) {
+      const successDiv = document.getElementById('success');
+      successDiv.textContent = message;
+      successDiv.style.display = 'block';
+    }
+
+    function showLoading() {
+      document.getElementById('loading').style.display = 'block';
+      document.querySelectorAll('button').forEach(btn => btn.disabled = true);
+    }
+
+    function hideLoading() {
+      document.getElementById('loading').style.display = 'none';
+      document.querySelectorAll('button').forEach(btn => btn.disabled = false);
+    }
+
+    // Initialize
+    window.onload = function() {
+      updateTotal();
+    };
+  </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 /**
  * ===============================================
- * MAIN.GS - FILE CHÍNH HỆ THỐNG QUẢN LÝ TÀI CHÍNH v3.3
+ * MAIN.GS - FILE CHÍNH HỆ THỐNG QUẢN LÝ TÀI CHÍNH v3.4
  * ===============================================
  * 
  * Kiến trúc Module:
@@ -11,7 +11,14 @@
  * - BudgetManager.gs: Quản lý ngân sách
  * - DashboardManager.gs: Quản lý dashboard & thống kê
  * 
- * VERSION: 3.3 - Fixed appendRow issue in Setup Wizard
+ * VERSION: 3.4 - Unified Budget Sheet Structure
+ * CHANGELOG v3.4:
+ * - THỐNG NHẤT cấu trúc Sheet BUDGET cho cả Setup Wizard và Menu khởi tạo
+ * - processSetupWizard() giờ GỌI SheetInitializer.initializeBudgetSheet() thay vì tự tạo sheet
+ * - Điền dữ liệu từ Setup Wizard vào các ô tham số (B2, B3, B16, B25, etc.)
+ * - ĐẢM BẢO cả 2 cách đều tạo CÙNG CẤU TRÚC: 6 cột với công thức động
+ * - FIX vấn đề khác biệt giữa 2 sheet gây lỗi Dashboard và các công thức
+ * 
  * CHANGELOG v3.3:
  * - Fix lỗi appendRow() trong processSetupWizard chèn dữ liệu vào dòng 1001
  * - Thay appendRow() bằng getRange().setValues() để insert đúng vị trí
@@ -23,7 +30,7 @@
 // ==================== CẤU HÌNH TOÀN CỤC ====================
 
 const APP_CONFIG = {
-  VERSION: '3.3',
+  VERSION: '3.4',
   APP_NAME: '💰 Quản lý Tài chính',
   
   // Danh sách các sheet
@@ -76,6 +83,7 @@ function onOpen() {
       .addItem('💳 Trả nợ', 'showDebtPaymentForm')
       .addSeparator()
       .addItem('📈 Giao dịch Chứng khoán', 'showStockForm')
+      .addItem('📊 Nhập Cổ tức', 'showDividendForm')
       .addItem('🪙 Giao dịch Vàng', 'showGoldForm')
       .addItem('₿ Giao dịch Crypto', 'showCryptoForm')
       .addItem('💼 Đầu tư khác', 'showOtherInvestmentForm'))
@@ -84,6 +92,8 @@ function onOpen() {
 
     // === NHÓM 2: BUDGET ===
     .addSubMenu(ui.createMenu('💵 Ngân sách')
+      .addItem('📊 Đặt Ngân sách tháng', 'showSetBudgetForm')
+      .addSeparator()
       .addItem('⚠️ Kiểm tra Budget', 'checkBudgetWarnings')
       .addItem('📊 Báo cáo Chi tiêu', 'showExpenseReport')
       .addItem('💰 Báo cáo Đầu tư', 'showInvestmentReport'))
@@ -141,54 +151,59 @@ function onOpen() {
  * Hiển thị form nhập thu
  */
 function showIncomeForm() {
-  showForm('IncomeForm', '📥 Nhập Thu nhập', 450, 400);
+  showForm('IncomeForm', '📥 Nhập Thu nhập', 600, 650);
 }
 
 /**
  * Hiển thị form nhập chi
  */
 function showExpenseForm() {
-  showForm('ExpenseForm', '📤 Nhập Chi tiêu', 450, 450);
+  showForm('ExpenseForm', '📤 Nhập Chi tiêu', 600, 650);
 }
 
 /**
  * Hiển thị form trả nợ
  */
 function showDebtPaymentForm() {
-  showForm('DebtPaymentForm', '💳 Trả nợ', 450, 450);
+  showForm('DebtPaymentForm', '💳 Trả nợ', 600, 650);
 }
 /**
  * Hiển thị form thêm khoản nợ mới
  */
 function showDebtManagementForm() {
-  showForm('DebtManagementForm', '💳 Thêm Khoản Nợ Mới', 500, 650);
+  showForm('DebtManagementForm', '💳 Thêm Khoản Nợ Mới', 600, 700);
 }
 /**
  * Hiển thị form giao dịch chứng khoán
  */
 function showStockForm() {
-  showForm('StockForm', '📈 Giao dịch Chứng khoán', 450, 500);
+  showForm('StockForm', '📈 Giao dịch Chứng khoán', 600, 650);
 }
-
+/**
+ * ✅ NEW v3.4: Hiển thị form nhập cổ tức
+ */
+function showDividendForm() {
+  showForm('DividendForm', '📊 Nhập Cổ tức', 600, 650);
+}
 /**
  * Hiển thị form giao dịch vàng
  */
 function showGoldForm() {
-  showForm('GoldForm', '🪙 Giao dịch Vàng', 450, 550);
+  showForm('GoldForm', '🪙 Giao dịch Vàng', 600, 650);
 }
 
 /**
  * Hiển thị form giao dịch crypto
  */
 function showCryptoForm() {
-  showForm('CryptoForm', '₿ Giao dịch Crypto', 450, 550);
+  showForm('CryptoForm', '₿ Giao dịch Crypto', 600, 650);
 }
 
 /**
  * Hiển thị form đầu tư khác
  */
 function showOtherInvestmentForm() {
-  showForm('OtherInvestmentForm', '💼 Đầu tư khác', 450, 550);
+  showForm('OtherInvestmentForm', '💼 Đầu tư khác', 600, 650);
 }
 
 /**
@@ -233,8 +248,33 @@ function showSetupWizard() {
 }
 
 /**
+ * ===============================================
+ * PROCESSETUPWIZARD - VERSION MỚI v3.4
+ * ===============================================
+ * 
+ * Xử lý dữ liệu từ Setup Wizard với phân bổ ngân sách theo %
+ * 
+ * THAY ĐỔI SO VỚI v3.3:
+ * - Nhận dữ liệu thu nhập + phân bổ % (Chi/Đầu tư/Trả nợ)
+ * - Tính toán ngân sách chi tiết dựa trên %
+ * - Cập nhật sheet BUDGET với giá trị đã tính
+ */
+
+/**
  * Xử lý dữ liệu từ Setup Wizard
  * @param {Object} setupData - Dữ liệu từ form wizard
+ * setupData = {
+ *   balance: { amount, date, source },
+ *   debt: { name, principal, rate, term, date } hoặc null,
+ *   budget: {
+ *     income: số thu nhập,
+ *     pctChi: % chi tiêu,
+ *     pctDautu: % đầu tư,
+ *     pctTrano: % trả nợ,
+ *     chi: { "Ăn uống": 35, "Đi lại": 10, ... },
+ *     dautu: { "Chứng khoán": 50, "Vàng": 20, ... }
+ *   }
+ * }
  * @return {Object} Kết quả thực thi
  */
 function processSetupWizard(setupData) {
@@ -245,7 +285,7 @@ function processSetupWizard(setupData) {
     // BƯỚC 1: Khởi tạo tất cả sheets (KHÔNG có dữ liệu mẫu)
     // ============================================================
     
-    // Sheet THU - Khởi tạo thủ công để không có dữ liệu mẫu
+    // Sheet THU - Khởi tạo thủ công
     let sheet = ss.getSheetByName(APP_CONFIG.SHEETS.INCOME);
     if (sheet) ss.deleteSheet(sheet);
     sheet = ss.insertSheet(APP_CONFIG.SHEETS.INCOME);
@@ -269,12 +309,10 @@ function processSetupWizard(setupData) {
     sheet.getRange('C2:C').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
     sheet.setFrozenRows(1);
     
-    // ⚠️ QUAN TRỌNG: KHÔNG set validation ngay - sẽ set SAU khi đã insert dữ liệu
-    // Vì setupData.balance.source có thể là giá trị bất kỳ
     const sourceRange = sheet.getRange('D2:D1000');
-    sourceRange.setNumberFormat('@'); // Set as plain text
+    sourceRange.setNumberFormat('@');
     
-    // Sheet CHI - Khởi tạo thủ công để không có dữ liệu mẫu
+    // Sheet CHI - Khởi tạo thủ công
     sheet = ss.getSheetByName(APP_CONFIG.SHEETS.EXPENSE);
     if (sheet) ss.deleteSheet(sheet);
     sheet = ss.insertSheet(APP_CONFIG.SHEETS.EXPENSE);
@@ -299,7 +337,6 @@ function processSetupWizard(setupData) {
     sheet.getRange('C2:C').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
     sheet.setFrozenRows(1);
     
-    // Data validation cho Danh mục
     const categoryRange = sheet.getRange('D2:D1000');
     categoryRange.setNumberFormat('@');
     const categoryRule = SpreadsheetApp.newDataValidation()
@@ -337,7 +374,6 @@ function processSetupWizard(setupData) {
       'Số dư ban đầu (Setup Wizard)'
     ];
     
-    // ✅ FIX: Sử dụng getRange() thay vì appendRow()
     incomeSheet.getRange(2, 1, 1, incomeData.length).setValues([incomeData]);
     
     // Format dòng vừa thêm
@@ -345,7 +381,7 @@ function processSetupWizard(setupData) {
     incomeSheet.getRange(2, 3).setNumberFormat('#,##0');
     
     // ============================================================
-    // BƯỚC 3: Thêm khoản nợ (nếu có) - FIXED VERSION
+    // BƯỚC 3: Thêm khoản nợ (nếu có)
     // ============================================================
     if (setupData.debt) {
       const debtSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
@@ -353,9 +389,7 @@ function processSetupWizard(setupData) {
       const dueDate = new Date(startDate);
       dueDate.setMonth(dueDate.getMonth() + setupData.debt.term);
       
-      // ✅ CRITICAL: Chia làm 2 phần để KHÔNG ghi đè công thức ở cột J
-      
-      // Phần 1: Cột A-I (STT đến Đã trả lãi) - 9 cột
+      // Phần 1: Cột A-I (STT đến Đã trả lãi)
       const debtDataPart1 = [
         1, // A: STT
         setupData.debt.name, // B: Tên khoản nợ
@@ -368,32 +402,28 @@ function processSetupWizard(setupData) {
         0  // I: Đã trả lãi
       ];
       
-      // Phần 2: Cột K-L (Trạng thái và Ghi chú) - 2 cột
+      // Phần 2: Cột K-L (Trạng thái và Ghi chú)
       const debtDataPart2 = [
         'Chưa trả', // K: Trạng thái
         'Khởi tạo từ Setup Wizard' // L: Ghi chú
       ];
       
-      // ✅ Insert Phần 1: Cột A-I (9 cột)
+      // Insert Phần 1: Cột A-I
       debtSheet.getRange(2, 1, 1, debtDataPart1.length).setValues([debtDataPart1]);
       
-      // ✅ Bỏ qua cột J (cột 10) - GIỮ NGUYÊN CÔNG THỨC =C2-H2
-      
-      // ✅ Insert Phần 2: Cột K-L (2 cột, bắt đầu từ cột 11)
+      // Insert Phần 2: Cột K-L (bắt đầu từ cột 11)
       debtSheet.getRange(2, 11, 1, debtDataPart2.length).setValues([debtDataPart2]);
       
-      // ✅ FIX: Format các cột
-      debtSheet.getRange(2, 3).setNumberFormat('#,##0'); // Cột C: Gốc
-      debtSheet.getRange(2, 4).setNumberFormat('0.00"%"'); // Cột D: Lãi suất
-      debtSheet.getRange(2, 6).setNumberFormat('dd/mm/yyyy'); // Cột F: Ngày vay
-      debtSheet.getRange(2, 7).setNumberFormat('dd/mm/yyyy'); // Cột G: Đáo hạn
-      debtSheet.getRange(2, 8).setNumberFormat('#,##0'); // Cột H: Đã trả gốc
-      debtSheet.getRange(2, 9).setNumberFormat('#,##0'); // Cột I: Đã trả lãi
-      // Cột J có công thức nên không cần format
+      // Format các cột
+      debtSheet.getRange(2, 3).setNumberFormat('#,##0');
+      debtSheet.getRange(2, 4).setNumberFormat('0.00"%"');
+      debtSheet.getRange(2, 6).setNumberFormat('dd/mm/yyyy');
+      debtSheet.getRange(2, 7).setNumberFormat('dd/mm/yyyy');
+      debtSheet.getRange(2, 8).setNumberFormat('#,##0');
+      debtSheet.getRange(2, 9).setNumberFormat('#,##0');
       
-      // ✅ THÊM: Tự động thêm khoản thu tương ứng
-      const incomeRow = 3; // Dòng 2 đã có số dư ban đầu, thêm vào dòng 3
-      
+      // Tự động thêm khoản thu tương ứng
+      const incomeRow = 3;
       const autoIncomeData = [
         2, // STT = 2
         startDate,
@@ -403,16 +433,13 @@ function processSetupWizard(setupData) {
       ];
       
       incomeSheet.getRange(incomeRow, 1, 1, autoIncomeData.length).setValues([autoIncomeData]);
-      
-      // Format
       incomeSheet.getRange(incomeRow, 2).setNumberFormat('dd/mm/yyyy');
       incomeSheet.getRange(incomeRow, 3).setNumberFormat('#,##0');
     }
     
     // ============================================================
-    // BƯỚC 3.5: Set Data Validation cho sheet THU SAU KHI ĐÃ INSERT DỮ LIỆU
+    // BƯỚC 3.5: Set Data Validation cho sheet THU
     // ============================================================
-    // ✅ FIX: Set validation SAU để tránh conflict với dữ liệu từ Setup Wizard
     const incomeSourceRange = incomeSheet.getRange('D2:D1000');
     const incomeSourceRule = SpreadsheetApp.newDataValidation()
       .requireValueInList([
@@ -427,169 +454,90 @@ function processSetupWizard(setupData) {
         'Vay nợ',
         'Khác'
       ])
-      .setAllowInvalid(true) // ✅ Cho phép giá trị ngoài danh sách
+      .setAllowInvalid(true)
       .build();
     incomeSourceRange.setDataValidation(incomeSourceRule);
     
     // ============================================================
-    // BƯỚC 4: Khởi tạo Budget với giá trị từ form
+    // BƯỚC 4: Khởi tạo Budget bằng SheetInitializer và điền dữ liệu từ Setup Wizard
     // ============================================================
-    sheet = ss.getSheetByName(APP_CONFIG.SHEETS.BUDGET);
-    if (sheet) ss.deleteSheet(sheet);
-    sheet = ss.insertSheet(APP_CONFIG.SHEETS.BUDGET);
     
-    // Header
-    sheet.getRange('A1').setValue('NGÂN SÁCH THÁNG')
-      .setFontSize(16)
-      .setFontWeight('bold')
-      .setBackground('#4472C4')
-      .setFontColor('white');
-    sheet.getRange('A1:D1').merge();
+    // Gọi hàm khởi tạo chuẩn từ SheetInitializer
+    SheetInitializer.initializeBudgetSheet();
     
-    // Section 1: CHI TIÊU
-    sheet.getRange('A2').setValue('📊 CHI TIÊU')
-      .setFontWeight('bold')
-      .setBackground('#E7E6E6');
-    sheet.getRange('A2:D2').merge();
+    // Lấy sheet vừa tạo và điền dữ liệu từ Setup Wizard
+    const budgetSheet = ss.getSheetByName(APP_CONFIG.SHEETS.BUDGET);
     
-    const categoryHeaders = ['Danh mục', 'Ngân sách', 'Đã chi', 'Tỷ lệ %'];
-    sheet.getRange(3, 1, 1, 4)
-      .setValues([categoryHeaders])
-      .setFontWeight('bold')
-      .setBackground('#D9D9D9');
+    // Điền Thu nhập dự kiến (cell B2)
+    budgetSheet.getRange('B2').setValue(setupData.budget.income);
     
-    // Categories với budget values từ form
-    const categories = [
-      ['Ăn uống', setupData.budget.food],
-      ['Đi lại', setupData.budget.transport],
-      ['Nhà ở', setupData.budget.housing],
-      ['Y tế', setupData.budget.health],
-      ['Giáo dục', setupData.budget.education],
-      ['Mua sắm', setupData.budget.shopping],
-      ['Giải trí', setupData.budget.entertainment],
-      ['Khác', setupData.budget.other]
-    ];
+    // Điền % Nhóm Chi tiêu (cell B3)
+    budgetSheet.getRange('B3').setValue(setupData.budget.pctChi / 100);
     
-    categories.forEach((cat, idx) => {
-      const row = 4 + idx;
-      sheet.getRange(row, 1).setValue(cat[0]);
-      sheet.getRange(row, 2).setValue(cat[1]);
-      sheet.getRange(row, 3).setValue(0);
-      sheet.getRange(row, 4).setFormula(`=IFERROR(C${row}/B${row}, 0)`);
+    // Điền % chi tiết cho từng danh mục chi tiêu (rows 6-13, column B)
+    // Cần map tên danh mục từ setupData với vị trí row
+    const chiMapping = {
+      'Ăn uống': 6,
+      'Đi lại': 7,
+      'Nhà ở': 8,
+      'Y tế': 9,
+      'Giáo dục': 10,
+      'Mua sắm': 11,
+      'Giải trí': 12,
+      'Khác': 13
+    };
+    
+    Object.entries(setupData.budget.chi).forEach(([categoryName, pct]) => {
+      const row = chiMapping[categoryName];
+      if (row) {
+        budgetSheet.getRange(row, 2).setValue(pct / 100); // Chuyển % sang decimal
+      }
     });
     
-    // Format
-    sheet.getRange('B4:C11').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
-    sheet.getRange('D4:D11').setNumberFormat('0.00%');
+    // Điền % Nhóm Đầu tư (cell B16 - chiEndRow + 2 = 14 + 2 = 16)
+    budgetSheet.getRange('B16').setValue(setupData.budget.pctDautu / 100);
     
-    // Conditional formatting cho tỷ lệ
-    const percentRange = sheet.getRange('D4:D11');
+    // Điền % chi tiết cho đầu tư (rows 19-22, column B)
+    const dautuMapping = {
+      'Chứng khoán': 19,
+      'Vàng': 20,
+      'Crypto': 21,
+      'Đầu tư khác': 22
+    };
     
-    // Xanh: < 70%
-    const rule1 = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberLessThan(0.7)
-      .setBackground('#C6EFCE')
-      .setRanges([percentRange])
-      .build();
-    
-    // Vàng: 70-90%
-    const rule2 = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberBetween(0.7, 0.9)
-      .setBackground('#FFEB9C')
-      .setRanges([percentRange])
-      .build();
-    
-    // Đỏ: > 90%
-    const rule3 = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberGreaterThan(0.9)
-      .setBackground('#FFC7CE')
-      .setRanges([percentRange])
-      .build();
-    
-    sheet.setConditionalFormatRules([rule1, rule2, rule3]);
-    
-    // Tổng cộng
-    sheet.getRange('A12').setValue('TỔNG').setFontWeight('bold');
-    sheet.getRange('B12').setFormula('=SUM(B4:B11)');
-    sheet.getRange('C12').setFormula('=SUM(C4:C11)');
-    sheet.getRange('D12').setFormula('=IFERROR(C12/B12, 0)');
-    sheet.getRange('B12:C12').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
-    sheet.getRange('D12').setNumberFormat('0.00%');
-    
-    // Section 2: ĐẦU TƯ & TRẢ NỢ
-    sheet.getRange('A14').setValue('💰 ĐẦU TƯ & TRẢ NỢ')
-      .setFontWeight('bold')
-      .setBackground('#E7E6E6');
-    sheet.getRange('A14:D14').merge();
-    
-    sheet.getRange(15, 1, 1, 4)
-      .setValues([['Loại', 'Target', 'Đã đầu tư/trả', 'Tỷ lệ %']])
-      .setFontWeight('bold')
-      .setBackground('#D9D9D9');
-    
-    const investmentTypes = [
-      ['Chứng khoán', 0],
-      ['Vàng', 0],
-      ['Crypto', 0],
-      ['Đầu tư khác', 0],
-      ['Trả nợ', 0]
-    ];
-    
-    investmentTypes.forEach((type, idx) => {
-      const row = 16 + idx;
-      sheet.getRange(row, 1).setValue(type[0]);
-      sheet.getRange(row, 2).setValue(type[1]);
-      sheet.getRange(row, 3).setValue(0);
-      sheet.getRange(row, 4).setFormula(`=IFERROR(C${row}/B${row}, 0)`);
+    Object.entries(setupData.budget.dautu).forEach(([categoryName, pct]) => {
+      const row = dautuMapping[categoryName];
+      if (row) {
+        budgetSheet.getRange(row, 2).setValue(pct / 100); // Chuyển % sang decimal
+      }
     });
     
-    sheet.getRange('B16:C20').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
-    sheet.getRange('D16:D20').setNumberFormat('0.00%');
-    
-    // Column widths
-    sheet.setColumnWidth(1, 150);
-    sheet.setColumnWidth(2, 130);
-    sheet.setColumnWidth(3, 130);
-    sheet.setColumnWidth(4, 100);
+    // Điền % Nhóm Trả nợ (cell B25 - tranoRow)
+    budgetSheet.getRange('B25').setValue(setupData.budget.pctTrano / 100);
     
     // ============================================================
     // BƯỚC 5: Khởi tạo Dashboard
     // ============================================================
     DashboardManager.setupDashboard();
     
-    // ============================================================
-    // BƯỚC 6: Thành công
-    // ============================================================
-    const totalBudget = setupData.budget.food + setupData.budget.transport + 
-                        setupData.budget.housing + setupData.budget.health +
-                        setupData.budget.education + setupData.budget.shopping +
-                        setupData.budget.entertainment + setupData.budget.other;
-    
     return {
       success: true,
-      message: 
-        '✅ Khởi tạo thành công!\n\n' +
-        '━━━━━━━━━━━━━━━━━━━━━━\n' +
-        '💰 Số dư ban đầu: ' + formatCurrency(setupData.balance.amount) + '\n' +
-        (setupData.debt ? 
-          '📋 Khoản nợ: ' + setupData.debt.name + ' - ' + formatCurrency(setupData.debt.principal) + '\n' +
-          '   → Đã tự động thêm khoản thu "Vay nợ"\n' : 
-          '📋 Khoản nợ: Không có\n') +
-        '📊 Tổng ngân sách/tháng: ' + formatCurrency(totalBudget) + '\n' +
-        '━━━━━━━━━━━━━━━━━━━━━━\n\n' +
-        '🎉 Hệ thống đã sẵn sàng!\n' +
-        'Bạn có thể bắt đầu nhập liệu qua Menu > Nhập liệu'
+      message: '✅ Khởi tạo thành công!\n\n' +
+        `💰 Thu nhập: ${formatCurrency(setupData.budget.income)}\n` +
+        `📤 Chi tiêu: ${setupData.budget.pctChi}% = ${formatCurrency(setupData.budget.income * setupData.budget.pctChi / 100)}\n` +
+        `💰 Đầu tư: ${setupData.budget.pctDautu}% = ${formatCurrency(setupData.budget.income * setupData.budget.pctDautu / 100)}\n` +
+        `💳 Trả nợ: ${setupData.budget.pctTrano}% = ${formatCurrency(setupData.budget.income * setupData.budget.pctTrano / 100)}\n\n` +
+        'Hệ thống đã sẵn sàng sử dụng!'
     };
     
   } catch (error) {
-    Logger.log('Error in processSetupWizard: ' + error.toString());
+    Logger.log('Error in processSetupWizard: ' + error.message);
     return {
       success: false,
-      message: 'Lỗi khởi tạo: ' + error.message + '\n\nVui lòng thử lại hoặc liên hệ hỗ trợ.'
+      message: 'Có lỗi xảy ra: ' + error.message
     };
   }
 }
-
 // ==================== KHỞI TẠO TỪNG SHEET ====================
 
 /**

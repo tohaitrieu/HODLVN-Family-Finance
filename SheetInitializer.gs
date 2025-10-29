@@ -507,231 +507,302 @@ const SheetInitializer = {
     
     sheet = ss.insertSheet(APP_CONFIG.SHEETS.BUDGET);
     
-    // Title
-    sheet.getRange('A1:D1').merge()
-      .setValue('💰 NGÂN SÁCH THÁNG ' + (new Date().getMonth() + 1) + '/' + new Date().getFullYear())
-      .setFontSize(14)
+    // Lấy tháng/năm hiện tại
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    
+    // ========== ROW 1: HEADER ==========
+    sheet.getRange('A1:F1').merge()
+      .setValue(`💰 NGÂN SÁCH THÁNG ${currentMonth}/${currentYear}`)
       .setFontWeight('bold')
-      .setBackground(APP_CONFIG.COLORS.PRIMARY)
-      .setFontColor('#FFFFFF')
+      .setFontSize(14)
+      .setHorizontalAlignment('center')
+      .setBackground('#4472C4')
+      .setFontColor('#FFFFFF');
+    
+    // ========== ROW 2: THU NHẬP DỰ KIẾN ==========
+    sheet.getRange('A2').setValue('Thu nhập dự kiến:')
+      .setFontWeight('bold')
+      .setHorizontalAlignment('right');
+    
+    sheet.getRange('B2:F2').merge()
+      .setValue(0) // Placeholder - user sẽ nhập
+      .setNumberFormat('#,##0" VNĐ"')
+      .setFontWeight('bold')
+      .setHorizontalAlignment('right')
+      .setBackground('#E7E6E6');
+    
+    // ========== ROW 3: % NHÓM CHI TIÊU ==========
+    sheet.getRange('A3').setValue('Nhóm Chi tiêu:')
+      .setFontWeight('bold')
+      .setFontColor('#E74C3C');
+    
+    sheet.getRange('B3').setValue(0.5) // 50% mặc định
+      .setNumberFormat('0.00%')
+      .setFontWeight('bold')
+      .setBackground('#FFF3CD')
       .setHorizontalAlignment('center');
     
     // ========== SECTION 1: CHI TIÊU ==========
-    sheet.getRange('A3:D3').merge()
+    sheet.getRange('A4:F4').merge()
       .setValue('📤 CHI TIÊU')
       .setFontWeight('bold')
       .setBackground('#E74C3C')
-      .setFontColor('#FFFFFF');
-    
-    const expenseHeaders = ['Danh mục', 'Ngân sách', 'Đã chi', 'Tỷ lệ %'];
-    sheet.getRange('A4:D4').setValues([expenseHeaders])
-      .setFontWeight('bold')
-      .setHorizontalAlignment('center')
-      .setBackground(APP_CONFIG.COLORS.HEADER_BG)
-      .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
-    
-    const expenseCategories = [
-      ['Ăn uống', 3000000],
-      ['Đi lại', 1000000],
-      ['Nhà ở', 5000000],
-      ['Y tế', 500000],
-      ['Giáo dục', 1000000],
-      ['Mua sắm', 2000000],
-      ['Giải trí', 1000000],
-      ['Khác', 500000]
-    ];
-    
-    for (let i = 0; i < expenseCategories.length; i++) {
-      const row = 5 + i;
-      sheet.getRange(row, 1).setValue(expenseCategories[i][0]);
-      sheet.getRange(row, 2).setValue(expenseCategories[i][1]);
-      sheet.getRange(row, 3).setValue(0);
-      // FIXED: Thêm IFERROR để tránh #DIV/0!
-      sheet.getRange(row, 4).setFormula(`=IFERROR(C${row}/B${row}, 0)`);
-    }
-    
-    // Total Chi tiêu
-    const expenseEndRow = 5 + expenseCategories.length;
-    sheet.getRange(expenseEndRow, 1).setValue('Tổng').setFontWeight('bold');
-    sheet.getRange(expenseEndRow, 2).setFormula(`=SUM(B5:B${expenseEndRow-1})`).setFontWeight('bold');
-    sheet.getRange(expenseEndRow, 3).setFormula(`=SUM(C5:C${expenseEndRow-1})`).setFontWeight('bold');
-    // FIXED: Thêm IFERROR
-    sheet.getRange(expenseEndRow, 4).setFormula(`=IFERROR(C${expenseEndRow}/B${expenseEndRow}, 0)`).setFontWeight('bold');
-    
-    // ========== SECTION 2: Nợ & LÃI ==========
-    const debtStartRow = expenseEndRow + 2;
-    sheet.getRange(debtStartRow, 1, 1, 4).merge()
-      .setValue('💳 Nợ & LÃI')
-      .setFontWeight('bold')
-      .setBackground('#FF6B6B')
-      .setFontColor('#FFFFFF');
-    
-    sheet.getRange(debtStartRow + 1, 1, 1, 4).setValues([expenseHeaders])
-      .setFontWeight('bold')
-      .setHorizontalAlignment('center')
-      .setBackground(APP_CONFIG.COLORS.HEADER_BG)
-      .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
-    
-    const debtCategories = [
-      ['Trả nợ gốc', 5000000],
-      ['Trả lãi', 1000000]
-    ];
-    
-    for (let i = 0; i < debtCategories.length; i++) {
-      const row = debtStartRow + 2 + i;
-      sheet.getRange(row, 1).setValue(debtCategories[i][0]);
-      sheet.getRange(row, 2).setValue(debtCategories[i][1]);
-      sheet.getRange(row, 3).setValue(0);
-      // FIXED: Thêm IFERROR
-      sheet.getRange(row, 4).setFormula(`=IFERROR(C${row}/B${row}, 0)`);
-    }
-    
-    // Total Nợ & Lãi
-    const debtEndRow = debtStartRow + 2 + debtCategories.length;
-    sheet.getRange(debtEndRow, 1).setValue('Tổng').setFontWeight('bold');
-    sheet.getRange(debtEndRow, 2).setFormula(`=SUM(B${debtStartRow+2}:B${debtEndRow-1})`).setFontWeight('bold');
-    sheet.getRange(debtEndRow, 3).setFormula(`=SUM(C${debtStartRow+2}:C${debtEndRow-1})`).setFontWeight('bold');
-    // FIXED: Thêm IFERROR
-    sheet.getRange(debtEndRow, 4).setFormula(`=IFERROR(C${debtEndRow}/B${debtEndRow}, 0)`).setFontWeight('bold');
-    
-    // ========== SECTION 3: QUỸ DỰ PHÒNG ==========
-    const reserveStartRow = debtEndRow + 2;
-    sheet.getRange(reserveStartRow, 1, 1, 4).merge()
-      .setValue('🛡️ QUỸ DỰ PHÒNG')
-      .setFontWeight('bold')
-      .setBackground('#4ECDC4')
-      .setFontColor('#FFFFFF');
-    
-    sheet.getRange(reserveStartRow + 1, 1, 1, 4).setValues([expenseHeaders])
-      .setFontWeight('bold')
-      .setHorizontalAlignment('center')
-      .setBackground(APP_CONFIG.COLORS.HEADER_BG)
-      .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
-    
-    const reserveCategories = [
-      ['Quỹ khẩn cấp', 2000000],
-      ['Quỹ dự phòng', 1000000]
-    ];
-    
-    for (let i = 0; i < reserveCategories.length; i++) {
-      const row = reserveStartRow + 2 + i;
-      sheet.getRange(row, 1).setValue(reserveCategories[i][0]);
-      sheet.getRange(row, 2).setValue(reserveCategories[i][1]);
-      sheet.getRange(row, 3).setValue(0);
-      // FIXED: Thêm IFERROR
-      sheet.getRange(row, 4).setFormula(`=IFERROR(C${row}/B${row}, 0)`);
-    }
-    
-    // Total Quỹ dự phòng
-    const reserveEndRow = reserveStartRow + 2 + reserveCategories.length;
-    sheet.getRange(reserveEndRow, 1).setValue('Tổng').setFontWeight('bold');
-    sheet.getRange(reserveEndRow, 2).setFormula(`=SUM(B${reserveStartRow+2}:B${reserveEndRow-1})`).setFontWeight('bold');
-    sheet.getRange(reserveEndRow, 3).setFormula(`=SUM(C${reserveStartRow+2}:C${reserveEndRow-1})`).setFontWeight('bold');
-    // FIXED: Thêm IFERROR
-    sheet.getRange(reserveEndRow, 4).setFormula(`=IFERROR(C${reserveEndRow}/B${reserveEndRow}, 0)`).setFontWeight('bold');
-    
-    // ========== SECTION 4: ĐẦU TƯ ==========
-    const investStartRow = reserveEndRow + 2;
-    sheet.getRange(investStartRow, 1, 1, 4).merge()
-      .setValue('💼 ĐẦU TƯ')
-      .setFontWeight('bold')
-      .setBackground('#70AD47')
-      .setFontColor('#FFFFFF');
-    
-    sheet.getRange(investStartRow + 1, 1, 1, 4).setValues([expenseHeaders])
-      .setFontWeight('bold')
-      .setHorizontalAlignment('center')
-      .setBackground(APP_CONFIG.COLORS.HEADER_BG)
-      .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
-    
-    const investCategories = [
-      ['Chứng khoán', 3000000],
-      ['Vàng', 2000000],
-      ['Crypto', 1000000],
-      ['Đầu tư khác', 1000000]
-    ];
-    
-    for (let i = 0; i < investCategories.length; i++) {
-      const row = investStartRow + 2 + i;
-      sheet.getRange(row, 1).setValue(investCategories[i][0]);
-      sheet.getRange(row, 2).setValue(investCategories[i][1]);
-      sheet.getRange(row, 3).setValue(0);
-      // FIXED: Thêm IFERROR
-      sheet.getRange(row, 4).setFormula(`=IFERROR(C${row}/B${row}, 0)`);
-    }
-    
-    // Total Đầu tư
-    const investEndRow = investStartRow + 2 + investCategories.length;
-    sheet.getRange(investEndRow, 1).setValue('Tổng').setFontWeight('bold');
-    sheet.getRange(investEndRow, 2).setFormula(`=SUM(B${investStartRow+2}:B${investEndRow-1})`).setFontWeight('bold');
-    sheet.getRange(investEndRow, 3).setFormula(`=SUM(C${investStartRow+2}:C${investEndRow-1})`).setFontWeight('bold');
-    // FIXED: Thêm IFERROR
-    sheet.getRange(investEndRow, 4).setFormula(`=IFERROR(C${investEndRow}/B${investEndRow}, 0)`).setFontWeight('bold');
-    
-    // ========== TỔNG KẾT ==========
-    const summaryRow = investEndRow + 2;
-    sheet.getRange(summaryRow, 1, 1, 4).merge()
-      .setValue('📊 TỔNG KẾT NGÂN SÁCH')
-      .setFontWeight('bold')
-      .setFontSize(12)
-      .setBackground(APP_CONFIG.COLORS.PRIMARY)
       .setFontColor('#FFFFFF')
       .setHorizontalAlignment('center');
     
-    sheet.getRange(summaryRow + 1, 1).setValue('Tổng ngân sách tháng').setFontWeight('bold');
-    sheet.getRange(summaryRow + 1, 2).setFormula(`=B${expenseEndRow}+B${debtEndRow}+B${reserveEndRow}+B${investEndRow}`)
+    // Header columns
+    const chiHeaders = ['Danh mục', '% Nhóm', 'Ngân sách', 'Đã chi', 'Còn lại', 'Trạng thái'];
+    sheet.getRange('A5:F5').setValues([chiHeaders])
       .setFontWeight('bold')
-      .setBackground('#E8F5E9');
+      .setHorizontalAlignment('center')
+      .setBackground('#4472C4')
+      .setFontColor('#FFFFFF');
     
-    sheet.getRange(summaryRow + 2, 1).setValue('Đã sử dụng').setFontWeight('bold');
-    sheet.getRange(summaryRow + 2, 3).setFormula(`=C${expenseEndRow}+C${debtEndRow}+C${reserveEndRow}+C${investEndRow}`)
+    // Danh mục chi tiêu với % mặc định
+    const expenseCategories = [
+      ['Ăn uống', 0.35],
+      ['Đi lại', 0.10],
+      ['Nhà ở', 0.30],
+      ['Y tế', 0.05],
+      ['Giáo dục', 0.10],
+      ['Mua sắm', 0.07],
+      ['Giải trí', 0.02],
+      ['Khác', 0.01]
+    ];
+    
+    // Điền dữ liệu chi tiêu
+    for (let i = 0; i < expenseCategories.length; i++) {
+      const row = 6 + i;
+      const category = expenseCategories[i][0];
+      const pct = expenseCategories[i][1];
+      
+      // A: Danh mục
+      sheet.getRange(row, 1).setValue(category);
+      
+      // B: % Nhóm
+      sheet.getRange(row, 2).setValue(pct)
+        .setNumberFormat('0.00%')
+        .setHorizontalAlignment('center');
+      
+      // C: Ngân sách = Thu nhập × % Nhóm Chi × % Danh mục
+      sheet.getRange(row, 3).setFormula(`=$B$2*$B$3*B${row}`)
+        .setNumberFormat('#,##0" VNĐ"');
+      
+      // D: Đã chi = SUMIFS từ sheet CHI
+      const formulaChi = `=SUMIFS(CHI!C:C, CHI!D:D, A${row}, CHI!B:B, ">="&DATE(${currentYear},${currentMonth},1), CHI!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`;
+      sheet.getRange(row, 4).setFormula(formulaChi)
+        .setNumberFormat('#,##0" VNĐ"');
+      
+      // E: Còn lại = Ngân sách - Đã chi
+      sheet.getRange(row, 5).setFormula(`=C${row}-D${row}`)
+        .setNumberFormat('#,##0" VNĐ"');
+      
+      // F: Trạng thái thông minh theo ngày
+      const statusFormula = `=IF(C${row}=0, "⚪ N/A", IF(E${row}<0, "🔴 " & TEXT(D${row}/C${row}, "0.0%"), IF(D${row}/C${row} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${row}/C${row}, "0.0%"), IF(D${row}/C${row} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${row}/C${row}, "0.0%"), "✅ " & TEXT(D${row}/C${row}, "0.0%")))))`;
+      sheet.getRange(row, 6).setFormula(statusFormula);
+    }
+    
+    // TỔNG CHI
+    const chiEndRow = 6 + expenseCategories.length;
+    sheet.getRange(chiEndRow, 1).setValue('TỔNG CHI')
+      .setFontWeight('bold');
+    sheet.getRange(chiEndRow, 2).setFormula(`=SUM(B6:B${chiEndRow-1})`)
+      .setNumberFormat('0.00%')
       .setFontWeight('bold')
-      .setBackground('#FFF3E0');
+      .setHorizontalAlignment('center');
+    sheet.getRange(chiEndRow, 3).setFormula(`=SUM(C6:C${chiEndRow-1})`)
+      .setNumberFormat('#,##0" VNĐ"')
+      .setFontWeight('bold');
+    sheet.getRange(chiEndRow, 4).setFormula(`=SUM(D6:D${chiEndRow-1})`)
+      .setNumberFormat('#,##0" VNĐ"')
+      .setFontWeight('bold');
+    sheet.getRange(chiEndRow, 5).setFormula(`=SUM(E6:E${chiEndRow-1})`)
+      .setNumberFormat('#,##0" VNĐ"')
+      .setFontWeight('bold');
     
-    sheet.getRange(summaryRow + 3, 1).setValue('Tỷ lệ sử dụng').setFontWeight('bold');
-    // FIXED: Thêm IFERROR
-    sheet.getRange(summaryRow + 3, 4).setFormula(`=IFERROR(C${summaryRow+2}/B${summaryRow+1}, 0)`)
+    // Trạng thái TỔNG CHI
+    const tongChiStatus = `=IF(C${chiEndRow}=0, "⚪ N/A", IF(E${chiEndRow}<0, "🔴 " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%"), IF(D${chiEndRow}/C${chiEndRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%"), IF(D${chiEndRow}/C${chiEndRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%"), "✅ " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%")))))`;
+    sheet.getRange(chiEndRow, 6).setFormula(tongChiStatus)
+      .setFontWeight('bold');
+    
+    // ========== ROW: % NHÓM ĐẦU TƯ ==========
+    const dautuRow = chiEndRow + 2;
+    sheet.getRange(dautuRow, 1).setValue('Nhóm Đầu tư:')
       .setFontWeight('bold')
-      .setBackground('#E3F2FD')
-      .setNumberFormat(APP_CONFIG.FORMATS.PERCENTAGE);
+      .setFontColor('#70AD47');
     
-    // Format
-    sheet.getRange(`B5:C${investEndRow}`).setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
-    sheet.getRange(`D5:D${investEndRow}`).setNumberFormat(APP_CONFIG.FORMATS.PERCENTAGE);
-    sheet.getRange(`B${summaryRow+1}:C${summaryRow+2}`).setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    sheet.getRange(dautuRow, 2).setValue(0.3) // 30% mặc định
+      .setNumberFormat('0.00%')
+      .setFontWeight('bold')
+      .setBackground('#D4EDDA')
+      .setHorizontalAlignment('center');
+    
+    // ========== SECTION 2: ĐẦU TƯ ==========
+    const dautuHeaderRow = dautuRow + 1;
+    sheet.getRange(`A${dautuHeaderRow}:F${dautuHeaderRow}`).merge()
+      .setValue('💰 ĐẦU TƯ')
+      .setFontWeight('bold')
+      .setBackground('#70AD47')
+      .setFontColor('#FFFFFF')
+      .setHorizontalAlignment('center');
+    
+    const dautuColRow = dautuHeaderRow + 1;
+    sheet.getRange(`A${dautuColRow}:F${dautuColRow}`).setValues([chiHeaders])
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center')
+      .setBackground('#4472C4')
+      .setFontColor('#FFFFFF');
+    
+    // Danh mục đầu tư với % mặc định
+    const investCategories = [
+      ['Chứng khoán', 0.50, `=SUMIFS('CHỨNG KHOÁN'!H:H, 'CHỨNG KHOÁN'!C:C, "Mua", 'CHỨNG KHOÁN'!B:B, ">="&DATE(${currentYear},${currentMonth},1), 'CHỨNG KHOÁN'!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`],
+      ['Vàng', 0.20, `=SUMIFS(VÀNG!H:H, VÀNG!C:C, "Mua", VÀNG!B:B, ">="&DATE(${currentYear},${currentMonth},1), VÀNG!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`],
+      ['Crypto', 0.20, `=SUMIFS(CRYPTO!I:I, CRYPTO!C:C, "Mua", CRYPTO!B:B, ">="&DATE(${currentYear},${currentMonth},1), CRYPTO!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`],
+      ['Đầu tư khác', 0.10, `=SUMIFS('ĐẦU TƯ KHÁC'!D:D, 'ĐẦU TƯ KHÁC'!B:B, ">="&DATE(${currentYear},${currentMonth},1), 'ĐẦU TƯ KHÁC'!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`]
+    ];
+    
+    // Điền dữ liệu đầu tư
+    for (let i = 0; i < investCategories.length; i++) {
+      const row = dautuColRow + 1 + i;
+      const category = investCategories[i][0];
+      const pct = investCategories[i][1];
+      const formula = investCategories[i][2];
+      
+      // A: Loại
+      sheet.getRange(row, 1).setValue(category);
+      
+      // B: % Nhóm
+      sheet.getRange(row, 2).setValue(pct)
+        .setNumberFormat('0.00%')
+        .setHorizontalAlignment('center');
+      
+      // C: Target = Thu nhập × % Nhóm Đầu tư × % Loại
+      sheet.getRange(row, 3).setFormula(`=$B$2*$B$${dautuRow}*B${row}`)
+        .setNumberFormat('#,##0" VNĐ"');
+      
+      // D: Đã đầu tư
+      sheet.getRange(row, 4).setFormula(formula)
+        .setNumberFormat('#,##0" VNĐ"');
+      
+      // E: Còn lại
+      sheet.getRange(row, 5).setFormula(`=C${row}-D${row}`)
+        .setNumberFormat('#,##0" VNĐ"');
+      
+      // F: Trạng thái
+      const investStatusFormula = `=IF(C${row}=0, "⚪ N/A", IF(E${row}<0, "🔴 " & TEXT(D${row}/C${row}, "0.0%"), IF(D${row}/C${row} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${row}/C${row}, "0.0%"), IF(D${row}/C${row} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${row}/C${row}, "0.0%"), "✅ " & TEXT(D${row}/C${row}, "0.0%")))))`;
+      sheet.getRange(row, 6).setFormula(investStatusFormula);
+    }
+    
+    // TỔNG ĐẦU TƯ
+    const dautuEndRow = dautuColRow + 1 + investCategories.length;
+    sheet.getRange(dautuEndRow, 1).setValue('TỔNG ĐT')
+      .setFontWeight('bold');
+    sheet.getRange(dautuEndRow, 2).setFormula(`=SUM(B${dautuColRow+1}:B${dautuEndRow-1})`)
+      .setNumberFormat('0.00%')
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center');
+    sheet.getRange(dautuEndRow, 3).setFormula(`=SUM(C${dautuColRow+1}:C${dautuEndRow-1})`)
+      .setNumberFormat('#,##0" VNĐ"')
+      .setFontWeight('bold');
+    sheet.getRange(dautuEndRow, 4).setFormula(`=SUM(D${dautuColRow+1}:D${dautuEndRow-1})`)
+      .setNumberFormat('#,##0" VNĐ"')
+      .setFontWeight('bold');
+    sheet.getRange(dautuEndRow, 5).setFormula(`=SUM(E${dautuColRow+1}:E${dautuEndRow-1})`)
+      .setNumberFormat('#,##0" VNĐ"')
+      .setFontWeight('bold');
+    
+    const tongDtStatus = tongChiStatus.replace(new RegExp(`${chiEndRow}`, 'g'), dautuEndRow);
+    sheet.getRange(dautuEndRow, 6).setFormula(tongDtStatus)
+      .setFontWeight('bold');
+    
+    // ========== ROW: % NHÓM TRẢ NỢ ==========
+    const tranoRow = dautuEndRow + 2;
+    sheet.getRange(tranoRow, 1).setValue('Nhóm Trả nợ:')
+      .setFontWeight('bold')
+      .setFontColor('#F39C12');
+    
+    sheet.getRange(tranoRow, 2).setValue(0.2) // 20% mặc định
+      .setNumberFormat('0.00%')
+      .setFontWeight('bold')
+      .setBackground('#FFF3CD')
+      .setHorizontalAlignment('center');
+    
+    // ========== SECTION 3: TRẢ NỢ ==========
+    const tranoHeaderRow = tranoRow + 1;
+    sheet.getRange(`A${tranoHeaderRow}:F${tranoHeaderRow}`).merge()
+      .setValue('💳 TRẢ NỢ')
+      .setFontWeight('bold')
+      .setBackground('#F39C12')
+      .setFontColor('#FFFFFF')
+      .setHorizontalAlignment('center');
+    
+    const tranoColRow = tranoHeaderRow + 1;
+    sheet.getRange(`A${tranoColRow}:F${tranoColRow}`).setValues([chiHeaders])
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center')
+      .setBackground('#4472C4')
+      .setFontColor('#FFFFFF');
+    
+    const tranoDataRow = tranoColRow + 1;
+    
+    // Trả nợ
+    sheet.getRange(tranoDataRow, 1).setValue('Trả nợ');
+    sheet.getRange(tranoDataRow, 2).setValue(1.0) // 100% của nhóm
+      .setNumberFormat('0.00%')
+      .setHorizontalAlignment('center');
+    sheet.getRange(tranoDataRow, 3).setFormula(`=$B$2*$B$${tranoRow}`)
+      .setNumberFormat('#,##0" VNĐ"');
+    
+    const tranoFormula = `=SUMIFS('TRẢ NỢ'!D:D, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${currentMonth},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1)) + SUMIFS('TRẢ NỢ'!E:E, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${currentMonth},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`;
+    sheet.getRange(tranoDataRow, 4).setFormula(tranoFormula)
+      .setNumberFormat('#,##0" VNĐ"');
+    sheet.getRange(tranoDataRow, 5).setFormula(`=C${tranoDataRow}-D${tranoDataRow}`)
+      .setNumberFormat('#,##0" VNĐ"');
+    
+    const tranoStatusFormula = `=IF(C${tranoDataRow}=0, "⚪ N/A", IF(E${tranoDataRow}<0, "🔴 " & TEXT(D${tranoDataRow}/C${tranoDataRow}, "0.0%"), IF(D${tranoDataRow}/C${tranoDataRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${tranoDataRow}/C${tranoDataRow}, "0.0%"), IF(D${tranoDataRow}/C${tranoDataRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${tranoDataRow}/C${tranoDataRow}, "0.0%"), "✅ " & TEXT(D${tranoDataRow}/C${tranoDataRow}, "0.0%")))))`;
+    sheet.getRange(tranoDataRow, 6).setFormula(tranoStatusFormula);
+    
+    // ========== FORMAT ==========
     
     // Column widths
-    sheet.setColumnWidth(1, 150);
-    sheet.setColumnWidth(2, 120);
-    sheet.setColumnWidth(3, 120);
-    sheet.setColumnWidth(4, 100);
+    sheet.setColumnWidth(1, 150);  // Danh mục
+    sheet.setColumnWidth(2, 80);   // % Nhóm
+    sheet.setColumnWidth(3, 120);  // Ngân sách
+    sheet.setColumnWidth(4, 120);  // Đã chi/đầu tư
+    sheet.setColumnWidth(5, 120);  // Còn lại
+    sheet.setColumnWidth(6, 120);  // Trạng thái
     
-    // Conditional formatting for %
-    const percentRange = sheet.getRange(`D5:D${investEndRow}`);
+    // Borders
+    sheet.getRange(`A1:F${tranoDataRow}`).setBorder(
+      true, true, true, true, true, true,
+      '#CCCCCC', SpreadsheetApp.BorderStyle.SOLID
+    );
     
-    const greenRule = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberLessThanOrEqualTo(0.8)
-      .setBackground('#D4EDDA')
-      .setFontColor('#155724')
-      .setRanges([percentRange])
-      .build();
+    // Freeze header
+    sheet.setFrozenRows(5);
     
-    const yellowRule = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberBetween(0.8, 1)
-      .setBackground('#FFF3CD')
-      .setFontColor('#856404')
-      .setRanges([percentRange])
-      .build();
+    // Validation: Tổng % các nhóm phải = 100%
+    const validationCell = sheet.getRange('C2');
+    const totalPct = sheet.getRange('D2');
+    totalPct.setFormula(`=B3+B${dautuRow}+B${tranoRow}`)
+      .setNumberFormat('0.00%')
+      .setNote('Tổng % các nhóm (Chi + Đầu tư + Trả nợ). Phải = 100%');
     
-    const redRule = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberGreaterThan(1)
-      .setBackground('#F8D7DA')
-      .setFontColor('#721C24')
-      .setRanges([percentRange])
-      .build();
-    
-    sheet.setConditionalFormatRules([greenRule, yellowRule, redRule]);
+    showSuccess('Thành công', '✅ Sheet BUDGET v3.5 đã được khởi tạo!\n\n' +
+      '📊 Cấu trúc mới:\n' +
+      '• Thu nhập dự kiến (cell B2)\n' +
+      '• 3 nhóm: Chi tiêu (B3), Đầu tư (B' + dautuRow + '), Trả nợ (B' + tranoRow + ')\n' +
+      '• % chi tiết trong mỗi nhóm\n\n' +
+      '⚠️ LƯU Ý:\n' +
+      '• Nhập Thu nhập dự kiến vào cell B2\n' +
+      '• Điều chỉnh % các nhóm để tổng = 100%\n' +
+      '• Điều chỉnh % chi tiết trong từng nhóm\n\n' +
+      '💡 Trạng thái tự động cảnh báo theo % ngày trong tháng!');
     
     return sheet;
   }
+
+// ==================== KẾT THÚC HÀM ====================
 };
