@@ -285,19 +285,19 @@ HODLVN-Family-Finance/
 ## 📸 Screenshots
 
 ### Dashboard Tổng quan
-![Dashboard](docs/images/dashboard.png)
+![Dashboard](docs/images/hffs-tong-quan.png)
 *Dashboard hiển thị tổng quan tài chính realtime*
 
 ### Form Nhập liệu
-![Income Form](docs/images/income-form.png)
+![Income Form](docs/images/hffs-thu-nhap.png)
 *Form nhập thu nhập với validation tự động*
 
 ### Budget Tracking
-![Budget](docs/images/budget.png)
+![Budget](docs/images/hffs-ngan-sach.png)
 *Theo dõi ngân sách với cảnh báo màu sắc*
 
 ### Setup Wizard
-![Setup Wizard](docs/images/setup-wizard.png)
+![Setup Wizard](docs/images/hffs-tao-sheet.png)
 *Setup Wizard giúp khởi tạo hệ thống nhanh chóng*
 
 ---

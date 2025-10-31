@@ -32,12 +32,12 @@ Hướng dẫn chi tiết cách sử dụng tất cả tính năng của hệ th
 
 ```
 1. Mở Google Drive (drive.google.com)
-2. Tìm file "HODLVN-Finance-[Tên bạn]"
+2. Tìm file "HFFS-[Tên bạn]"
 3. Double click để mở
 4. Đợi 5-10 giây để menu load
 ```
 
-**Menu "HODLVN Finance" xuất hiện ở thanh menu.**
+**Menu "Quản lý Tài chính" xuất hiện ở thanh menu.**
 
 ### Quy trình làm việc hàng ngày
 
@@ -92,7 +92,7 @@ Tối:
 ### Mở form
 
 ```
-Menu "HODLVN Finance" → "📥 Thu (THU)"
+Menu "Quản lý Tài chính" → "📥 Thu (THU)"
 ```
 
 ### Danh mục thu nhập mặc định
@@ -125,7 +125,7 @@ Ghi chú: Lương tháng 10/2025
 ### Mở form
 
 ```
-Menu "HODLVN Finance" → "📤 Chi (CHI)"
+Menu "Quản lý Tài chính" → "📤 Chi (CHI)"
 ```
 
 ### Danh mục chi tiêu chi tiết
@@ -173,7 +173,7 @@ Xem phim, du lịch, game, sách
 ### Form Quản lý Nợ
 
 ```
-Menu "HODLVN Finance" → "💳 Quản lý nợ"
+Menu "Quản lý Tài chính" → "💳 Quản lý nợ"
 ```
 
 **Loại nợ:**
@@ -198,7 +198,7 @@ Vay ngân hàng: 50,000,000 VNĐ
 ### Form Trả Nợ
 
 ```
-Menu "HODLVN Finance" → "💰 Trả nợ"
+Menu "Quản lý Tài chính" → "💰 Trả nợ"
 ```
 
 **Quy trình:**
@@ -234,7 +234,7 @@ Tổng: 5,541,667
 ### Mở form
 
 ```
-Menu "HODLVN Finance" → "📈 Chứng khoán"
+Menu "Quản lý Tài chính" → "📈 Chứng khoán"
 ```
 
 ### Loại giao dịch
@@ -382,7 +382,7 @@ Kỳ hạn: 36 tháng
 ### Mở form
 
 ```
-Menu "HODLVN Finance" → "💵 Cổ tức"
+Menu "Quản lý Tài chính" → "💵 Cổ tức"
 ```
 
 ### Loại cổ tức
@@ -562,7 +562,7 @@ Mỗi Chủ Nhật:
 ```
 Mỗi tháng:
 File → Make a copy
-Đặt tên: "HODLVN-Finance-Backup-2025-10"
+Đặt tên: "HFFS-Backup-2025-10"
 ```
 
 ### 4. Phân loại rõ ràng
