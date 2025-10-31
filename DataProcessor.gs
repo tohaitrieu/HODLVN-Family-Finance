@@ -445,8 +445,8 @@ function addStock(data) {
     const total = (quantity * price) + fee;
     const note = data.note || '';
     
-    // ✅ v3.5: Ghi đúng 16 cột theo cấu trúc mới
-    // A-H: Dữ liệu cơ bản, I-J: Cổ tức (khởi tạo 0), K-O: Công thức tự động, P: Ghi chú
+    // ✅ v3.5.1: Ghi đúng 16 cột - KHÔNG GHI ĐÈ công thức
+    // Chỉ ghi dữ liệu vào cột A-J và P, bỏ qua K-O (để công thức tự động)
     const rowData = [
       stt,           // A: STT
       date,          // B: Ngày
@@ -457,16 +457,27 @@ function addStock(data) {
       fee,           // G: Phí
       total,         // H: Tổng vốn
       0,             // I: Cổ tức TM (khởi tạo = 0)
-      0,             // J: Cổ tức CP (khởi tạo = 0)
-      '',            // K: Giá ĐC (công thức tự động)
-      '',            // L: Giá HT (user nhập sau)
-      '',            // M: Giá trị HT (công thức tự động)
-      '',            // N: Lãi/Lỗ (công thức tự động)
-      '',            // O: % L/L (công thức tự động)
-      note           // P: Ghi chú
+      0              // J: Cổ tức CP (khởi tạo = 0)
     ];
     
-    sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+    // Ghi dữ liệu vào cột A-J (10 cột đầu)
+    sheet.getRange(emptyRow, 1, 1, 10).setValues([rowData]);
+    
+    // Ghi ghi chú vào cột P (cột 16)
+    sheet.getRange(emptyRow, 16).setValue(note);
+    
+    // ✅ SET CÔNG THỨC cho cột K-O
+    // K: Giá điều chỉnh = (Tổng vốn - Cổ tức TM) / Số lượng
+    sheet.getRange(emptyRow, 11).setFormula(`=IF(E${emptyRow}>0, (H${emptyRow}-I${emptyRow})/E${emptyRow}, 0)`);
+    
+    // M: Giá trị HT = Số lượng × Giá HT
+    sheet.getRange(emptyRow, 13).setFormula(`=IF(AND(E${emptyRow}>0, L${emptyRow}>0), E${emptyRow}*L${emptyRow}, 0)`);
+    
+    // N: Lãi/Lỗ = Giá trị HT - (Tổng vốn - Cổ tức TM)
+    sheet.getRange(emptyRow, 14).setFormula(`=IF(M${emptyRow}>0, M${emptyRow}-(H${emptyRow}-I${emptyRow}), 0)`);
+    
+    // O: % L/L = Lãi/Lỗ / (Tổng vốn - Cổ tức TM)
+    sheet.getRange(emptyRow, 15).setFormula(`=IF(AND(N${emptyRow}<>0, (H${emptyRow}-I${emptyRow})>0), N${emptyRow}/(H${emptyRow}-I${emptyRow}), 0)`);
     
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
@@ -977,7 +988,7 @@ function processDividend(data) {
       
       const noteText = `Thưởng CP ${stockRatio}% (${bonusShares} CP). ${notes}`;
       
-      // ✅ v3.5.1: Ghi đúng 16 cột
+      // ✅ v3.5.1: Ghi đúng 10 cột + ghi chú, sau đó set công thức
       const rowData = [
         stt,            // A: STT
         new Date(date), // B: Ngày
@@ -988,16 +999,20 @@ function processDividend(data) {
         0,              // G: Phí = 0
         0,              // H: Tổng = 0
         0,              // I: Cổ tức TM = 0
-        bonusShares,    // J: Cổ tức CP = số CP thưởng
-        '',             // K: Giá ĐC (công thức)
-        '',             // L: Giá HT
-        '',             // M: Giá trị HT
-        '',             // N: Lãi/Lỗ
-        '',             // O: % L/L
-        noteText        // P: Ghi chú
+        bonusShares     // J: Cổ tức CP = số CP thưởng
       ];
       
-      stockSheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+      // Ghi dữ liệu vào cột A-J
+      stockSheet.getRange(emptyRow, 1, 1, 10).setValues([rowData]);
+      
+      // Ghi ghi chú vào cột P
+      stockSheet.getRange(emptyRow, 16).setValue(noteText);
+      
+      // ✅ SET CÔNG THỨC cho cột K-O
+      stockSheet.getRange(emptyRow, 11).setFormula(`=IF(E${emptyRow}>0, (H${emptyRow}-I${emptyRow})/E${emptyRow}, 0)`);
+      stockSheet.getRange(emptyRow, 13).setFormula(`=IF(AND(E${emptyRow}>0, L${emptyRow}>0), E${emptyRow}*L${emptyRow}, 0)`);
+      stockSheet.getRange(emptyRow, 14).setFormula(`=IF(M${emptyRow}>0, M${emptyRow}-(H${emptyRow}-I${emptyRow}), 0)`);
+      stockSheet.getRange(emptyRow, 15).setFormula(`=IF(AND(N${emptyRow}<>0, (H${emptyRow}-I${emptyRow})>0), N${emptyRow}/(H${emptyRow}-I${emptyRow}), 0)`);
       
       formatNewRow(stockSheet, emptyRow, {
         2: 'dd/mm/yyyy',
