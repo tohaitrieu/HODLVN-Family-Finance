@@ -8,7 +8,15 @@
  * - Tạo header, validation, công thức
  * - Áp dụng format và màu sắc nhất quán
  * 
- * VERSION: 3.3 - FIXED: Xóa tất cả dữ liệu mẫu + Thêm trạng thái "Chưa trả"
+ * VERSION: 3.5 - NEW: Thêm 7 cột theo dõi cổ tức & P&L cho sheet CHỨNG KHOÁN
+ * - Cột I: 💰 Cổ tức TM (Tiền mặt đã nhận)
+ * - Cột J: 📈 Cổ tức CP (Cổ phiếu thưởng)
+ * - Cột K: 📊 Giá điều chỉnh (Auto: =(H-I)/E)
+ * - Cột L: 💹 Giá hiện tại (Manual input)
+ * - Cột M: 💵 Giá trị hiện tại (Auto: =E*L)
+ * - Cột N: 📈 Lãi/Lỗ (Auto: =M-(H-I))
+ * - Cột O: 📊 % L/L (Auto: =N/(H-I))
+ * - Conditional Formatting tự động cho cột Lãi/Lỗ và % L/L
  */
 
 const SheetInitializer = {
@@ -266,6 +274,7 @@ const SheetInitializer = {
   
   /**
    * Khởi tạo Sheet CHỨNG KHOÁN
+   * ✅ v3.5: Thêm cột theo dõi cổ tức và P&L
    */
   initializeStockSheet() {
     const ss = getSpreadsheet();
@@ -277,8 +286,26 @@ const SheetInitializer = {
     
     sheet = ss.insertSheet(APP_CONFIG.SHEETS.STOCK);
     
-    // Header
-    const headers = ['STT', 'Ngày', 'Loại GD', 'Mã CK', 'Số lượng', 'Giá', 'Phí', 'Tổng', 'Ghi chú'];
+    // Header - Thêm 7 cột mới
+    const headers = [
+      'STT',           // A
+      'Ngày',          // B
+      'Loại GD',       // C
+      'Mã CK',         // D
+      'Số lượng',      // E
+      'Giá gốc',       // F
+      'Phí',           // G
+      'Tổng vốn',      // H
+      '💰 Cổ tức TM',  // I - Tổng cổ tức tiền mặt
+      '📈 Cổ tức CP',  // J - Số CP thưởng
+      '📊 Giá ĐC',     // K - Giá điều chỉnh
+      '💹 Giá HT',     // L - Giá hiện tại
+      '💵 Giá trị HT', // M - Giá trị thị trường
+      '📈 Lãi/Lỗ',     // N - P&L
+      '📊 % L/L',      // O - % P&L
+      'Ghi chú'        // P
+    ];
+    
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])
       .setFontWeight('bold')
@@ -287,20 +314,106 @@ const SheetInitializer = {
       .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
     
     // Column widths
-    sheet.setColumnWidth(1, 50);   // STT
-    sheet.setColumnWidth(2, 100);  // Ngày
-    sheet.setColumnWidth(3, 80);   // Loại GD
-    sheet.setColumnWidth(4, 80);   // Mã CK
-    sheet.setColumnWidth(5, 80);   // Số lượng
-    sheet.setColumnWidth(6, 100);  // Giá
-    sheet.setColumnWidth(7, 100);  // Phí
-    sheet.setColumnWidth(8, 120);  // Tổng
-    sheet.setColumnWidth(9, 250);  // Ghi chú
+    sheet.setColumnWidth(1, 50);   // A: STT
+    sheet.setColumnWidth(2, 100);  // B: Ngày
+    sheet.setColumnWidth(3, 80);   // C: Loại GD
+    sheet.setColumnWidth(4, 80);   // D: Mã CK
+    sheet.setColumnWidth(5, 80);   // E: Số lượng
+    sheet.setColumnWidth(6, 100);  // F: Giá gốc
+    sheet.setColumnWidth(7, 100);  // G: Phí
+    sheet.setColumnWidth(8, 120);  // H: Tổng vốn
+    sheet.setColumnWidth(9, 110);  // I: Cổ tức TM
+    sheet.setColumnWidth(10, 100); // J: Cổ tức CP
+    sheet.setColumnWidth(11, 100); // K: Giá điều chỉnh
+    sheet.setColumnWidth(12, 100); // L: Giá hiện tại
+    sheet.setColumnWidth(13, 120); // M: Giá trị HT
+    sheet.setColumnWidth(14, 110); // N: Lãi/Lỗ
+    sheet.setColumnWidth(15, 80);  // O: % L/L
+    sheet.setColumnWidth(16, 250); // P: Ghi chú
     
-    // Format
+    // Format numbers
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('F2:H').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    sheet.getRange('F2:H').setNumberFormat(APP_CONFIG.FORMATS.NUMBER); // Giá gốc, Phí, Tổng vốn
+    sheet.getRange('I2:I').setNumberFormat(APP_CONFIG.FORMATS.NUMBER); // Cổ tức TM
+    sheet.getRange('J2:J').setNumberFormat('0');                       // Cổ tức CP (số nguyên)
+    sheet.getRange('K2:M').setNumberFormat(APP_CONFIG.FORMATS.NUMBER); // Giá ĐC, Giá HT, Giá trị HT
+    sheet.getRange('N2:N').setNumberFormat(APP_CONFIG.FORMATS.NUMBER); // Lãi/Lỗ
+    sheet.getRange('O2:O').setNumberFormat('0.00%');                   // % L/L
+    
+    // Công thức tự động cho các cột
+    // K: Giá điều chỉnh = (Tổng vốn - Cổ tức TM) / Số lượng
+    sheet.getRange('K2:K1000').setFormula('=IF(E2>0, (H2-I2)/E2, 0)');
+    
+    // M: Giá trị HT = Số lượng × Giá HT
+    sheet.getRange('M2:M1000').setFormula('=IF(AND(E2>0, L2>0), E2*L2, 0)');
+    
+    // N: Lãi/Lỗ = Giá trị HT - (Tổng vốn - Cổ tức TM)
+    sheet.getRange('N2:N1000').setFormula('=IF(M2>0, M2-(H2-I2), 0)');
+    
+    // O: % L/L = Lãi/Lỗ / (Tổng vốn - Cổ tức TM)
+    sheet.getRange('O2:O1000').setFormula('=IF(AND(N2<>0, (H2-I2)>0), N2/(H2-I2), 0)');
+    
+    // Conditional Formatting cho cột N (Lãi/Lỗ)
+    const profitLossRange = sheet.getRange('N2:N1000');
+    
+    // Rule 1: Lãi (xanh)
+    const profitRule = SpreadsheetApp.newConditionalFormatRule()
+      .whenNumberGreaterThan(0)
+      .setBackground('#D4EDDA')
+      .setFontColor('#155724')
+      .setRanges([profitLossRange])
+      .build();
+    
+    // Rule 2: Lỗ (đỏ)
+    const lossRule = SpreadsheetApp.newConditionalFormatRule()
+      .whenNumberLessThan(0)
+      .setBackground('#F8D7DA')
+      .setFontColor('#721C24')
+      .setRanges([profitLossRange])
+      .build();
+    
+    // Conditional Formatting cho cột O (% L/L)
+    const percentRange = sheet.getRange('O2:O1000');
+    
+    // Rule 3: % Lãi > 10% (xanh đậm)
+    const bigProfitRule = SpreadsheetApp.newConditionalFormatRule()
+      .whenNumberGreaterThan(0.1)
+      .setBackground('#28A745')
+      .setFontColor('#FFFFFF')
+      .setBold(true)
+      .setRanges([percentRange])
+      .build();
+    
+    // Rule 4: % Lãi 0-10% (xanh nhạt)
+    const smallProfitRule = SpreadsheetApp.newConditionalFormatRule()
+      .whenNumberBetween(0, 0.1)
+      .setBackground('#D4EDDA')
+      .setFontColor('#155724')
+      .setRanges([percentRange])
+      .build();
+    
+    // Rule 5: % Lỗ -10% đến 0 (đỏ nhạt)
+    const smallLossRule = SpreadsheetApp.newConditionalFormatRule()
+      .whenNumberBetween(-0.1, 0)
+      .setBackground('#F8D7DA')
+      .setFontColor('#721C24')
+      .setRanges([percentRange])
+      .build();
+    
+    // Rule 6: % Lỗ < -10% (đỏ đậm)
+    const bigLossRule = SpreadsheetApp.newConditionalFormatRule()
+      .whenNumberLessThan(-0.1)
+      .setBackground('#DC3545')
+      .setFontColor('#FFFFFF')
+      .setBold(true)
+      .setRanges([percentRange])
+      .build();
+    
+    // Apply all rules
+    const rules = sheet.getConditionalFormatRules();
+    rules.push(profitRule, lossRule, bigProfitRule, smallProfitRule, smallLossRule, bigLossRule);
+    sheet.setConditionalFormatRules(rules);
     
     // Freeze header
     sheet.setFrozenRows(1);
@@ -308,7 +421,7 @@ const SheetInitializer = {
     // Data validation cho Loại GD
     const typeRange = sheet.getRange('C2:C1000');
     const typeRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['Mua', 'Bán'])
+      .requireValueInList(['Mua', 'Bán', 'Thưởng'])
       .setAllowInvalid(false)
       .build();
     typeRange.setDataValidation(typeRule);

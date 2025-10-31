@@ -1,7 +1,14 @@
 /**
  * ===============================================
- * DATAPROCESSORS.GS v3.5 - COMPLETE FIX + DIVIDEND ADJUSTMENT
+ * DATAPROCESSORS.GS v3.5.1 - COMPLETE FIX + NEW DIVIDEND LOGIC
  * ===============================================
+ * 
+ * CHANGELOG v3.5.1:
+ * ✅ FIX: addStockTransaction() - Ghi đúng 16 cột theo cấu trúc mới
+ * ✅ FIX: processDividend() - Cập nhật CỘT I (Cổ tức TM) thay vì giảm cột H
+ * ✅ LOGIC: Cổ tức tiền mặt CỘNG DỒN vào cột I, cột K tự động tính giá điều chỉnh
+ * ✅ LOGIC: Thêm lịch sử cổ tức vào cột P (Ghi chú)
+ * ✅ FIX: getStocksForDividend() - Đọc đúng cột I (Cổ tức TM) và tính giá điều chỉnh
  * 
  * CHANGELOG v3.5:
  * ✅ FIX: processDividend() - ĐIỀU CHỈNH GIÁ CỔ PHIẾU khi nhận cổ tức tiền mặt
@@ -388,11 +395,31 @@ function payDebt(data) {
  */
 function addStock(data) {
   try {
-    if (!data.date || !data.type || !data.stockCode || !data.quantity || !data.price) {
-      return {
-        success: false,
-        message: '❌ Vui lòng điền đầy đủ thông tin bắt buộc!'
-      };
+    // ✅ v3.5.1: Sửa validation + hỗ trợ cả symbol và stockCode
+    Logger.log('addStock received data: ' + JSON.stringify(data));
+    
+    // Hỗ trợ cả 2 tên parameter: symbol (từ form) và stockCode (từ code cũ)
+    const stockCode = data.stockCode || data.symbol;
+    
+    if (!data.date) {
+      Logger.log('Missing date');
+      return { success: false, message: '❌ Thiếu ngày giao dịch!' };
+    }
+    if (!data.type) {
+      Logger.log('Missing type');
+      return { success: false, message: '❌ Thiếu loại giao dịch!' };
+    }
+    if (!stockCode) {
+      Logger.log('Missing stockCode/symbol');
+      return { success: false, message: '❌ Thiếu mã cổ phiếu!' };
+    }
+    if (!data.quantity) {
+      Logger.log('Missing quantity');
+      return { success: false, message: '❌ Thiếu số lượng!' };
+    }
+    if (data.price === undefined || data.price === null || data.price === '') {
+      Logger.log('Missing price');
+      return { success: false, message: '❌ Thiếu giá!' };
     }
     
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -410,23 +437,33 @@ function addStock(data) {
     
     const date = new Date(data.date);
     const type = data.type.toString();
-    const stockCode = data.stockCode.toString().toUpperCase();
+    // ✅ Dùng biến stockCode đã được định nghĩa ở trên (hỗ trợ cả symbol và stockCode)
+    const stockCodeUpper = stockCode.toString().toUpperCase();
     const quantity = parseInt(data.quantity);
     const price = parseFloat(data.price);
     const fee = parseFloat(data.fee) || 0;
     const total = (quantity * price) + fee;
     const note = data.note || '';
     
+    // ✅ v3.5: Ghi đúng 16 cột theo cấu trúc mới
+    // A-H: Dữ liệu cơ bản, I-J: Cổ tức (khởi tạo 0), K-O: Công thức tự động, P: Ghi chú
     const rowData = [
-      stt,
-      date,
-      type,
-      stockCode,
-      quantity,
-      price,
-      fee,
-      total,
-      note
+      stt,           // A: STT
+      date,          // B: Ngày
+      type,          // C: Loại GD
+      stockCodeUpper,     // D: Mã CK
+      quantity,      // E: Số lượng
+      price,         // F: Giá gốc
+      fee,           // G: Phí
+      total,         // H: Tổng vốn
+      0,             // I: Cổ tức TM (khởi tạo = 0)
+      0,             // J: Cổ tức CP (khởi tạo = 0)
+      '',            // K: Giá ĐC (công thức tự động)
+      '',            // L: Giá HT (user nhập sau)
+      '',            // M: Giá trị HT (công thức tự động)
+      '',            // N: Lãi/Lỗ (công thức tự động)
+      '',            // O: % L/L (công thức tự động)
+      note           // P: Ghi chú
     ];
     
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
@@ -435,17 +472,23 @@ function addStock(data) {
       2: 'dd/mm/yyyy',
       6: '#,##0" VNĐ"',
       7: '#,##0" VNĐ"',
-      8: '#,##0" VNĐ"'
+      8: '#,##0" VNĐ"',
+      9: '#,##0" VNĐ"',
+      11: '#,##0" VNĐ"',
+      12: '#,##0" VNĐ"',
+      13: '#,##0" VNĐ"',
+      14: '#,##0" VNĐ"',
+      15: '0.00%'
     });
     
     if (data.useMargin && data.marginAmount > 0) {
       const marginDebt = {
         loanDate: date,
-        debtName: `Margin ${stockCode}`,
+        debtName: `Margin ${stockCodeUpper}`,
         amount: parseFloat(data.marginAmount),
         interestRate: parseFloat(data.marginRate) || 8.5,
         term: 3,
-        purpose: `Vay margin mua ${stockCode}`,
+        purpose: `Vay margin mua ${stockCodeUpper}`,
         note: 'Tự động từ giao dịch chứng khoán'
       };
       
@@ -454,11 +497,11 @@ function addStock(data) {
     
     BudgetManager.updateInvestmentBudget('Chứng khoán', total);
     
-    Logger.log(`Đã thêm giao dịch CK: ${type} ${quantity} ${stockCode} @ ${formatCurrency(price)}`);
+    Logger.log(`Đã thêm giao dịch CK: ${type} ${quantity} ${stockCodeUpper} @ ${formatCurrency(price)}`);
     
     return {
       success: true,
-      message: `✅ Đã ghi nhận ${type} ${quantity} CP ${stockCode}!\n` +
+      message: `✅ Đã ghi nhận ${type} ${quantity} CP ${stockCodeUpper}!\n` +
                `💰 Giá: ${formatCurrency(price)}/CP\n` +
                `💵 Tổng: ${formatCurrency(total)}`
     };
@@ -700,6 +743,7 @@ function addOtherInvestment(data) {
 
 /**
  * Lấy danh sách cổ phiếu đang nắm giữ để nhận cổ tức
+ * ✅ v3.5: Cập nhật đọc từ cột I (Cổ tức TM)
  * @return {Array} Mảng các cổ phiếu với thông tin: code, quantity, costPrice, totalCost
  */
 function getStocksForDividend() {
@@ -719,8 +763,9 @@ function getStocksForDividend() {
       return [];
     }
     
-    // Cột: STT(A), Ngày(B), Loại GD(C), Mã CK(D), Số lượng(E), Giá(F), Phí(G), Tổng(H), Ghi chú(I)
-    const data = sheet.getRange(2, 3, dataRows, 6).getValues(); // Từ cột C đến H
+    // ✅ v3.5: Đọc đúng theo cấu trúc 16 cột
+    // Cột: STT(A), Ngày(B), Loại GD(C), Mã CK(D), Số lượng(E), Giá gốc(F), Phí(G), Tổng vốn(H), Cổ tức TM(I)
+    const data = sheet.getRange(2, 3, dataRows, 7).getValues(); // Từ cột C đến I
     
     const stockMap = new Map();
     
@@ -728,8 +773,10 @@ function getStocksForDividend() {
       const type = data[i][0];        // Cột C: Loại GD
       const symbol = data[i][1];      // Cột D: Mã CK
       const quantity = parseFloat(data[i][2]) || 0;  // Cột E: Số lượng
-      const price = parseFloat(data[i][3]) || 0;     // Cột F: Giá
+      const price = parseFloat(data[i][3]) || 0;     // Cột F: Giá gốc
       const fee = parseFloat(data[i][4]) || 0;       // Cột G: Phí
+      const totalCost = parseFloat(data[i][5]) || 0; // Cột H: Tổng vốn
+      const dividendReceived = parseFloat(data[i][6]) || 0; // Cột I: Cổ tức TM đã nhận
       
       if (!symbol) continue;
       
@@ -737,7 +784,8 @@ function getStocksForDividend() {
         stockMap.set(symbol, {
           code: symbol,
           quantity: 0,
-          totalCost: 0
+          totalCost: 0,
+          totalDividend: 0
         });
       }
       
@@ -745,22 +793,30 @@ function getStocksForDividend() {
       
       if (type === 'Mua') {
         stock.quantity += quantity;
-        stock.totalCost += (quantity * price) + fee;
+        stock.totalCost += totalCost;
+        stock.totalDividend += dividendReceived;
       } else if (type === 'Bán') {
         stock.quantity -= quantity;
         if (stock.quantity > 0) {
           const soldRatio = quantity / (stock.quantity + quantity);
           stock.totalCost *= (1 - soldRatio);
+          stock.totalDividend *= (1 - soldRatio);
         } else {
           stock.totalCost = 0;
+          stock.totalDividend = 0;
         }
+      } else if (type === 'Thưởng') {
+        // Thưởng cổ phiếu: tăng số lượng, giá vốn không đổi
+        stock.quantity += quantity;
       }
     }
     
     const stocks = [];
     stockMap.forEach((stock) => {
       if (stock.quantity > 0) {
-        stock.costPrice = stock.totalCost / stock.quantity;
+        // Giá vốn điều chỉnh = (Tổng vốn - Cổ tức đã nhận) / Số lượng
+        const adjustedCost = stock.totalCost - stock.totalDividend;
+        stock.costPrice = adjustedCost / stock.quantity;
         stocks.push(stock);
       }
     });
@@ -776,20 +832,21 @@ function getStocksForDividend() {
 
 /**
  * ============================================================
- * XỬ LÝ CỔ TỨC (TIỀN MẶT & THƯỞNG CỔ PHIẾU) - v3.5 COMPLETE FIX
+ * XỬ LÝ CỔ TỨC (TIỀN MẶT & THƯỞNG CỔ PHIẾU) - v3.5.1 NEW LOGIC
  * ============================================================
  * 
- * QUAN TRỌNG - LOGIC v3.5:
+ * LOGIC MỚI v3.5.1:
  * 
  * 1. CỔ TỨC TIỀN MẶT:
  *    - Tạo khoản THU
- *    - ĐIỀU CHỈNH GIÁ VỐN: Giảm cột "Tổng" (H) của TẤT CẢ giao dịch MUA
- *    - Phân bổ cổ tức theo tỷ lệ số lượng mỗi lô
+ *    - CẬP NHẬT CỘT I (Cổ tức TM): Cộng dồn cổ tức vào cột I
+ *    - GHI LỊCH SỬ VÀO CỘT P (Ghi chú): Thêm note về cổ tức
+ *    - Cột K (Giá điều chỉnh) tự động tính = (H-I)/E
  * 
  * 2. THƯỞNG CỔ PHIẾU:
  *    - Thêm dòng mới với Loại GD = "Thưởng"
  *    - Giá = 0, Phí = 0, Tổng = 0
- *    - Giá vốn/CP tự động giảm (vì tổng cost không đổi, số lượng tăng)
+ *    - Cột J (Cổ tức CP) = số CP thưởng
  * 
  * @param {Object} data - Dữ liệu cổ tức
  * @return {Object} {success, message}
@@ -813,7 +870,7 @@ function processDividend(data) {
     
     if (type === 'cash') {
       // ============================================================
-      // XỬ LÝ CỔ TỨC TIỀN MẶT - v3.5 FIX
+      // XỬ LÝ CỔ TỨC TIỀN MẶT - v3.5.1 NEW LOGIC
       // ============================================================
       const cashAmount = parseFloat(data.cashAmount);
       const totalDividend = parseFloat(data.totalDividend);
@@ -830,17 +887,17 @@ function processDividend(data) {
         return incomeResult;
       }
       
-      // BƯỚC 2: ĐIỀU CHỈNH GIÁ CỔ PHIẾU TRỰC TIẾP TRÊN SHEET
+      // BƯỚC 2: CẬP NHẬT CỘT I (Cổ tức TM) VÀ CỘT P (Ghi chú)
       const emptyRow = findEmptyRow(stockSheet, 2);
       const dataRows = emptyRow - 2;
       
       if (dataRows > 0) {
-        // Lấy toàn bộ dữ liệu từ sheet
-        const stockData = stockSheet.getRange(2, 1, dataRows, 9).getValues();
+        // Lấy toàn bộ dữ liệu từ sheet (16 cột)
+        const stockData = stockSheet.getRange(2, 1, dataRows, 16).getValues();
         
         // Tính tổng số lượng đang nắm giữ và lưu các row MUA
         let totalQuantity = 0;
-        const buyRows = []; // Lưu các row MUA để điều chỉnh
+        const buyRows = [];
         
         for (let i = 0; i < stockData.length; i++) {
           const rowType = stockData[i][2];   // Cột C: Loại GD
@@ -853,75 +910,91 @@ function processDividend(data) {
               buyRows.push({
                 row: i + 2, // +2 vì header ở row 1 và array index từ 0
                 quantity: rowQty,
-                price: parseFloat(stockData[i][5]) || 0, // Cột F: Giá
-                fee: parseFloat(stockData[i][6]) || 0,   // Cột G: Phí
-                total: parseFloat(stockData[i][7]) || 0  // Cột H: Tổng
+                currentDividend: parseFloat(stockData[i][8]) || 0, // Cột I: Cổ tức TM hiện tại
+                currentNote: stockData[i][15] || '' // Cột P: Ghi chú hiện tại
               });
             } else if (rowType === 'Bán') {
               totalQuantity -= rowQty;
+            } else if (rowType === 'Thưởng') {
+              totalQuantity += rowQty;
             }
           }
         }
         
         // Kiểm tra có cổ phiếu hay không
-        if (totalQuantity <= 0) {
+        if (totalQuantity <= 0 || buyRows.length === 0) {
           return {
             success: false,
-            message: '❌ Không tìm thấy cổ phiếu đang nắm giữ để điều chỉnh giá!'
+            message: '❌ Không tìm thấy cổ phiếu MUA để ghi nhận cổ tức!'
           };
         }
         
-        // ĐIỀU CHỈNH GIÁ: Giảm cổ tức từng phần tương ứng với số lượng
+        // CẬP NHẬT: Cộng cổ tức vào cột I và thêm note vào cột P
+        const dateStr = new Date(date).toLocaleDateString('vi-VN');
+        
         for (let i = 0; i < buyRows.length; i++) {
           const buyRow = buyRows[i];
           
           // Tính phần cổ tức tương ứng với lô này
           const dividendForThisLot = (buyRow.quantity / totalQuantity) * totalDividend;
           
-          // Giá vốn mới = Tổng cũ - Cổ tức
-          const newTotal = buyRow.total - dividendForThisLot;
+          // Cột I: Cổ tức TM mới = Cổ tức cũ + Cổ tức lần này
+          const newDividend = buyRow.currentDividend + dividendForThisLot;
+          stockSheet.getRange(buyRow.row, 9).setValue(newDividend);
           
-          // Cập nhật cột H (Tổng) - Giá vốn mới
-          stockSheet.getRange(buyRow.row, 8).setValue(newTotal);
+          // Cột P: Thêm lịch sử cổ tức
+          const dividendNote = `CT ${dateStr}: +${formatCurrency(dividendForThisLot)}`;
+          const newNote = buyRow.currentNote 
+            ? `${buyRow.currentNote} | ${dividendNote}`
+            : dividendNote;
+          stockSheet.getRange(buyRow.row, 16).setValue(newNote);
           
-          Logger.log(`✅ Điều chỉnh row ${buyRow.row}: ${stockCode} - Giảm ${formatCurrency(dividendForThisLot)}`);
+          Logger.log(`✅ Row ${buyRow.row}: ${stockCode} - Cộng cổ tức ${formatCurrency(dividendForThisLot)} vào cột I`);
         }
         
-        Logger.log(`✅ Đã điều chỉnh giá vốn cho ${stockCode}: Tổng giảm ${formatCurrency(totalDividend)}`);
+        Logger.log(`✅ Đã cập nhật cổ tức ${formatCurrency(totalDividend)} cho ${stockCode} vào cột I`);
       }
       
       return {
         success: true,
         message: `✅ Đã ghi nhận cổ tức tiền mặt ${formatCurrency(totalDividend)} cho ${stockCode}!\n` +
-                 `📊 Giá vốn đã được điều chỉnh giảm tương ứng.`
+                 `📊 Cột "Cổ tức TM" đã được cập nhật.\n` +
+                 `💡 Cột "Giá ĐC" tự động tính = (Tổng vốn - Cổ tức TM) / Số lượng`
       };
       
     } else if (type === 'stock') {
       // ============================================================
-      // XỬ LÝ THƯỞNG CỔ PHIẾU
+      // XỬ LÝ THƯỞNG CỔ PHIẾU - v3.5.1
       // ============================================================
       const stockRatio = parseFloat(data.stockRatio);
       const bonusShares = parseInt(data.bonusShares);
       const currentQuantity = parseFloat(data.currentQuantity);
       const newQuantity = currentQuantity + bonusShares;
       
-      // Ghi lại giao dịch nhận thưởng cổ phiếu vào sheet CHỨNG KHOÁN
+      // Thêm dòng mới: Loại GD = "Thưởng"
       const emptyRow = findEmptyRow(stockSheet, 2);
       const stt = getNextSTT(stockSheet, 2);
       
       const noteText = `Thưởng CP ${stockRatio}% (${bonusShares} CP). ${notes}`;
       
-      // Thêm dòng mới: Loại GD = "Thưởng", Số lượng = bonusShares, Giá = 0, Phí = 0, Tổng = 0
+      // ✅ v3.5.1: Ghi đúng 16 cột
       const rowData = [
-        stt,
-        new Date(date),
-        'Thưởng',
-        stockCode,
-        bonusShares,
-        0, // Giá = 0
-        0, // Phí = 0
-        0, // Tổng = 0
-        noteText
+        stt,            // A: STT
+        new Date(date), // B: Ngày
+        'Thưởng',       // C: Loại GD
+        stockCode,      // D: Mã CK
+        bonusShares,    // E: Số lượng
+        0,              // F: Giá = 0
+        0,              // G: Phí = 0
+        0,              // H: Tổng = 0
+        0,              // I: Cổ tức TM = 0
+        bonusShares,    // J: Cổ tức CP = số CP thưởng
+        '',             // K: Giá ĐC (công thức)
+        '',             // L: Giá HT
+        '',             // M: Giá trị HT
+        '',             // N: Lãi/Lỗ
+        '',             // O: % L/L
+        noteText        // P: Ghi chú
       ];
       
       stockSheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
@@ -930,7 +1003,13 @@ function processDividend(data) {
         2: 'dd/mm/yyyy',
         6: '#,##0" VNĐ"',
         7: '#,##0" VNĐ"',
-        8: '#,##0" VNĐ"'
+        8: '#,##0" VNĐ"',
+        9: '#,##0" VNĐ"',
+        11: '#,##0" VNĐ"',
+        12: '#,##0" VNĐ"',
+        13: '#,##0" VNĐ"',
+        14: '#,##0" VNĐ"',
+        15: '0.00%'
       });
       
       Logger.log(`✅ Đã ghi nhận thưởng ${bonusShares} CP ${stockCode}`);
@@ -939,7 +1018,7 @@ function processDividend(data) {
         success: true,
         message: `✅ Đã ghi nhận thưởng ${bonusShares} cổ phiếu ${stockCode}!\n` +
                  `📊 Số lượng mới: ${newQuantity} CP\n` +
-                 `💡 Giá vốn/CP tự động giảm theo tỷ lệ.`
+                 `💡 Giá vốn/CP tự động giảm (vì tổng vốn không đổi, số lượng tăng)`
       };
     }
     

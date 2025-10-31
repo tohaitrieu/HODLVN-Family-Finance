@@ -399,11 +399,11 @@
             if (type === 'cash') {
                 cashGroup.classList.remove('hidden');
                 infoBox.style.display = 'block';
-                infoText.innerHTML = '<strong>Cổ tức tiền mặt:</strong> Số tiền nhận được sẽ tự động tạo giao dịch THU và <strong>giảm giá vốn</strong> cổ phiếu tương ứng.';
+                infoText.innerHTML = '<strong>Cổ tức tiền mặt:</strong> Số tiền nhận được sẽ tự động tạo giao dịch THU và <strong>cộng vào cột "Cổ tức TM"</strong>. Cột "Giá ĐC" sẽ tự động tính = (Tổng vốn - Cổ tức TM) / Số lượng.';
             } else if (type === 'stock') {
                 stockGroup.classList.remove('hidden');
                 infoBox.style.display = 'block';
-                infoText.innerHTML = '<strong>Thưởng cổ phiếu:</strong> Số lượng cổ phiếu sẽ tăng theo tỷ lệ thưởng, <strong>giá vốn không đổi</strong> nhưng <strong>giá vốn/cổ phiếu sẽ giảm</strong>.';
+                infoText.innerHTML = '<strong>Thưởng cổ phiếu:</strong> Số lượng cổ phiếu sẽ tăng theo tỷ lệ thưởng, <strong>tổng giá vốn không đổi</strong> nhưng <strong>giá vốn/cổ phiếu sẽ giảm</strong>.';
             } else {
                 infoBox.style.display = 'none';
             }
@@ -435,15 +435,22 @@
             const totalCost = parseFloat(selectedOption.dataset.totalCost);
             
             const totalDividend = cashAmount * quantity;
-            const newTotalCost = totalCost - totalDividend;
-            const newCostPrice = newTotalCost / quantity;
+            
+            // ✅ Logic mới v3.5.1: Cộng vào cột Cổ tức TM, không giảm Tổng vốn
+            // Giá điều chỉnh = (Tổng vốn - Cổ tức TM) / Số lượng
+            const adjustedCostPrice = (totalCost - totalDividend) / quantity;
             
             const resultDiv = document.getElementById('calculationResult');
             resultDiv.innerHTML = `
                 <p>💰 Tổng tiền cổ tức: <strong>${formatNumber(totalDividend)}đ</strong></p>
-                <p>📊 Giá vốn hiện tại: ${formatNumber(costPrice)}đ/CP</p>
-                <p>📉 Giá vốn mới: <strong>${formatNumber(newCostPrice)}đ/CP</strong></p>
-                <p>✅ Giảm: ${formatNumber(costPrice - newCostPrice)}đ/CP (${((costPrice - newCostPrice) / costPrice * 100).toFixed(2)}%)</p>
+                <p>📋 Sẽ ghi vào: <strong>THU + Cột "Cổ tức TM"</strong></p>
+                <hr style="margin: 10px 0; border: none; border-top: 1px solid #eee;">
+                <p>📊 Giá vốn ban đầu: ${formatNumber(costPrice)}đ/CP</p>
+                <p>📉 Giá điều chỉnh: <strong>${formatNumber(adjustedCostPrice)}đ/CP</strong></p>
+                <p>✅ Giảm: ${formatNumber(costPrice - adjustedCostPrice)}đ/CP (${((costPrice - adjustedCostPrice) / costPrice * 100).toFixed(2)}%)</p>
+                <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                    💡 <em>Giá điều chỉnh = (Tổng vốn - Cổ tức TM) / Số lượng</em>
+                </p>
             `;
             resultDiv.classList.add('show');
         }
