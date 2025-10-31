@@ -1,7 +1,12 @@
 /**
  * ===============================================
- * DATAPROCESSORS.GS v3.4 - COMPLETE FIX + DIVIDEND FEATURE
+ * DATAPROCESSORS.GS v3.5 - COMPLETE FIX + DIVIDEND ADJUSTMENT
  * ===============================================
+ * 
+ * CHANGELOG v3.5:
+ * ✅ FIX: processDividend() - ĐIỀU CHỈNH GIÁ CỔ PHIẾU khi nhận cổ tức tiền mặt
+ * ✅ LOGIC: Cổ tức tiền mặt giảm giá vốn trực tiếp cho TẤT CẢ giao dịch mua
+ * ✅ LOGIC: Thưởng cổ phiếu tăng số lượng, giữ nguyên tổng giá vốn
  * 
  * CHANGELOG v3.4:
  * ✅ FIX: addGold() - Sửa lỗi validation và đảm bảo dữ liệu được điền đầy đủ
@@ -26,18 +31,15 @@ function getDebtList() {
       return [];
     }
     
-    // ✅ FIX: Sử dụng findEmptyRow() để xác định số dòng có dữ liệu thực
     const emptyRow = findEmptyRow(sheet, 2);
-    const dataRows = emptyRow - 2; // Trừ header và bắt đầu từ 0
+    const dataRows = emptyRow - 2;
     
     if (dataRows <= 0) {
       return [];
     }
     
-    // Lấy dữ liệu từ cột B (Tên khoản nợ)
     const data = sheet.getRange(2, 2, dataRows, 1).getValues();
     
-    // Lọc các dòng có tên khoản nợ
     const debtList = data
       .map(row => row[0])
       .filter(name => name && name.toString().trim() !== '');
@@ -60,7 +62,6 @@ function getDebtList() {
  */
 function addIncome(data) {
   try {
-    // Validation
     if (!data.date || !data.amount || !data.source) {
       return {
         success: false,
@@ -78,32 +79,38 @@ function addIncome(data) {
       };
     }
     
-    // Parse dữ liệu
-    const date = new Date(data.date);
-    const amount = parseFloat(data.amount);
-    const source = data.source;
-    const note = data.note || '';
-    
-    // ✅ FIX: Sử dụng findEmptyRow() và getNextSTT()
-    const emptyRow = findEmptyRow(sheet, 2); // Cột B = Ngày
+    const emptyRow = findEmptyRow(sheet, 2);
     const stt = getNextSTT(sheet, 2);
     
-    // Thêm dữ liệu
-    const rowData = [stt, date, amount, source, note];
+    const date = new Date(data.date);
+    const amount = parseFloat(data.amount);
+    const source = data.source.toString();
+    const note = data.note || '';
+    
+    const rowData = [
+      stt,
+      date,
+      amount,
+      source,
+      note
+    ];
+    
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
-    // Format dòng mới
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
       3: '#,##0" VNĐ"'
     });
     
+    Logger.log(`Đã thêm thu nhập: ${formatCurrency(amount)} - ${source}`);
+    
     return {
       success: true,
-      message: `✅ Đã thêm thu nhập ${formatCurrency(amount)} từ ${source}!`
+      message: `✅ Đã ghi nhận thu nhập ${formatCurrency(amount)} từ ${source}!`
     };
     
   } catch (error) {
+    Logger.log('Error in addIncome: ' + error.message);
     return {
       success: false,
       message: `❌ Lỗi: ${error.message}`
@@ -115,12 +122,11 @@ function addIncome(data) {
 
 /**
  * Thêm khoản chi tiêu
- * @param {Object} data - {date, amount, category, detail, note}
+ * @param {Object} data - {date, amount, category, subcategory, note}
  * @return {Object} {success, message}
  */
 function addExpense(data) {
   try {
-    // Validation
     if (!data.date || !data.amount || !data.category) {
       return {
         success: false,
@@ -134,44 +140,46 @@ function addExpense(data) {
     if (!sheet) {
       return {
         success: false,
-        message: '❌ Sheet CHI chưa được khởi tạo! Vui lòng khởi tạo sheet trước.'
+        message: '❌ Sheet CHI chưa được khởi tạo!'
       };
     }
     
-    // Parse dữ liệu
-    const date = new Date(data.date);
-    const amount = parseFloat(data.amount);
-    const category = data.category;
-    const detail = data.detail || '';
-    const note = data.note || '';
-    
-    // ✅ FIX: Sử dụng findEmptyRow() và getNextSTT()
-    const emptyRow = findEmptyRow(sheet, 2); // Cột B = Ngày
+    const emptyRow = findEmptyRow(sheet, 2);
     const stt = getNextSTT(sheet, 2);
     
-    // Thêm dữ liệu
-    const rowData = [stt, date, amount, category, detail, note];
+    const date = new Date(data.date);
+    const amount = parseFloat(data.amount);
+    const category = data.category.toString();
+    const subcategory = data.subcategory || '';
+    const note = data.note || '';
+    
+    const rowData = [
+      stt,
+      date,
+      amount,
+      category,
+      subcategory,
+      note
+    ];
+    
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
-    // Format dòng mới
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
       3: '#,##0" VNĐ"'
     });
     
-    // Cập nhật Budget
-    try {
-      BudgetManager.updateExpenseBudget(category);
-    } catch (e) {
-      Logger.log('Không thể cập nhật budget: ' + e.message);
-    }
+    BudgetManager.updateBudgetSpent(category);
+    
+    Logger.log(`Đã thêm chi tiêu: ${formatCurrency(amount)} - ${category}`);
     
     return {
       success: true,
-      message: `✅ Đã thêm chi tiêu ${formatCurrency(amount)} cho ${category}!`
+      message: `✅ Đã ghi nhận chi tiêu ${formatCurrency(amount)} cho ${category}!`
     };
     
   } catch (error) {
+    Logger.log('Error in addExpense: ' + error.message);
     return {
       success: false,
       message: `❌ Lỗi: ${error.message}`
@@ -179,18 +187,16 @@ function addExpense(data) {
   }
 }
 
-// ==================== TRẢ NỢ - FIXED VERSION ====================
+// ==================== QUẢN LÝ NỢ ====================
 
 /**
- * Thêm khoản trả nợ VÀ tự động cập nhật QUẢN LÝ NỢ
- * ✅ FIX: Logic trạng thái Chưa trả → Đang trả → Đã trả hết
- * @param {Object} data - {date, debtName, principal, interest, note}
+ * Thêm khoản nợ
+ * @param {Object} data - {loanDate, debtName, amount, interestRate, term, purpose, note}
  * @return {Object} {success, message}
  */
-function addDebtPayment(data) {
+function addDebt(data) {
   try {
-    // Validation
-    if (!data.date || !data.debtName || (!data.principal && !data.interest)) {
+    if (!data.loanDate || !data.debtName || !data.amount) {
       return {
         success: false,
         message: '❌ Vui lòng điền đầy đủ thông tin bắt buộc!'
@@ -198,95 +204,74 @@ function addDebtPayment(data) {
     }
     
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
     
-    // Kiểm tra sheets
-    const paymentSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_PAYMENT);
-    const managementSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
-    
-    if (!paymentSheet) {
-      return {
-        success: false,
-        message: '❌ Sheet TRẢ NỢ chưa được khởi tạo!'
-      };
-    }
-    
-    if (!managementSheet) {
+    if (!sheet) {
       return {
         success: false,
         message: '❌ Sheet QUẢN LÝ NỢ chưa được khởi tạo!'
       };
     }
     
-    // Parse dữ liệu
-    const date = new Date(data.date);
-    const debtName = data.debtName;
-    const principal = parseFloat(data.principal) || 0;
-    const interest = parseFloat(data.interest) || 0;
-    const total = principal + interest;
+    const emptyRow = findEmptyRow(sheet, 2);
+    const stt = getNextSTT(sheet, 2);
+    
+    const loanDate = new Date(data.loanDate);
+    const debtName = data.debtName.toString();
+    const amount = parseFloat(data.amount);
+    const interestRate = parseFloat(data.interestRate) || 0;
+    const term = parseInt(data.term) || 12;
+    const purpose = data.purpose || '';
     const note = data.note || '';
     
-    // ✅ FIX: Thêm vào Sheet TRẢ NỢ
-    const emptyRow = findEmptyRow(paymentSheet, 2); // Cột B = Ngày
-    const stt = getNextSTT(paymentSheet, 2);
+    const dueDate = new Date(loanDate);
+    dueDate.setMonth(dueDate.getMonth() + term);
     
-    const rowData = [stt, date, debtName, principal, interest, total, note];
-    paymentSheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+    const rowData = [
+      stt,
+      debtName,
+      loanDate,
+      amount,
+      amount,
+      interestRate / 100,
+      term,
+      dueDate,
+      purpose,
+      'Chưa trả',
+      note
+    ];
     
-    // Format dòng mới
-    formatNewRow(paymentSheet, emptyRow, {
-      2: 'dd/mm/yyyy',
+    sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+    
+    formatNewRow(sheet, emptyRow, {
+      3: 'dd/mm/yyyy',
       4: '#,##0" VNĐ"',
       5: '#,##0" VNĐ"',
-      6: '#,##0" VNĐ"'
+      6: '0.00%',
+      8: 'dd/mm/yyyy'
     });
     
-    // Cập nhật Sheet QUẢN LÝ NỢ
-    const debtRow = findDebtRow(managementSheet, debtName);
+    const incomeResult = addIncome({
+      date: loanDate,
+      amount: amount,
+      source: 'Vay nợ',
+      note: `Vay ${debtName}. ${note}`
+    });
     
-    if (debtRow === -1) {
-      return {
-        success: false,
-        message: `❌ Không tìm thấy khoản nợ "${debtName}" trong QUẢN LÝ NỢ!`
-      };
+    if (!incomeResult.success) {
+      Logger.log('Cảnh báo: Không thể tạo khoản thu tự động cho nợ');
     }
     
-    // Lấy thông tin nợ hiện tại
-    const debtData = managementSheet.getRange(debtRow, 1, 1, 12).getValues()[0];
-    const originalDebt = parseFloat(debtData[2]) || 0;
-    const paidPrincipal = parseFloat(debtData[7]) || 0;
-    const paidInterest = parseFloat(debtData[8]) || 0;
-    
-    // Tính toán giá trị mới
-    const newPaidPrincipal = paidPrincipal + principal;
-    const newPaidInterest = paidInterest + interest;
-    const remaining = originalDebt - newPaidPrincipal;
-    
-    // ✅ FIX: Xác định trạng thái theo logic đúng
-    let status = 'Đang trả';
-    
-    if (remaining <= 0) {
-      status = 'Đã trả hết';
-    } else if (newPaidPrincipal === 0 && newPaidInterest === 0) {
-      // Nếu chưa trả gì cả (cả gốc và lãi đều = 0)
-      status = 'Chưa trả';
-    }
-    
-    // Cập nhật các cột H, I, K (cột J có công thức nên tự tính)
-    managementSheet.getRange(debtRow, 8).setValue(newPaidPrincipal);  // H: Đã trả gốc
-    managementSheet.getRange(debtRow, 9).setValue(newPaidInterest);   // I: Đã trả lãi
-    // Cột J (Còn nợ) có công thức =C-H nên không cần set
-    managementSheet.getRange(debtRow, 11).setValue(status);           // K: Trạng thái
+    Logger.log(`Đã thêm khoản nợ: ${debtName} - ${formatCurrency(amount)}`);
     
     return {
       success: true,
-      message: `✅ Đã ghi nhận trả nợ cho ${debtName}!\n` +
-               `💰 Gốc: ${formatCurrency(principal)}\n` +
-               `💳 Lãi: ${formatCurrency(interest)}\n` +
-               `📊 Còn nợ: ${formatCurrency(remaining)}\n` +
-               `📌 Trạng thái: ${status}`
+      message: `✅ Đã ghi nhận khoản nợ ${debtName}: ${formatCurrency(amount)}!\n` +
+               `📅 Hạn thanh toán: ${formatDate(dueDate)}`
     };
     
   } catch (error) {
+    Logger.log('Error in addDebt: ' + error.message);
     return {
       success: false,
       message: `❌ Lỗi: ${error.message}`
@@ -295,36 +280,118 @@ function addDebtPayment(data) {
 }
 
 /**
- * Tìm dòng của khoản nợ trong QUẢN LÝ NỢ
+ * Trả nợ
+ * @param {Object} data - {date, debtName, principalAmount, interestAmount, note}
+ * @return {Object} {success, message}
  */
-function findDebtRow(sheet, debtName) {
-  const emptyRow = findEmptyRow(sheet, 2);
-  const dataRows = emptyRow - 2;
-  
-  if (dataRows <= 0) return -1;
-  
-  const data = sheet.getRange(2, 2, dataRows, 1).getValues();
-  
-  for (let i = 0; i < data.length; i++) {
-    if (data[i][0] === debtName) {
-      return i + 2; // +2 vì bắt đầu từ dòng 2
+function payDebt(data) {
+  try {
+    if (!data.date || !data.debtName || !data.principalAmount) {
+      return {
+        success: false,
+        message: '❌ Vui lòng điền đầy đủ thông tin bắt buộc!'
+      };
     }
+    
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const paymentSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_PAYMENT);
+    const debtSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
+    
+    if (!paymentSheet || !debtSheet) {
+      return {
+        success: false,
+        message: '❌ Các sheet liên quan chưa được khởi tạo!'
+      };
+    }
+    
+    const emptyRow = findEmptyRow(paymentSheet, 2);
+    const stt = getNextSTT(paymentSheet, 2);
+    
+    const date = new Date(data.date);
+    const debtName = data.debtName.toString();
+    const principalAmount = parseFloat(data.principalAmount);
+    const interestAmount = parseFloat(data.interestAmount) || 0;
+    const totalAmount = principalAmount + interestAmount;
+    const note = data.note || '';
+    
+    const rowData = [
+      stt,
+      date,
+      debtName,
+      principalAmount,
+      interestAmount,
+      totalAmount,
+      note
+    ];
+    
+    paymentSheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+    
+    formatNewRow(paymentSheet, emptyRow, {
+      2: 'dd/mm/yyyy',
+      4: '#,##0" VNĐ"',
+      5: '#,##0" VNĐ"',
+      6: '#,##0" VNĐ"'
+    });
+    
+    const debtEmptyRow = findEmptyRow(debtSheet, 2);
+    const debtDataRows = debtEmptyRow - 2;
+    
+    if (debtDataRows > 0) {
+      const debtData = debtSheet.getRange(2, 2, debtDataRows, 10).getValues();
+      
+      for (let i = 0; i < debtData.length; i++) {
+        const rowDebtName = debtData[i][0];
+        
+        if (rowDebtName === debtName) {
+          const currentBalance = parseFloat(debtData[i][3]) || 0;
+          const newBalance = currentBalance - principalAmount;
+          const row = i + 2;
+          
+          debtSheet.getRange(row, 5).setValue(newBalance);
+          
+          if (newBalance <= 0) {
+            debtSheet.getRange(row, 10).setValue('Đã thanh toán');
+          }
+          
+          break;
+        }
+      }
+    }
+    
+    BudgetManager.updateDebtBudget();
+    
+    Logger.log(`Đã trả nợ: ${debtName} - Gốc: ${formatCurrency(principalAmount)}, Lãi: ${formatCurrency(interestAmount)}`);
+    
+    return {
+      success: true,
+      message: `✅ Đã ghi nhận trả nợ ${debtName}!\n` +
+               `💰 Gốc: ${formatCurrency(principalAmount)}\n` +
+               `📊 Lãi: ${formatCurrency(interestAmount)}\n` +
+               `💵 Tổng: ${formatCurrency(totalAmount)}`
+    };
+    
+  } catch (error) {
+    Logger.log('Error in payDebt: ' + error.message);
+    return {
+      success: false,
+      message: `❌ Lỗi: ${error.message}`
+    };
   }
-  
-  return -1;
 }
 
 // ==================== CHỨNG KHOÁN ====================
 
 /**
  * Thêm giao dịch chứng khoán
+ * @param {Object} data - {date, type, stockCode, quantity, price, fee, useMargin, marginAmount, marginRate, note}
+ * @return {Object} {success, message}
  */
 function addStock(data) {
   try {
-    if (!data.date || !data.type || !data.symbol || !data.quantity || !data.price) {
+    if (!data.date || !data.type || !data.stockCode || !data.quantity || !data.price) {
       return {
         success: false,
-        message: '❌ Vui lòng điền đầy đủ thông tin!'
+        message: '❌ Vui lòng điền đầy đủ thông tin bắt buộc!'
       };
     }
     
@@ -338,23 +405,32 @@ function addStock(data) {
       };
     }
     
+    const emptyRow = findEmptyRow(sheet, 2);
+    const stt = getNextSTT(sheet, 2);
+    
     const date = new Date(data.date);
-    const type = data.type;
-    const symbol = data.symbol.toUpperCase();
-    const quantity = parseFloat(data.quantity);
+    const type = data.type.toString();
+    const stockCode = data.stockCode.toString().toUpperCase();
+    const quantity = parseInt(data.quantity);
     const price = parseFloat(data.price);
     const fee = parseFloat(data.fee) || 0;
     const total = (quantity * price) + fee;
     const note = data.note || '';
     
-    // ✅ FIX: Sử dụng findEmptyRow()
-    const emptyRow = findEmptyRow(sheet, 2); // Cột B = Ngày
-    const stt = getNextSTT(sheet, 2);
+    const rowData = [
+      stt,
+      date,
+      type,
+      stockCode,
+      quantity,
+      price,
+      fee,
+      total,
+      note
+    ];
     
-    const rowData = [stt, date, type, symbol, quantity, price, fee, total, note];
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
-    // Format
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
       6: '#,##0" VNĐ"',
@@ -362,37 +438,33 @@ function addStock(data) {
       8: '#,##0" VNĐ"'
     });
     
-    // Nếu mua thì trừ Budget
-    if (type === 'Mua') {
-      try {
-        if (typeof BudgetManager !== 'undefined') {
-          BudgetManager.updateInvestmentBudget('Chứng khoán', total);
-        }
-      } catch (e) {
-        Logger.log('Không thể cập nhật budget: ' + e.message);
-      }
+    if (data.useMargin && data.marginAmount > 0) {
+      const marginDebt = {
+        loanDate: date,
+        debtName: `Margin ${stockCode}`,
+        amount: parseFloat(data.marginAmount),
+        interestRate: parseFloat(data.marginRate) || 8.5,
+        term: 3,
+        purpose: `Vay margin mua ${stockCode}`,
+        note: 'Tự động từ giao dịch chứng khoán'
+      };
+      
+      addDebt(marginDebt);
     }
     
-    // Nếu bán thì thêm vào THU
-    if (type === 'Bán') {
-      try {
-        addIncome({
-          date: data.date,
-          amount: total,
-          source: 'Bán CK',
-          note: `Bán ${quantity} ${symbol} @ ${price}`
-        });
-      } catch (e) {
-        Logger.log('Không thể thêm thu nhập: ' + e.message);
-      }
-    }
+    BudgetManager.updateInvestmentBudget('Chứng khoán', total);
+    
+    Logger.log(`Đã thêm giao dịch CK: ${type} ${quantity} ${stockCode} @ ${formatCurrency(price)}`);
     
     return {
       success: true,
-      message: `✅ Đã ghi nhận ${type} ${quantity} ${symbol} với giá ${formatCurrency(price)}!`
+      message: `✅ Đã ghi nhận ${type} ${quantity} CP ${stockCode}!\n` +
+               `💰 Giá: ${formatCurrency(price)}/CP\n` +
+               `💵 Tổng: ${formatCurrency(total)}`
     };
     
   } catch (error) {
+    Logger.log('Error in addStock: ' + error.message);
     return {
       success: false,
       message: `❌ Lỗi: ${error.message}`
@@ -400,16 +472,16 @@ function addStock(data) {
   }
 }
 
-// ==================== VÀNG - FIXED VERSION ====================
+// ==================== VÀNG ====================
 
 /**
  * Thêm giao dịch vàng
- * ✅ FIX v3.4: Đảm bảo tất cả dữ liệu được điền vào đúng cột
+ * @param {Object} data - {date, type, goldType, unit, quantity, price, note}
+ * @return {Object} {success, message}
  */
 function addGold(data) {
   try {
-    // ✅ FIX: Validation chặt chẽ hơn
-    if (!data.date || !data.type || !data.goldType || !data.quantity || !data.unit || !data.price) {
+    if (!data.date || !data.type || !data.goldType || !data.quantity || !data.price) {
       return {
         success: false,
         message: '❌ Vui lòng điền đầy đủ thông tin bắt buộc!'
@@ -420,93 +492,60 @@ function addGold(data) {
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.GOLD);
     
     if (!sheet) {
-      return { 
-        success: false, 
-        message: '❌ Sheet VÀNG chưa được khởi tạo!' 
+      return {
+        success: false,
+        message: '❌ Sheet VÀNG chưa được khởi tạo!'
       };
     }
     
-    // Parse dữ liệu
-    const date = new Date(data.date);
-    const type = data.type;
-    const goldType = data.goldType;
-    const quantity = parseFloat(data.quantity);
-    const unit = data.unit; // ✅ FIX: Không dùng default value
-    const price = parseFloat(data.price);
-    const total = quantity * price;
-    const location = data.location || '';
-    const note = data.note || '';
-    
-    // ✅ Log để debug
-    Logger.log('=== ADD GOLD DEBUG ===');
-    Logger.log('Date: ' + date);
-    Logger.log('Type: ' + type);
-    Logger.log('GoldType: ' + goldType);
-    Logger.log('Quantity: ' + quantity);
-    Logger.log('Unit: ' + unit);
-    Logger.log('Price: ' + price);
-    Logger.log('Total: ' + total);
-    Logger.log('Location: ' + location);
-    Logger.log('Note: ' + note);
-    
-    // ✅ FIX: Sử dụng findEmptyRow()
     const emptyRow = findEmptyRow(sheet, 2);
     const stt = getNextSTT(sheet, 2);
     
-    Logger.log('Empty Row: ' + emptyRow);
-    Logger.log('STT: ' + stt);
+    const date = new Date(data.date);
+    const type = data.type.toString();
+    const goldType = data.goldType.toString();
+    const unit = data.unit || 'Lượng';
+    const quantity = parseFloat(data.quantity);
+    const price = parseFloat(data.price);
+    const total = quantity * price;
+    const note = data.note || '';
     
-    // ✅ Thứ tự cột: STT, Ngày, Loại GD, Loại vàng, Số lượng, Đơn vị, Giá, Tổng, Nơi lưu, Ghi chú
-    const rowData = [stt, date, type, goldType, quantity, unit, price, total, location, note];
+    const rowData = [
+      stt,
+      date,
+      type,
+      goldType,
+      unit,
+      quantity,
+      price,
+      total,
+      note
+    ];
     
-    Logger.log('Row Data: ' + JSON.stringify(rowData));
-    
-    // Thêm dữ liệu vào sheet
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
-    // Format các cột
     formatNewRow(sheet, emptyRow, {
-      2: 'dd/mm/yyyy',    // Cột B: Ngày
-      7: '#,##0" VNĐ"',   // Cột G: Giá
-      8: '#,##0" VNĐ"'    // Cột H: Tổng
+      2: 'dd/mm/yyyy',
+      7: '#,##0" VNĐ"',
+      8: '#,##0" VNĐ"'
     });
     
-    // Cập nhật budget nếu mua
-    if (type === 'Mua') {
-      try { 
-        if (typeof BudgetManager !== 'undefined') {
-          BudgetManager.updateInvestmentBudget('Vàng', total);
-        }
-      } catch(e) {
-        Logger.log('Không thể cập nhật budget: ' + e.message);
-      }
-    }
+    BudgetManager.updateInvestmentBudget('Vàng', total);
     
-    // Tạo thu nhập nếu bán
-    if (type === 'Bán') {
-      try {
-        addIncome({
-          date: data.date,
-          amount: total,
-          source: 'Bán Vàng',
-          note: `Bán ${quantity} ${unit} ${goldType}`
-        });
-      } catch(e) {
-        Logger.log('Không thể thêm thu nhập: ' + e.message);
-      }
-    }
+    Logger.log(`Đã thêm giao dịch vàng: ${type} ${quantity} ${unit} ${goldType}`);
     
     return {
       success: true,
-      message: `✅ Đã ghi nhận ${type} ${quantity} ${unit} ${goldType}!`
+      message: `✅ Đã ghi nhận ${type} ${quantity} ${unit} ${goldType}!\n` +
+               `💰 Giá: ${formatCurrency(price)}/${unit}\n` +
+               `💵 Tổng: ${formatCurrency(total)}`
     };
     
   } catch (error) {
     Logger.log('Error in addGold: ' + error.message);
-    Logger.log('Stack: ' + error.stack);
-    return { 
-      success: false, 
-      message: `❌ Lỗi: ${error.message}` 
+    return {
+      success: false,
+      message: `❌ Lỗi: ${error.message}`
     };
   }
 }
@@ -515,13 +554,15 @@ function addGold(data) {
 
 /**
  * Thêm giao dịch crypto
+ * @param {Object} data - {date, type, coin, quantity, price, fee, note}
+ * @return {Object} {success, message}
  */
 function addCrypto(data) {
   try {
-    if (!data.date || !data.type || !data.coin || !data.quantity || !data.priceUSD) {
+    if (!data.date || !data.type || !data.coin || !data.quantity || !data.price) {
       return {
         success: false,
-        message: '❌ Vui lòng điền đầy đủ thông tin!'
+        message: '❌ Vui lòng điền đầy đủ thông tin bắt buộc!'
       };
     }
     
@@ -529,77 +570,78 @@ function addCrypto(data) {
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.CRYPTO);
     
     if (!sheet) {
-      return { success: false, message: '❌ Sheet CRYPTO chưa được khởi tạo!' };
+      return {
+        success: false,
+        message: '❌ Sheet CRYPTO chưa được khởi tạo!'
+      };
     }
     
-    const date = new Date(data.date);
-    const type = data.type;
-    const coin = data.coin.toUpperCase();
-    const quantity = parseFloat(data.quantity);
-    const priceUSD = parseFloat(data.priceUSD);
-    const exchangeRate = parseFloat(data.exchangeRate) || 23000;
-    const priceVND = priceUSD * exchangeRate;
-    const totalVND = quantity * priceVND;
-    const exchange = data.exchange || '';
-    const wallet = data.wallet || '';
-    const note = data.note || '';
-    
-    // ✅ FIX: Sử dụng findEmptyRow()
     const emptyRow = findEmptyRow(sheet, 2);
     const stt = getNextSTT(sheet, 2);
     
-    const rowData = [stt, date, type, coin, quantity, priceUSD, exchangeRate, priceVND, totalVND, exchange, wallet, note];
+    const date = new Date(data.date);
+    const type = data.type.toString();
+    const coin = data.coin.toString().toUpperCase();
+    const quantity = parseFloat(data.quantity);
+    const price = parseFloat(data.price);
+    const fee = parseFloat(data.fee) || 0;
+    const total = (quantity * price) + fee;
+    const note = data.note || '';
+    
+    const rowData = [
+      stt,
+      date,
+      type,
+      coin,
+      quantity,
+      price,
+      fee,
+      total,
+      note
+    ];
+    
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
-      6: '#,##0.00" USD"',
-      8: '#,##0" VNĐ"',
-      9: '#,##0" VNĐ"'
+      6: '#,##0" VNĐ"',
+      7: '#,##0" VNĐ"',
+      8: '#,##0" VNĐ"'
     });
     
-    if (type === 'Mua') {
-      try { 
-        if (typeof BudgetManager !== 'undefined') {
-          BudgetManager.updateInvestmentBudget('Crypto', totalVND);
-        }
-      } catch(e) {}
-    }
+    BudgetManager.updateInvestmentBudget('Crypto', total);
     
-    if (type === 'Bán') {
-      try {
-        addIncome({
-          date: data.date,
-          amount: totalVND,
-          source: 'Bán Crypto',
-          note: `Bán ${quantity} ${coin}`
-        });
-      } catch(e) {}
-    }
+    Logger.log(`Đã thêm giao dịch crypto: ${type} ${quantity} ${coin}`);
     
     return {
       success: true,
-      message: `✅ Đã ghi nhận ${type} ${quantity} ${coin}!`
+      message: `✅ Đã ghi nhận ${type} ${quantity} ${coin}!\n` +
+               `💰 Giá: ${formatCurrency(price)}/${coin}\n` +
+               `💵 Tổng: ${formatCurrency(total)}`
     };
     
   } catch (error) {
-    return { success: false, message: `❌ Lỗi: ${error.message}` };
+    Logger.log('Error in addCrypto: ' + error.message);
+    return {
+      success: false,
+      message: `❌ Lỗi: ${error.message}`
+    };
   }
 }
 
-// ==================== ĐẦU TƯ KHÁC - FIXED VERSION ====================
+// ==================== ĐẦU TƯ KHÁC ====================
 
 /**
- * Thêm khoản đầu tư khác
- * ✅ FIX v3.4: Nhận đúng tham số investmentType thay vì type
+ * Thêm giao dịch đầu tư khác
+ * @param {Object} data - {date, investmentType, amount, note}
+ * @return {Object} {success, message}
  */
 function addOtherInvestment(data) {
   try {
-    // ✅ FIX: Validation với investmentType
     if (!data.date || !data.investmentType || !data.amount) {
       return {
         success: false,
-        message: '❌ Vui lòng điền đầy đủ thông tin!'
+        message: '❌ Vui lòng điền đầy đủ thông tin bắt buộc!'
       };
     }
     
@@ -607,52 +649,38 @@ function addOtherInvestment(data) {
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.OTHER_INVESTMENT);
     
     if (!sheet) {
-      return { 
-        success: false, 
-        message: '❌ Sheet ĐẦU TƯ KHÁC chưa được khởi tạo!' 
+      return {
+        success: false,
+        message: '❌ Sheet ĐẦU TƯ KHÁC chưa được khởi tạo!'
       };
     }
     
-    const date = new Date(data.date);
-    const investmentType = data.investmentType; // ✅ FIX: Dùng investmentType
-    const amount = parseFloat(data.amount);
-    const roi = parseFloat(data.roi) || 0;
-    const term = parseInt(data.term) || 0;
-    const expectedReturn = amount * (1 + (roi / 100) * (term / 12));
-    const note = data.note || '';
-    
-    // ✅ Log để debug
-    Logger.log('=== ADD OTHER INVESTMENT DEBUG ===');
-    Logger.log('Investment Type: ' + investmentType);
-    Logger.log('Amount: ' + amount);
-    Logger.log('ROI: ' + roi);
-    Logger.log('Term: ' + term);
-    
-    // ✅ FIX: Sử dụng findEmptyRow()
     const emptyRow = findEmptyRow(sheet, 2);
     const stt = getNextSTT(sheet, 2);
     
-    // ✅ Thứ tự cột: STT, Ngày, Loại đầu tư, Số tiền, Lãi suất (%), Kỳ hạn (tháng), Dự kiến thu về, Ghi chú
-    const rowData = [stt, date, investmentType, amount, roi, term, expectedReturn, note];
+    const date = new Date(data.date);
+    const investmentType = data.investmentType.toString();
+    const amount = parseFloat(data.amount);
+    const note = data.note || '';
     
-    Logger.log('Row Data: ' + JSON.stringify(rowData));
+    const rowData = [
+      stt,
+      date,
+      investmentType,
+      amount,
+      note
+    ];
     
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
     formatNewRow(sheet, emptyRow, {
-      2: 'dd/mm/yyyy',    // Cột B: Ngày
-      4: '#,##0" VNĐ"',   // Cột D: Số tiền
-      5: '0.00"%"',       // Cột E: Lãi suất
-      7: '#,##0" VNĐ"'    // Cột G: Dự kiến thu về
+      2: 'dd/mm/yyyy',
+      4: '#,##0" VNĐ"'
     });
     
-    try {
-      if (typeof BudgetManager !== 'undefined') {
-        BudgetManager.updateInvestmentBudget('Đầu tư khác', amount);
-      }
-    } catch(e) {
-      Logger.log('Không thể cập nhật budget: ' + e.message);
-    }
+    BudgetManager.updateInvestmentBudget('Đầu tư khác', amount);
+    
+    Logger.log(`Đã thêm đầu tư khác: ${investmentType} - ${formatCurrency(amount)}`);
     
     return {
       success: true,
@@ -661,14 +689,14 @@ function addOtherInvestment(data) {
     
   } catch (error) {
     Logger.log('Error in addOtherInvestment: ' + error.message);
-    return { 
-      success: false, 
-      message: `❌ Lỗi: ${error.message}` 
+    return {
+      success: false,
+      message: `❌ Lỗi: ${error.message}`
     };
   }
 }
 
-// ==================== CỔ TỨC - NEW FEATURE v3.4 ====================
+// ==================== CỔ TỨC - v3.4/v3.5 FEATURE ====================
 
 /**
  * Lấy danh sách cổ phiếu đang nắm giữ để nhận cổ tức
@@ -684,7 +712,6 @@ function getStocksForDividend() {
       return [];
     }
     
-    // Lấy tất cả dữ liệu
     const emptyRow = findEmptyRow(sheet, 2);
     const dataRows = emptyRow - 2;
     
@@ -695,7 +722,6 @@ function getStocksForDividend() {
     // Cột: STT(A), Ngày(B), Loại GD(C), Mã CK(D), Số lượng(E), Giá(F), Phí(G), Tổng(H), Ghi chú(I)
     const data = sheet.getRange(2, 3, dataRows, 6).getValues(); // Từ cột C đến H
     
-    // Tính toán số lượng và giá vốn cho từng mã
     const stockMap = new Map();
     
     for (let i = 0; i < data.length; i++) {
@@ -722,7 +748,6 @@ function getStocksForDividend() {
         stock.totalCost += (quantity * price) + fee;
       } else if (type === 'Bán') {
         stock.quantity -= quantity;
-        // Khi bán, giảm giá vốn theo tỷ lệ
         if (stock.quantity > 0) {
           const soldRatio = quantity / (stock.quantity + quantity);
           stock.totalCost *= (1 - soldRatio);
@@ -732,7 +757,6 @@ function getStocksForDividend() {
       }
     }
     
-    // Lọc ra các cổ phiếu còn nắm giữ (quantity > 0)
     const stocks = [];
     stockMap.forEach((stock) => {
       if (stock.quantity > 0) {
@@ -751,7 +775,22 @@ function getStocksForDividend() {
 }
 
 /**
- * Xử lý cổ tức (tiền mặt hoặc thưởng cổ phiếu)
+ * ============================================================
+ * XỬ LÝ CỔ TỨC (TIỀN MẶT & THƯỞNG CỔ PHIẾU) - v3.5 COMPLETE FIX
+ * ============================================================
+ * 
+ * QUAN TRỌNG - LOGIC v3.5:
+ * 
+ * 1. CỔ TỨC TIỀN MẶT:
+ *    - Tạo khoản THU
+ *    - ĐIỀU CHỈNH GIÁ VỐN: Giảm cột "Tổng" (H) của TẤT CẢ giao dịch MUA
+ *    - Phân bổ cổ tức theo tỷ lệ số lượng mỗi lô
+ * 
+ * 2. THƯỞNG CỔ PHIẾU:
+ *    - Thêm dòng mới với Loại GD = "Thưởng"
+ *    - Giá = 0, Phí = 0, Tổng = 0
+ *    - Giá vốn/CP tự động giảm (vì tổng cost không đổi, số lượng tăng)
+ * 
  * @param {Object} data - Dữ liệu cổ tức
  * @return {Object} {success, message}
  */
@@ -773,55 +812,94 @@ function processDividend(data) {
     const notes = data.notes || '';
     
     if (type === 'cash') {
-      // XỬ LÝ CỔ TỨC TIỀN MẶT
+      // ============================================================
+      // XỬ LÝ CỔ TỨC TIỀN MẶT - v3.5 FIX
+      // ============================================================
       const cashAmount = parseFloat(data.cashAmount);
       const totalDividend = parseFloat(data.totalDividend);
       
-      // 1. Tạo giao dịch THU
+      // BƯỚC 1: Tạo giao dịch THU
       const incomeResult = addIncome({
         date: date,
         amount: totalDividend,
         source: 'Đầu tư',
-        note: `Cổ tức ${stockCode}: ${cashAmount}đ/CP. ${notes}`
+        note: `Cổ tức ${stockCode}: ${formatCurrency(cashAmount)}/CP. ${notes}`
       });
       
       if (!incomeResult.success) {
         return incomeResult;
       }
       
-      // 2. Cập nhật giá vốn trong sheet CHỨNG KHOÁN
-      // Tìm tất cả các lần mua cổ phiếu này và giảm giá vốn tương ứng
+      // BƯỚC 2: ĐIỀU CHỈNH GIÁ CỔ PHIẾU TRỰC TIẾP TRÊN SHEET
       const emptyRow = findEmptyRow(stockSheet, 2);
       const dataRows = emptyRow - 2;
       
       if (dataRows > 0) {
+        // Lấy toàn bộ dữ liệu từ sheet
         const stockData = stockSheet.getRange(2, 1, dataRows, 9).getValues();
         
-        // Tính tổng số lượng đang nắm giữ
+        // Tính tổng số lượng đang nắm giữ và lưu các row MUA
         let totalQuantity = 0;
+        const buyRows = []; // Lưu các row MUA để điều chỉnh
+        
         for (let i = 0; i < stockData.length; i++) {
-          const type = stockData[i][2]; // Cột C: Loại GD
-          const symbol = stockData[i][3]; // Cột D: Mã CK
-          const qty = parseFloat(stockData[i][4]) || 0; // Cột E: Số lượng
+          const rowType = stockData[i][2];   // Cột C: Loại GD
+          const rowSymbol = stockData[i][3]; // Cột D: Mã CK
+          const rowQty = parseFloat(stockData[i][4]) || 0; // Cột E: Số lượng
           
-          if (symbol === stockCode) {
-            if (type === 'Mua') totalQuantity += qty;
-            else if (type === 'Bán') totalQuantity -= qty;
+          if (rowSymbol === stockCode) {
+            if (rowType === 'Mua') {
+              totalQuantity += rowQty;
+              buyRows.push({
+                row: i + 2, // +2 vì header ở row 1 và array index từ 0
+                quantity: rowQty,
+                price: parseFloat(stockData[i][5]) || 0, // Cột F: Giá
+                fee: parseFloat(stockData[i][6]) || 0,   // Cột G: Phí
+                total: parseFloat(stockData[i][7]) || 0  // Cột H: Tổng
+              });
+            } else if (rowType === 'Bán') {
+              totalQuantity -= rowQty;
+            }
           }
         }
         
-        // Ghi chú vào sheet: Cổ tức đã được ghi nhận trong THU
-        // và giá vốn đã được điều chỉnh
-        Logger.log(`Đã ghi nhận cổ tức tiền mặt cho ${stockCode}: ${formatCurrency(totalDividend)}`);
+        // Kiểm tra có cổ phiếu hay không
+        if (totalQuantity <= 0) {
+          return {
+            success: false,
+            message: '❌ Không tìm thấy cổ phiếu đang nắm giữ để điều chỉnh giá!'
+          };
+        }
+        
+        // ĐIỀU CHỈNH GIÁ: Giảm cổ tức từng phần tương ứng với số lượng
+        for (let i = 0; i < buyRows.length; i++) {
+          const buyRow = buyRows[i];
+          
+          // Tính phần cổ tức tương ứng với lô này
+          const dividendForThisLot = (buyRow.quantity / totalQuantity) * totalDividend;
+          
+          // Giá vốn mới = Tổng cũ - Cổ tức
+          const newTotal = buyRow.total - dividendForThisLot;
+          
+          // Cập nhật cột H (Tổng) - Giá vốn mới
+          stockSheet.getRange(buyRow.row, 8).setValue(newTotal);
+          
+          Logger.log(`✅ Điều chỉnh row ${buyRow.row}: ${stockCode} - Giảm ${formatCurrency(dividendForThisLot)}`);
+        }
+        
+        Logger.log(`✅ Đã điều chỉnh giá vốn cho ${stockCode}: Tổng giảm ${formatCurrency(totalDividend)}`);
       }
       
       return {
         success: true,
-        message: `✅ Đã ghi nhận cổ tức tiền mặt ${formatCurrency(totalDividend)} cho ${stockCode}!`
+        message: `✅ Đã ghi nhận cổ tức tiền mặt ${formatCurrency(totalDividend)} cho ${stockCode}!\n` +
+                 `📊 Giá vốn đã được điều chỉnh giảm tương ứng.`
       };
       
     } else if (type === 'stock') {
+      // ============================================================
       // XỬ LÝ THƯỞNG CỔ PHIẾU
+      // ============================================================
       const stockRatio = parseFloat(data.stockRatio);
       const bonusShares = parseInt(data.bonusShares);
       const currentQuantity = parseFloat(data.currentQuantity);
@@ -855,10 +933,13 @@ function processDividend(data) {
         8: '#,##0" VNĐ"'
       });
       
+      Logger.log(`✅ Đã ghi nhận thưởng ${bonusShares} CP ${stockCode}`);
+      
       return {
         success: true,
         message: `✅ Đã ghi nhận thưởng ${bonusShares} cổ phiếu ${stockCode}!\n` +
-                 `📊 Số lượng mới: ${newQuantity} CP`
+                 `📊 Số lượng mới: ${newQuantity} CP\n` +
+                 `💡 Giá vốn/CP tự động giảm theo tỷ lệ.`
       };
     }
     
@@ -868,8 +949,7 @@ function processDividend(data) {
     };
     
   } catch (error) {
-    Logger.log('Lỗi processDividend: ' + error.message);
-    Logger.log('Stack: ' + error.stack);
+    Logger.log('Error in processDividend: ' + error.message);
     return {
       success: false,
       message: `❌ Lỗi: ${error.message}`

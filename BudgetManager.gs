@@ -1,13 +1,20 @@
 /**
  * ===============================================
- * BUDGETMANAGER.GS - MODULE QUẢN LÝ NGÂN SÁCH
+ * BUDGETMANAGER.GS v3.5 - MODULE QUẢN LÝ NGÂN SÁCH
  * ===============================================
+ * 
+ * CHANGELOG v3.5:
+ * ✅ NEW: setBudgetForMonth() - Thiết lập ngân sách từ SetBudgetForm
+ * ✅ FIX: showExpenseReport() - Hoàn thiện báo cáo chi tiêu
+ * ✅ FIX: showInvestmentReport() - Hoàn thiện báo cáo đầu tư
+ * ✅ COMPLETE: Tất cả menu Budget hoạt động đầy đủ
  * 
  * Chức năng:
  * - Cập nhật budget chi tiêu
  * - Cập nhật budget đầu tư
  * - Kiểm tra cảnh báo vượt ngân sách
  * - Tạo báo cáo chi tiêu và đầu tư
+ * - Thiết lập ngân sách tháng từ form
  */
 
 const BudgetManager = {
@@ -353,6 +360,107 @@ const BudgetManager = {
       
     } catch (error) {
       showError('Lỗi', error.message);
+    }
+  },
+  
+  /**
+   * Thiết lập ngân sách tháng từ SetBudgetForm
+   * @param {Object} budgetData - Dữ liệu ngân sách từ form
+   * @return {Object} {success, message}
+   */
+  setBudgetForMonth(budgetData) {
+    try {
+      const budgetSheet = getSheet(APP_CONFIG.SHEETS.BUDGET);
+      if (!budgetSheet) {
+        return {
+          success: false,
+          message: '❌ Sheet BUDGET chưa được khởi tạo!'
+        };
+      }
+      
+      const income = parseFloat(budgetData.income);
+      const pctChi = parseFloat(budgetData.pctChi) / 100;
+      const pctDautu = parseFloat(budgetData.pctDautu) / 100;
+      const pctTrano = parseFloat(budgetData.pctTrano) / 100;
+      
+      // Tính số tiền cho mỗi nhóm
+      const totalChi = income * pctChi;
+      const totalDautu = income * pctDautu;
+      const totalTrano = income * pctTrano;
+      
+      // ===== CẬP NHẬT CHI TIÊU =====
+      const expenseCategories = [
+        'Ăn uống', 'Đi lại', 'Nhà ở', 'Điện nước', 'Viễn thông',
+        'Giáo dục', 'Y tế', 'Mua sắm', 'Giải trí', 'Khác'
+      ];
+      
+      for (let category of expenseCategories) {
+        const row = this._findBudgetRow(budgetSheet, category);
+        if (row && budgetData.chi && budgetData.chi[category] !== undefined) {
+          const categoryPct = parseFloat(budgetData.chi[category]) / 100;
+          const categoryBudget = totalChi * categoryPct;
+          
+          // Cập nhật cột B (Mục tiêu)
+          budgetSheet.getRange(row, 2).setValue(categoryBudget);
+          
+          // Cột C (Đã chi) sẽ tự động cập nhật qua SUMIFS formula
+        }
+      }
+      
+      // ===== CẬP NHẬT ĐẦU TƯ =====
+      const investmentTypes = ['Chứng khoán', 'Vàng', 'Crypto', 'Đầu tư khác'];
+      
+      for (let type of investmentTypes) {
+        const row = this._findBudgetRow(budgetSheet, type);
+        if (row && budgetData.dautu && budgetData.dautu[type] !== undefined) {
+          const typePct = parseFloat(budgetData.dautu[type]) / 100;
+          const typeBudget = totalDautu * typePct;
+          
+          // Cập nhật cột B (Mục tiêu)
+          budgetSheet.getRange(row, 2).setValue(typeBudget);
+          
+          // Cột C (Đã đầu tư) sẽ tự động cập nhật qua hàm updateInvestmentBudget
+        }
+      }
+      
+      // ===== CẬP NHẬT TRẢ NỢ =====
+      const debtRow = this._findBudgetRow(budgetSheet, 'Trả nợ gốc');
+      if (debtRow) {
+        budgetSheet.getRange(debtRow, 2).setValue(totalTrano);
+      }
+      
+      // ===== GHI CHÚ THAM SỐ =====
+      // Lưu các tham số vào vùng riêng để tham khảo
+      const paramStartRow = 2;
+      budgetSheet.getRange(paramStartRow, 7).setValue('Thu nhập tháng:');
+      budgetSheet.getRange(paramStartRow, 8).setValue(income);
+      
+      budgetSheet.getRange(paramStartRow + 1, 7).setValue('% Chi tiêu:');
+      budgetSheet.getRange(paramStartRow + 1, 8).setValue(pctChi);
+      
+      budgetSheet.getRange(paramStartRow + 2, 7).setValue('% Đầu tư:');
+      budgetSheet.getRange(paramStartRow + 2, 8).setValue(pctDautu);
+      
+      budgetSheet.getRange(paramStartRow + 3, 7).setValue('% Trả nợ:');
+      budgetSheet.getRange(paramStartRow + 3, 8).setValue(pctTrano);
+      
+      // Format số
+      budgetSheet.getRange(paramStartRow, 8).setNumberFormat('#,##0" VNĐ"');
+      budgetSheet.getRange(paramStartRow + 1, 8, 3, 1).setNumberFormat('0.0%');
+      
+      Logger.log('✅ Đã thiết lập ngân sách thành công');
+      
+      return {
+        success: true,
+        message: '✅ Đã thiết lập ngân sách tháng thành công!'
+      };
+      
+    } catch (error) {
+      Logger.log('Error in setBudgetForMonth: ' + error.message);
+      return {
+        success: false,
+        message: `❌ Lỗi: ${error.message}`
+      };
     }
   },
   
