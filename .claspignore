@@ -1,0 +1,22 @@
+# Bỏ qua các file tài liệu và ảnh
+*.md
+*.png
+*.jpg
+*.jpeg
+*.gif
+LICENSE
+README.md
+
+# Bỏ qua các file cấu hình của Git và Github
+.git/
+.github/
+.gitignore
+
+# Bỏ qua các file cấu hình hệ thống
+.DS_Store
+node_modules/
+
+# Bỏ qua chính các file cấu hình của Clasp (để bảo mật)
+.clasp.json
+.clasprc.json
+clasp.json
