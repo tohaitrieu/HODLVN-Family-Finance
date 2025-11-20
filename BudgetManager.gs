@@ -21,94 +21,29 @@ const BudgetManager = {
   
   /**
    * Cập nhật "Đã chi" cho danh mục
+   * @deprecated v3.5.1 - Sheet BUDGET sử dụng công thức tự động cập nhật
    */
   updateBudgetSpent(category) {
-    try {
-      const now = new Date();
-      const currentMonth = now.getMonth() + 1;
-      const currentYear = now.getFullYear();
-      
-      const budgetSheet = getSheet(APP_CONFIG.SHEETS.BUDGET);
-      if (!budgetSheet) return;
-      
-      const budgetData = budgetSheet.getDataRange().getValues();
-      
-      // Tìm danh mục trong Budget
-      for (let i = 4; i < budgetData.length; i++) {
-        if (budgetData[i][0] === category) {
-          const spent = this._calculateCategorySpent(category, currentMonth, currentYear);
-          budgetSheet.getRange(i + 1, 3).setValue(spent);
-          break;
-        }
-      }
-      
-    } catch (error) {
-      Logger.log('Error updating budget: ' + error.message);
-    }
+    // Không làm gì cả vì Sheet BUDGET đã dùng công thức SUMIFS
+    Logger.log('BudgetManager: updateBudgetSpent skipped (using formulas)');
   },
   
   /**
    * Cập nhật "Đã đầu tư" cho loại đầu tư
+   * @deprecated v3.5.1 - Sheet BUDGET sử dụng công thức tự động cập nhật
    */
   updateInvestmentBudget(investmentType, amount) {
-    try {
-      const now = new Date();
-      const currentMonth = now.getMonth() + 1;
-      const currentYear = now.getFullYear();
-      
-      const budgetSheet = getSheet(APP_CONFIG.SHEETS.BUDGET);
-      if (!budgetSheet) return;
-      
-      const currentInvested = this._calculateInvestmentSpent(investmentType, currentMonth, currentYear);
-      
-      // Map loại đầu tư với row trong Budget
-      const rowMap = {
-        'Chứng khoán': this._findBudgetRow(budgetSheet, 'Chứng khoán'),
-        'Vàng': this._findBudgetRow(budgetSheet, 'Vàng'),
-        'Crypto': this._findBudgetRow(budgetSheet, 'Crypto'),
-        'Đầu tư khác': this._findBudgetRow(budgetSheet, 'Đầu tư khác')
-      };
-      
-      const row = rowMap[investmentType];
-      if (row) {
-        budgetSheet.getRange(row, 3).setValue(currentInvested);
-      }
-      
-    } catch (error) {
-      Logger.log('Error updating investment budget: ' + error.message);
-    }
+    // Không làm gì cả vì Sheet BUDGET đã dùng công thức SUMIFS
+    Logger.log('BudgetManager: updateInvestmentBudget skipped (using formulas)');
   },
   
   /**
    * Cập nhật "Đã trả nợ" và "Đã trả lãi"
+   * @deprecated v3.5.1 - Sheet BUDGET sử dụng công thức tự động cập nhật
    */
   updateDebtBudget() {
-    try {
-      const now = new Date();
-      const currentMonth = now.getMonth() + 1;
-      const currentYear = now.getFullYear();
-      
-      const budgetSheet = getSheet(APP_CONFIG.SHEETS.BUDGET);
-      if (!budgetSheet) return;
-      
-      // Tính tổng trả nợ gốc và lãi trong tháng
-      const {principal, interest} = this._calculateDebtPayment(currentMonth, currentYear);
-      
-      // Cập nhật "Trả nợ gốc"
-      const principalRow = this._findBudgetRow(budgetSheet, 'Trả nợ gốc');
-      if (principalRow) {
-        budgetSheet.getRange(principalRow, 3).setValue(principal);
-      }
-      
-      // Cập nhật "Trả lãi"
-      const interestRow = this._findBudgetRow(budgetSheet, 'Trả lãi');
-      if (interestRow) {
-        budgetSheet.getRange(interestRow, 3).setValue(interest);
-      }
-      
-    } catch (error) {
-      Logger.log('Error updating debt budget: ' + error.message);
-    }
+    // Không làm gì cả vì Sheet BUDGET đã dùng công thức SUMIFS
+    Logger.log('BudgetManager: updateDebtBudget skipped (using formulas)');
   },
   
   /**
@@ -123,6 +58,7 @@ const BudgetManager = {
       
       const row = this._findBudgetRow(budgetSheet, reserveType);
       if (row) {
+        // Quỹ dự phòng có thể vẫn dùng value thay vì formula
         const currentValue = budgetSheet.getRange(row, 3).getValue() || 0;
         budgetSheet.getRange(row, 3).setValue(currentValue + amount);
       }
@@ -134,6 +70,7 @@ const BudgetManager = {
   
   /**
    * Kiểm tra cảnh báo budget
+   * ✅ FIXED v3.5.1: Cập nhật đúng cột C (Ngân sách) và D (Đã chi)
    */
   checkBudgetWarnings() {
     try {
@@ -153,16 +90,17 @@ const BudgetManager = {
       let expenseWarning = false;
       
       for (let i = 4; i < data.length; i++) {
-        const category = data[i][0];
-        const budget = data[i][1];
-        const spent = data[i][2];
+        const category = data[i][0]; // Col A
+        const budget = data[i][2];   // Col C: Ngân sách (Target)
+        const spent = data[i][3];    // Col D: Đã chi (Spent)
         
         // Dừng khi gặp section tiếp theo
-        if (category && (category.includes('NỢ') || category === 'Tổng')) {
+        if (category && (category.includes('NỢ') || category === 'Tổng' || category === 'TỔNG CHI')) {
+          if (category === 'TỔNG CHI') continue; // Skip summary row
           break;
         }
         
-        if (category && budget && spent && category !== 'Tổng') {
+        if (category && budget && spent !== undefined && category !== 'Tổng') {
           const percentage = spent / budget;
           
           if (percentage > 1) {
@@ -189,8 +127,8 @@ const BudgetManager = {
       for (let cat of debtCategories) {
         const row = this._findBudgetRow(budgetSheet, cat);
         if (row) {
-          const budget = budgetSheet.getRange(row, 2).getValue();
-          const paid = budgetSheet.getRange(row, 3).getValue();
+          const budget = budgetSheet.getRange(row, 3).getValue(); // Col C
+          const paid = budgetSheet.getRange(row, 4).getValue();   // Col D
           
           if (budget && paid !== null && paid !== undefined) {
             const percentage = paid / budget;
@@ -220,8 +158,8 @@ const BudgetManager = {
       for (let cat of reserveCategories) {
         const row = this._findBudgetRow(budgetSheet, cat);
         if (row) {
-          const target = budgetSheet.getRange(row, 2).getValue();
-          const saved = budgetSheet.getRange(row, 3).getValue();
+          const target = budgetSheet.getRange(row, 3).getValue(); // Col C
+          const saved = budgetSheet.getRange(row, 4).getValue();  // Col D
           
           if (target && saved !== null && saved !== undefined) {
             const percentage = saved / target;
@@ -252,8 +190,8 @@ const BudgetManager = {
       for (let cat of investCategories) {
         const row = this._findBudgetRow(budgetSheet, cat);
         if (row) {
-          const target = budgetSheet.getRange(row, 2).getValue();
-          const invested = budgetSheet.getRange(row, 3).getValue();
+          const target = budgetSheet.getRange(row, 3).getValue(); // Col C
+          const invested = budgetSheet.getRange(row, 4).getValue(); // Col D
           
           if (target && invested !== null && invested !== undefined) {
             const percentage = invested / target;
@@ -365,8 +303,7 @@ const BudgetManager = {
   
   /**
    * Thiết lập ngân sách tháng từ SetBudgetForm
-   * @param {Object} budgetData - Dữ liệu ngân sách từ form
-   * @return {Object} {success, message}
+   * ✅ FIXED v3.5.1: Cập nhật đúng cột % (Col B) thay vì ghi đè cột Ngân sách (Col C)
    */
   setBudgetForMonth(budgetData) {
     try {
@@ -383,10 +320,14 @@ const BudgetManager = {
       const pctDautu = parseFloat(budgetData.pctDautu) / 100;
       const pctTrano = parseFloat(budgetData.pctTrano) / 100;
       
-      // Tính số tiền cho mỗi nhóm
-      const totalChi = income * pctChi;
-      const totalDautu = income * pctDautu;
-      const totalTrano = income * pctTrano;
+      // Cập nhật Thu nhập (B2) và % Nhóm (B3, B4, B5)
+      // Lưu ý: SheetInitializer dùng B3, B{dautuRow} cho % nhóm
+      // Cần tìm đúng dòng % Nhóm
+      
+      budgetSheet.getRange('B2').setValue(income); // Thu nhập
+      
+      // Tìm dòng % Chi tiêu (Row 3)
+      budgetSheet.getRange('B3').setValue(pctChi);
       
       // ===== CẬP NHẬT CHI TIÊU =====
       const expenseCategories = [
@@ -398,55 +339,53 @@ const BudgetManager = {
         const row = this._findBudgetRow(budgetSheet, category);
         if (row && budgetData.chi && budgetData.chi[category] !== undefined) {
           const categoryPct = parseFloat(budgetData.chi[category]) / 100;
-          const categoryBudget = totalChi * categoryPct;
           
-          // Cập nhật cột B (Mục tiêu)
-          budgetSheet.getRange(row, 2).setValue(categoryBudget);
+          // ✅ FIX: Cập nhật cột B (% Danh mục)
+          budgetSheet.getRange(row, 2).setValue(categoryPct);
           
-          // Cột C (Đã chi) sẽ tự động cập nhật qua SUMIFS formula
+          // Cột C (Ngân sách) sẽ tự động cập nhật qua công thức: =Income * %Group * %Category
+          // Cột D (Đã chi) sẽ tự động cập nhật qua công thức SUMIFS
         }
       }
       
       // ===== CẬP NHẬT ĐẦU TƯ =====
+      // Tìm dòng % Đầu tư
+      // Đầu tư bắt đầu sau phần Chi tiêu. Tìm dòng "Nhóm Đầu tư:"
+      const data = budgetSheet.getDataRange().getValues();
+      let dautuGroupRow = -1;
+      for(let i=0; i<data.length; i++) {
+        if(data[i][0] === 'Nhóm Đầu tư:') {
+          dautuGroupRow = i + 1;
+          break;
+        }
+      }
+      
+      if (dautuGroupRow > 0) {
+        budgetSheet.getRange(dautuGroupRow, 2).setValue(pctDautu);
+      }
+      
       const investmentTypes = ['Chứng khoán', 'Vàng', 'Crypto', 'Đầu tư khác'];
       
       for (let type of investmentTypes) {
         const row = this._findBudgetRow(budgetSheet, type);
         if (row && budgetData.dautu && budgetData.dautu[type] !== undefined) {
           const typePct = parseFloat(budgetData.dautu[type]) / 100;
-          const typeBudget = totalDautu * typePct;
           
-          // Cập nhật cột B (Mục tiêu)
-          budgetSheet.getRange(row, 2).setValue(typeBudget);
-          
-          // Cột C (Đã đầu tư) sẽ tự động cập nhật qua hàm updateInvestmentBudget
+          // ✅ FIX: Cập nhật cột B (% Danh mục)
+          budgetSheet.getRange(row, 2).setValue(typePct);
         }
       }
       
       // ===== CẬP NHẬT TRẢ NỢ =====
+      // Trả nợ thường là số tiền cố định, không theo % nhóm
+      // Nhưng trong SetupWizard/SetBudgetForm đang dùng % tổng thu nhập
       const debtRow = this._findBudgetRow(budgetSheet, 'Trả nợ gốc');
       if (debtRow) {
-        budgetSheet.getRange(debtRow, 2).setValue(totalTrano);
+         const totalTrano = income * pctTrano;
+         // Trả nợ gốc thường nhập số tiền trực tiếp vào Col C (Ngân sách)
+         // Vì không có cột % cho từng khoản nợ trong cấu trúc hiện tại
+         budgetSheet.getRange(debtRow, 3).setValue(totalTrano);
       }
-      
-      // ===== GHI CHÚ THAM SỐ =====
-      // Lưu các tham số vào vùng riêng để tham khảo
-      const paramStartRow = 2;
-      budgetSheet.getRange(paramStartRow, 7).setValue('Thu nhập tháng:');
-      budgetSheet.getRange(paramStartRow, 8).setValue(income);
-      
-      budgetSheet.getRange(paramStartRow + 1, 7).setValue('% Chi tiêu:');
-      budgetSheet.getRange(paramStartRow + 1, 8).setValue(pctChi);
-      
-      budgetSheet.getRange(paramStartRow + 2, 7).setValue('% Đầu tư:');
-      budgetSheet.getRange(paramStartRow + 2, 8).setValue(pctDautu);
-      
-      budgetSheet.getRange(paramStartRow + 3, 7).setValue('% Trả nợ:');
-      budgetSheet.getRange(paramStartRow + 3, 8).setValue(pctTrano);
-      
-      // Format số
-      budgetSheet.getRange(paramStartRow, 8).setNumberFormat('#,##0" VNĐ"');
-      budgetSheet.getRange(paramStartRow + 1, 8, 3, 1).setNumberFormat('0.0%');
       
       Logger.log('✅ Đã thiết lập ngân sách thành công');
       

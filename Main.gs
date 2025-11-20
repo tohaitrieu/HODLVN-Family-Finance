@@ -152,6 +152,18 @@ function onOpen() {
     .addToUi();
 }
 
+/**
+ * ⭐ MENU FUNCTION: Cập nhật Dashboard thủ công
+ */
+function refreshDashboard() {
+  DashboardManager.refreshDashboard();
+  SpreadsheetApp.getUi().alert(
+    'Thành công', 
+    '✅ Dashboard đã được cập nhật!', 
+    SpreadsheetApp.getUi().ButtonSet.OK
+  );
+}
+
 // ==================== HIỂN THỊ FORM ====================
 
 /**

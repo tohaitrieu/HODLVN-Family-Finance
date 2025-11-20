@@ -571,15 +571,3 @@ function onDashboardEdit(e) {
     Logger.log('❌ Lỗi onDashboardEdit: ' + error.message);
   }
 }
-
-/**
- * ⭐ MENU FUNCTION: Manual refresh
- */
-function refreshDashboard() {
-  DashboardManager.refreshDashboard();
-  SpreadsheetApp.getUi().alert(
-    'Thành công', 
-    '✅ Dashboard đã được cập nhật!', 
-    SpreadsheetApp.getUi().ButtonSet.OK
-  );
-}
