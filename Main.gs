@@ -67,9 +67,22 @@ const APP_CONFIG = {
   
   // Format số
   FORMATS: {
-    NUMBER: '#,##0" VNĐ"',
+    NUMBER: '#,##0',
     PERCENTAGE: '0.00%',
     DATE: 'dd/mm/yyyy'
+  },
+  
+  // Danh mục thu chi (Centralized Categories)
+  CATEGORIES: {
+    INCOME: [
+      'Lương', 'MMO (Make Money Online)', 'Thưởng', 'Bán CK', 
+      'Bán Vàng', 'Bán Crypto', 'Lãi đầu tư', 'Thu hồi nợ', 
+      'Vay ngân hàng', 'Vay cá nhân', 'Khác'
+    ],
+    EXPENSE: [
+      'Ăn uống', 'Đi lại', 'Nhà ở', 'Y tế', 
+      'Giáo dục', 'Mua sắm', 'Giải trí', 'Khác'
+    ]
   }
 };
 

@@ -1,72 +1,150 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <base target="_top">
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
-    input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: #4472C4; }
-    .btn { background-color: #9B59B6; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 10px; }
-    .btn:hover { background-color: #8E44AD; }
-    .btn:disabled { background-color: #ccc; cursor: not-allowed; }
-    .message { padding: 10px; margin-top: 15px; border-radius: 4px; display: none; }
-    .message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-    .message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-    .required { color: red; }
-    input[readonly] { background-color: #f0f0f0; }
-    .total-display { font-size: 18px; font-weight: bold; color: #9B59B6; text-align: right; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      margin: 0;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #333;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #4472C4;
+    }
+
+    .btn {
+      background-color: #9B59B6;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .btn:hover {
+      background-color: #8E44AD;
+    }
+
+    .btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .message {
+      padding: 10px;
+      margin-top: 15px;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .message.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .required {
+      color: red;
+    }
+
+    input[readonly] {
+      background-color: #f0f0f0;
+    }
+
+    .total-display {
+      font-size: 18px;
+      font-weight: bold;
+      color: #9B59B6;
+      text-align: right;
+    }
   </style>
 </head>
+
 <body>
   <form id="debtPaymentForm">
     <div class="form-group">
       <label for="date">Ngày <span class="required">*</span></label>
       <input type="date" id="date" required>
     </div>
-    
+
     <div class="form-group">
       <label for="debtName">Khoản nợ <span class="required">*</span></label>
       <select id="debtName" required>
         <option value="">-- Đang tải... --</option>
       </select>
     </div>
-    
+
     <div class="form-group">
-      <label for="principal">Trả gốc (VNĐ) <span class="required">*</span></label>
+      <label for="principal">Trả gốc <span class="required">*</span></label>
       <input type="number" id="principal" required min="0" step="1000" placeholder="Số tiền trả gốc">
     </div>
-    
+
     <div class="form-group">
-      <label for="interest">Trả lãi (VNĐ)</label>
+      <label for="interest">Trả lãi</label>
       <input type="number" id="interest" min="0" step="1000" value="0" placeholder="Số tiền trả lãi">
     </div>
-    
+
     <div class="form-group">
       <label for="total">Tổng trả</label>
       <input type="text" id="total" readonly class="total-display" value="0">
     </div>
-    
+
     <div class="form-group">
       <label for="note">Ghi chú</label>
       <textarea id="note" rows="3" placeholder="Thêm ghi chú (không bắt buộc)"></textarea>
     </div>
-    
+
     <button type="submit" class="btn" id="submitBtn">
       💳 Thêm khoản trả nợ
     </button>
   </form>
-  
+
   <div id="message" class="message"></div>
 
   <script>
     document.getElementById('date').valueAsDate = new Date();
-    
+
     // Load danh sách nợ
-    window.onload = function() {
+    window.onload = function () {
       google.script.run
-        .withSuccessHandler(function(debtList) {
+        .withSuccessHandler(function (debtList) {
           const select = document.getElementById('debtName');
           select.innerHTML = '<option value="">-- Chọn khoản nợ --</option>';
           debtList.forEach(debt => {
@@ -76,34 +154,34 @@
             select.appendChild(option);
           });
         })
-        .withFailureHandler(function(error) {
+        .withFailureHandler(function (error) {
           const select = document.getElementById('debtName');
           select.innerHTML = '<option value="">Lỗi tải danh sách</option>';
           showMessage('Không thể tải danh sách nợ: ' + error.message, 'error');
         })
         .getDebtList();
     };
-    
+
     // Tính tự động tổng trả
     function calculateTotal() {
       const principal = parseFloat(document.getElementById('principal').value) || 0;
       const interest = parseFloat(document.getElementById('interest').value) || 0;
       const total = principal + interest;
-      document.getElementById('total').value = total.toLocaleString('vi-VN') + ' VNĐ';
+      document.getElementById('total').value = total.toLocaleString('vi-VN');
     }
-    
+
     document.getElementById('principal').addEventListener('input', calculateTotal);
     document.getElementById('interest').addEventListener('input', calculateTotal);
-    
-    document.getElementById('debtPaymentForm').addEventListener('submit', function(e) {
+
+    document.getElementById('debtPaymentForm').addEventListener('submit', function (e) {
       e.preventDefault();
-      
+
       const submitBtn = document.getElementById('submitBtn');
       const messageDiv = document.getElementById('message');
-      
+
       submitBtn.disabled = true;
       submitBtn.textContent = '⏳ Đang xử lý...';
-      
+
       const data = {
         date: document.getElementById('date').value,
         debtName: document.getElementById('debtName').value,
@@ -111,16 +189,16 @@
         interest: document.getElementById('interest').value || 0,
         note: document.getElementById('note').value
       };
-      
+
       google.script.run
-        .withSuccessHandler(function(result) {
+        .withSuccessHandler(function (result) {
           if (result.success) {
             showMessage(result.message, 'success');
             document.getElementById('debtPaymentForm').reset();
             document.getElementById('date').valueAsDate = new Date();
             document.getElementById('interest').value = '0';
             calculateTotal();
-            setTimeout(function() {
+            setTimeout(function () {
               google.script.host.close();
             }, 1500);
           } else {
@@ -129,23 +207,24 @@
           submitBtn.disabled = false;
           submitBtn.textContent = '💳 Thêm khoản trả nợ';
         })
-        .withFailureHandler(function(error) {
+        .withFailureHandler(function (error) {
           showMessage('Lỗi: ' + error.message, 'error');
           submitBtn.disabled = false;
           submitBtn.textContent = '💳 Thêm khoản trả nợ';
         })
         .addDebtPayment(data);
     });
-    
+
     function showMessage(text, type) {
       const messageDiv = document.getElementById('message');
       messageDiv.textContent = text;
       messageDiv.className = 'message ' + type;
       messageDiv.style.display = 'block';
-      setTimeout(function() {
+      setTimeout(function () {
         messageDiv.style.display = 'none';
       }, 5000);
     }
   </script>
 </body>
+
 </html>

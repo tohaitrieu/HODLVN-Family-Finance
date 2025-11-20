@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <base target="_top">
   <style>
@@ -9,25 +10,27 @@
       margin: 0;
       background-color: #f5f5f5;
     }
-    
+
     h2 {
       color: #4472C4;
       margin-top: 0;
       text-align: center;
     }
-    
+
     .form-group {
       margin-bottom: 15px;
     }
-    
+
     label {
       display: block;
       font-weight: bold;
       margin-bottom: 5px;
       color: #333;
     }
-    
-    input, select, textarea {
+
+    input,
+    select,
+    textarea {
       width: 100%;
       padding: 8px;
       border: 1px solid #ddd;
@@ -35,12 +38,14 @@
       box-sizing: border-box;
       font-size: 14px;
     }
-    
-    input:focus, select:focus, textarea:focus {
+
+    input:focus,
+    select:focus,
+    textarea:focus {
       outline: none;
       border-color: #4472C4;
     }
-    
+
     .btn {
       background-color: #4472C4;
       color: white;
@@ -53,54 +58,54 @@
       width: 100%;
       margin-top: 10px;
     }
-    
+
     .btn:hover {
       background-color: #365899;
     }
-    
+
     .btn:disabled {
       background-color: #ccc;
       cursor: not-allowed;
     }
-    
+
     .message {
       padding: 10px;
       margin-top: 15px;
       border-radius: 4px;
       display: none;
     }
-    
+
     .message.success {
       background-color: #d4edda;
       color: #155724;
       border: 1px solid #c3e6cb;
     }
-    
+
     .message.error {
       background-color: #f8d7da;
       color: #721c24;
       border: 1px solid #f5c6cb;
     }
-    
+
     .required {
       color: red;
     }
-    
+
     .hint {
       font-size: 12px;
       color: #666;
       margin-top: 3px;
     }
-    
+
     .inline-group {
       display: flex;
       gap: 10px;
     }
-    
+
     .inline-group .form-group {
       flex: 1;
     }
-    
+
     .info-box {
       background-color: #fff3cd;
       border: 1px solid #ffc107;
@@ -108,35 +113,36 @@
       padding: 10px;
       margin-bottom: 15px;
     }
-    
+
     .info-box p {
       margin: 5px 0;
       font-size: 13px;
     }
   </style>
 </head>
+
 <body>
   <h2>💳 Thêm Khoản Nợ Mới</h2>
-  
+
   <div class="info-box">
     <p><strong>💡 Lưu ý:</strong></p>
     <p>• Khi thêm khoản nợ, hệ thống sẽ <strong>TỰ ĐỘNG</strong> thêm khoản thu vào sheet THU</p>
     <p>• Ví dụ: Vay ngân hàng 100 triệu → Tự động ghi nhận thu "Vay Vay ngân hàng" 100 triệu</p>
     <p>• Điều này phản ánh đúng thực tế: <strong>Vay nợ = Tiền mặt tăng</strong></p>
   </div>
-  
+
   <form id="debtForm">
     <div class="form-group">
       <label for="date">Ngày vay <span class="required">*</span></label>
       <input type="date" id="date" required>
     </div>
-    
+
     <div class="form-group">
       <label for="debtName">Tên khoản nợ <span class="required">*</span></label>
       <input type="text" id="debtName" required placeholder="VD: Vay ngân hàng Vietcombank, Margin SSI">
       <div class="hint">Nhập từ khóa "Margin" nếu đây là nợ margin chứng khoán</div>
     </div>
-    
+
     <div class="form-group">
       <label for="debtType">Loại nợ <span class="required">*</span></label>
       <select id="debtType" required>
@@ -149,57 +155,57 @@
         <option value="Khác">Khác</option>
       </select>
     </div>
-    
+
     <div class="form-group">
-      <label for="principal">Số tiền gốc (VNĐ) <span class="required">*</span></label>
+      <label for="principal">Số tiền gốc <span class="required">*</span></label>
       <input type="number" id="principal" required min="0" step="1000" placeholder="Số tiền vay">
     </div>
-    
+
     <div class="inline-group">
       <div class="form-group">
         <label for="interestRate">Lãi suất (%/năm) <span class="required">*</span></label>
         <input type="number" id="interestRate" required min="0" step="0.1" placeholder="VD: 8.5">
       </div>
-      
+
       <div class="form-group">
         <label for="term">Kỳ hạn (tháng) <span class="required">*</span></label>
         <input type="number" id="term" required min="1" step="1" placeholder="VD: 12">
       </div>
     </div>
-    
+
     <div class="form-group">
       <label for="note">Ghi chú</label>
       <textarea id="note" rows="3" placeholder="Thông tin bổ sung về khoản nợ..."></textarea>
     </div>
-    
+
     <button type="submit" class="btn" id="submitBtn">Thêm khoản nợ</button>
   </form>
-  
+
   <div id="message" class="message"></div>
 
   <script>
     // Set ngày mặc định là hôm nay
     document.getElementById('date').valueAsDate = new Date();
-    
+
     // Auto-select "Margin chứng khoán" khi nhập tên có chứa "margin"
-    document.getElementById('debtName').addEventListener('input', function() {
+    document.getElementById('debtName').addEventListener('input', function () {
       const name = this.value.toLowerCase();
       if (name.includes('margin')) {
         document.getElementById('debtType').value = 'Margin chứng khoán';
       }
     });
-    
+
     // Submit form
-    document.getElementById('debtForm').addEventListener('submit', function(e) {
+    document.getElementById('debtForm').addEventListener('submit', function (e) {
       e.preventDefault();
-      
+
       const submitBtn = document.getElementById('submitBtn');
       const messageDiv = document.getElementById('message');
-      
+
       // Disable button
       submitBtn.disabled = true;
       submitBtn.textContent = 'Đang xử lý...';
-      
+
       // Prepare data
       const data = {
         date: document.getElementById('date').value,
@@ -210,24 +216,24 @@
         term: document.getElementById('term').value,
         note: document.getElementById('note').value
       };
-      
+
       // Call server function
       google.script.run
-        .withSuccessHandler(function(result) {
+        .withSuccessHandler(function (result) {
           submitBtn.disabled = false;
           submitBtn.textContent = 'Thêm khoản nợ';
-          
+
           if (result.success) {
             messageDiv.className = 'message success';
             messageDiv.textContent = result.message;
             messageDiv.style.display = 'block';
-            
+
             // Reset form
             document.getElementById('debtForm').reset();
             document.getElementById('date').valueAsDate = new Date();
-            
+
             // Hide message after 3 seconds
-            setTimeout(function() {
+            setTimeout(function () {
               messageDiv.style.display = 'none';
             }, 3000);
           } else {
@@ -236,7 +242,7 @@
             messageDiv.style.display = 'block';
           }
         })
-        .withFailureHandler(function(error) {
+        .withFailureHandler(function (error) {
           submitBtn.disabled = false;
           submitBtn.textContent = 'Thêm khoản nợ';
           messageDiv.className = 'message error';
@@ -247,4 +253,5 @@
     });
   </script>
 </body>
+
 </html>

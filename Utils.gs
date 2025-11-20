@@ -90,7 +90,7 @@ function getNextSTT(sheet, dataColumn) {
  * @param {Sheet} sheet - Sheet chứa dữ liệu
  * @param {number} row - Số dòng cần format
  * @param {Object} formats - Object chứa format cho từng cột
- *                           Ví dụ: {2: 'dd/mm/yyyy', 3: '#,##0" VNĐ"'}
+ *                           Ví dụ: {2: 'dd/mm/yyyy', 3: '#,##0'}
  */
 function formatNewRow(sheet, row, formats) {
   for (const [col, format] of Object.entries(formats)) {
@@ -554,12 +554,12 @@ function isOwner() {
 }
 
 /**
- * Format số tiền (wrapper for formatCurrency in Main.gs)
+ * Format số tiền (không đơn vị)
  */
 function formatCurrency(amount) {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND'
+  return new Intl.NumberFormat('vi-VN', { 
+    style: 'decimal',
+    maximumFractionDigits: 0 
   }).format(amount);
 }
 

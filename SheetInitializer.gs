@@ -7,33 +7,82 @@
  * - Khởi tạo cấu trúc và format cho từng sheet
  * - Tạo header, validation, công thức
  * - Áp dụng format và màu sắc nhất quán
+ * - ✅ SAFE MODE: Không xóa dữ liệu cũ khi chạy lại
  * 
- * VERSION: 3.5 - NEW: Thêm 7 cột theo dõi cổ tức & P&L cho sheet CHỨNG KHOÁN
- * - Cột I: 💰 Cổ tức TM (Tiền mặt đã nhận)
- * - Cột J: 📈 Cổ tức CP (Cổ phiếu thưởng)
- * - Cột K: 📊 Giá điều chỉnh (Auto: =(H-I)/E)
- * - Cột L: 💹 Giá hiện tại (Manual input)
- * - Cột M: 💵 Giá trị hiện tại (Auto: =E*L)
- * - Cột N: 📈 Lãi/Lỗ (Auto: =M-(H-I))
- * - Cột O: 📊 % L/L (Auto: =N/(H-I))
- * - Conditional Formatting tự động cho cột Lãi/Lỗ và % L/L
+ * VERSION: 4.0 - Non-destructive Updates & Standardized Formats
  */
 
 const SheetInitializer = {
   
   /**
+   * Helper: Get or Create Sheet
+   */
+  _getOrCreateSheet(ss, sheetName) {
+    let sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
+    }
+    return sheet;
+  },
+
+  /**
+   * Helper: Fix Date Column Format
+   * Converts text dates (dd/MM/yyyy) to Date objects and sets format
+   * Also strips time components from existing Date objects
+   */
+  _fixDateColumn(sheet, colIndex) {
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return;
+    
+    const range = sheet.getRange(2, colIndex, lastRow - 1, 1);
+    const values = range.getValues();
+    let hasChange = false;
+    
+    const fixedValues = values.map(row => {
+      const val = row[0];
+      if (!val) return [val];
+
+      let dateObj = null;
+
+      // Case 1: String "dd/mm/yyyy"
+      if (typeof val === 'string' && val.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)) {
+        const parts = val.split('/');
+        // Note: Month is 0-indexed in JS Date
+        dateObj = new Date(parts[2], parts[1] - 1, parts[0]);
+      } 
+      // Case 2: Already a Date object (potentially with time)
+      else if (val instanceof Date) {
+        dateObj = val;
+      }
+
+      if (dateObj) {
+        // Create new date with time set to 00:00:00
+        const cleanDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+        
+        // Check if value actually changed (to avoid unnecessary writes)
+        if (val instanceof Date && val.getTime() === cleanDate.getTime()) {
+          return [val];
+        }
+        
+        hasChange = true;
+        return [cleanDate];
+      }
+      
+      return [val];
+    });
+    
+    if (hasChange) {
+      range.setValues(fixedValues);
+    }
+    range.setNumberFormat(APP_CONFIG.FORMATS.DATE);
+  },
+
+  /**
    * Khởi tạo Sheet THU
-   * ✅ FIXED: Xóa dữ liệu mẫu
    */
   initializeIncomeSheet() {
     const ss = getSpreadsheet();
-    let sheet = ss.getSheetByName(APP_CONFIG.SHEETS.INCOME);
-    
-    if (sheet) {
-      ss.deleteSheet(sheet);
-    }
-    
-    sheet = ss.insertSheet(APP_CONFIG.SHEETS.INCOME);
+    const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.INCOME);
     
     // Header
     const headers = ['STT', 'Ngày', 'Số tiền', 'Nguồn thu', 'Ghi chú'];
@@ -51,53 +100,32 @@ const SheetInitializer = {
     sheet.setColumnWidth(4, 150);  // Nguồn thu
     sheet.setColumnWidth(5, 300);  // Ghi chú
     
-    // Format
+    // Format - Apply to whole columns (safe)
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('C2:C').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    this._fixDateColumn(sheet, 2);
+    sheet.getRange('C2:C').setNumberFormat('#,##0');
     
     // Freeze header
     sheet.setFrozenRows(1);
     
-    // Data validation cho Nguồn thu
+    // Data validation
     const sourceRange = sheet.getRange('D2:D1000');
     const sourceRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList([
-        'Lương',
-        'MMO (Make Money Online)',
-        'Thưởng',
-        'Bán CK',
-        'Bán Vàng',
-        'Bán Crypto',
-        'Lãi đầu tư',
-        'Thu hồi nợ',
-        'Vay ngân hàng',
-        'Vay cá nhân',
-        'Khác'
-      ])
+      .requireValueInList(APP_CONFIG.CATEGORIES.INCOME)
       .setAllowInvalid(false)
       .build();
     sourceRange.setDataValidation(sourceRule);
-    
-    // ✅ FIX: KHÔNG THÊM DỮ LIỆU MẪU
-    // Để sheet hoàn toàn trống, chỉ có header
     
     return sheet;
   },
   
   /**
    * Khởi tạo Sheet CHI
-   * ✅ FIXED: Xóa dữ liệu mẫu
    */
   initializeExpenseSheet() {
     const ss = getSpreadsheet();
-    let sheet = ss.getSheetByName(APP_CONFIG.SHEETS.EXPENSE);
-    
-    if (sheet) {
-      ss.deleteSheet(sheet);
-    }
-    
-    sheet = ss.insertSheet(APP_CONFIG.SHEETS.EXPENSE);
+    const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.EXPENSE);
     
     // Header
     const headers = ['STT', 'Ngày', 'Số tiền', 'Danh mục', 'Chi tiết', 'Ghi chú'];
@@ -109,40 +137,29 @@ const SheetInitializer = {
       .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
     
     // Column widths
-    sheet.setColumnWidth(1, 50);   // STT
-    sheet.setColumnWidth(2, 100);  // Ngày
-    sheet.setColumnWidth(3, 120);  // Số tiền
-    sheet.setColumnWidth(4, 120);  // Danh mục
-    sheet.setColumnWidth(5, 200);  // Chi tiết
-    sheet.setColumnWidth(6, 250);  // Ghi chú
+    sheet.setColumnWidth(1, 50);
+    sheet.setColumnWidth(2, 100);
+    sheet.setColumnWidth(3, 120);
+    sheet.setColumnWidth(4, 120);
+    sheet.setColumnWidth(5, 200);
+    sheet.setColumnWidth(6, 250);
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('C2:C').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    this._fixDateColumn(sheet, 2);
+    sheet.getRange('C2:C').setNumberFormat('#,##0');
     
     // Freeze header
     sheet.setFrozenRows(1);
     
-    // Data validation cho Danh mục
+    // Data validation
     const categoryRange = sheet.getRange('D2:D1000');
     const categoryRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList([
-        'Ăn uống',
-        'Đi lại',
-        'Nhà ở',
-        'Y tế',
-        'Giáo dục',
-        'Mua sắm',
-        'Giải trí',
-        'Khác'
-      ])
+      .requireValueInList(APP_CONFIG.CATEGORIES.EXPENSE)
       .setAllowInvalid(false)
       .build();
     categoryRange.setDataValidation(categoryRule);
-    
-    // ✅ FIX: KHÔNG THÊM DỮ LIỆU MẪU
-    // Để sheet hoàn toàn trống, chỉ có header
     
     return sheet;
   },
@@ -152,13 +169,7 @@ const SheetInitializer = {
    */
   initializeDebtPaymentSheet() {
     const ss = getSpreadsheet();
-    let sheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_PAYMENT);
-    
-    if (sheet) {
-      ss.deleteSheet(sheet);
-    }
-    
-    sheet = ss.insertSheet(APP_CONFIG.SHEETS.DEBT_PAYMENT);
+    const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.DEBT_PAYMENT);
     
     // Header
     const headers = ['STT', 'Ngày', 'Khoản nợ', 'Trả gốc', 'Trả lãi', 'Tổng trả', 'Ghi chú'];
@@ -170,56 +181,39 @@ const SheetInitializer = {
       .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
     
     // Column widths
-    sheet.setColumnWidth(1, 50);   // STT
-    sheet.setColumnWidth(2, 100);  // Ngày
-    sheet.setColumnWidth(3, 150);  // Khoản nợ
-    sheet.setColumnWidth(4, 120);  // Trả gốc
-    sheet.setColumnWidth(5, 120);  // Trả lãi
-    sheet.setColumnWidth(6, 120);  // Tổng trả
-    sheet.setColumnWidth(7, 250);  // Ghi chú
+    sheet.setColumnWidth(1, 50);
+    sheet.setColumnWidth(2, 100);
+    sheet.setColumnWidth(3, 150);
+    sheet.setColumnWidth(4, 120);
+    sheet.setColumnWidth(5, 120);
+    sheet.setColumnWidth(6, 120);
+    sheet.setColumnWidth(7, 250);
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('D2:F').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    this._fixDateColumn(sheet, 2);
+    sheet.getRange('D2:F').setNumberFormat('#,##0');
     
-    // Công thức Tổng trả - FIXED: Thêm IFERROR
+    // Formula (Safe to re-apply)
     sheet.getRange('F2:F1000').setFormula('=IFERROR(D2+E2, 0)');
     
-    // Freeze header
     sheet.setFrozenRows(1);
-    
     return sheet;
   },
   
   /**
    * Khởi tạo Sheet QUẢN LÝ NỢ
-   * ✅ FIXED: Xóa dữ liệu mẫu + Thêm trạng thái "Chưa trả"
    */
   initializeDebtManagementSheet() {
     const ss = getSpreadsheet();
-    let sheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
-    
-    if (sheet) {
-      ss.deleteSheet(sheet);
-    }
-    
-    sheet = ss.insertSheet(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
+    const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
     
     // Header
     const headers = [
-      'STT',
-      'Tên khoản nợ',
-      'Nợ gốc ban đầu',
-      'Lãi suất (%/năm)',
-      'Kỳ hạn (tháng)',
-      'Ngày vay',
-      'Ngày đến hạn',
-      'Đã trả gốc',
-      'Đã trả lãi',
-      'Còn nợ',
-      'Trạng thái',
-      'Ghi chú'
+      'STT', 'Tên khoản nợ', 'Nợ gốc ban đầu', 'Lãi suất (%/năm)', 
+      'Kỳ hạn (tháng)', 'Ngày vay', 'Ngày đến hạn', 'Đã trả gốc', 
+      'Đã trả lãi', 'Còn nợ', 'Trạng thái', 'Ghi chú'
     ];
     
     sheet.getRange(1, 1, 1, headers.length)
@@ -230,31 +224,33 @@ const SheetInitializer = {
       .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
     
     // Column widths
-    sheet.setColumnWidth(1, 50);   // STT
-    sheet.setColumnWidth(2, 150);  // Tên khoản nợ
-    sheet.setColumnWidth(3, 120);  // Nợ gốc
-    sheet.setColumnWidth(4, 100);  // Lãi suất
-    sheet.setColumnWidth(5, 100);  // Kỳ hạn
-    sheet.setColumnWidth(6, 100);  // Ngày vay
-    sheet.setColumnWidth(7, 100);  // Ngày đến hạn
-    sheet.setColumnWidth(8, 120);  // Đã trả gốc
-    sheet.setColumnWidth(9, 120);  // Đã trả lãi
-    sheet.setColumnWidth(10, 120); // Còn nợ
-    sheet.setColumnWidth(11, 100); // Trạng thái
-    sheet.setColumnWidth(12, 200); // Ghi chú
+    sheet.setColumnWidth(1, 50);
+    sheet.setColumnWidth(2, 150);
+    sheet.setColumnWidth(3, 120);
+    sheet.setColumnWidth(4, 100);
+    sheet.setColumnWidth(5, 100);
+    sheet.setColumnWidth(6, 100);
+    sheet.setColumnWidth(7, 100);
+    sheet.setColumnWidth(8, 120);
+    sheet.setColumnWidth(9, 120);
+    sheet.setColumnWidth(10, 120);
+    sheet.setColumnWidth(11, 100);
+    sheet.setColumnWidth(12, 200);
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
-    sheet.getRange('C2:C').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    sheet.getRange('C2:C').setNumberFormat('#,##0');
     sheet.getRange('D2:D').setNumberFormat('0.00"%"');
     sheet.getRange('E2:E').setNumberFormat('0');
     sheet.getRange('F2:G').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('H2:J').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    this._fixDateColumn(sheet, 6); // Ngày vay
+    this._fixDateColumn(sheet, 7); // Ngày đến hạn
+    sheet.getRange('H2:J').setNumberFormat('#,##0');
     
-    // Công thức Còn nợ - FIXED: Thêm IFERROR
+    // Formula
     sheet.getRange('J2:J1000').setFormula('=IFERROR(C2-H2, 0)');
     
-    // ✅ FIX: Data validation cho Trạng thái - THÊM "Chưa trả"
+    // Validation
     const statusRange = sheet.getRange('K2:K1000');
     const statusRule = SpreadsheetApp.newDataValidation()
       .requireValueInList(['Chưa trả', 'Đang trả', 'Đã thanh toán', 'Quá hạn'])
@@ -262,48 +258,22 @@ const SheetInitializer = {
       .build();
     statusRange.setDataValidation(statusRule);
     
-    // Freeze header
     sheet.setFrozenRows(1);
-    
-    // ✅ FIX: KHÔNG THÊM DỮ LIỆU MẪU
-    // Để sheet hoàn toàn trống, chỉ có header và công thức
-    // Công thức sẽ tự động tính toán khi có dữ liệu
-    
     return sheet;
   },
   
   /**
    * Khởi tạo Sheet CHỨNG KHOÁN
-   * ✅ v3.5: Thêm cột theo dõi cổ tức và P&L
    */
   initializeStockSheet() {
     const ss = getSpreadsheet();
-    let sheet = ss.getSheetByName(APP_CONFIG.SHEETS.STOCK);
+    const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.STOCK);
     
-    if (sheet) {
-      ss.deleteSheet(sheet);
-    }
-    
-    sheet = ss.insertSheet(APP_CONFIG.SHEETS.STOCK);
-    
-    // Header - Thêm 7 cột mới
+    // Header
     const headers = [
-      'STT',           // A
-      'Ngày',          // B
-      'Loại GD',       // C
-      'Mã CK',         // D
-      'Số lượng',      // E
-      'Giá gốc',       // F
-      'Phí',           // G
-      'Tổng vốn',      // H
-      '💰 Cổ tức TM',  // I - Tổng cổ tức tiền mặt
-      '📈 Cổ tức CP',  // J - Số CP thưởng
-      '📊 Giá ĐC',     // K - Giá điều chỉnh
-      '💹 Giá HT',     // L - Giá hiện tại
-      '💵 Giá trị HT', // M - Giá trị thị trường
-      '📈 Lãi/Lỗ',     // N - P&L
-      '📊 % L/L',      // O - % P&L
-      'Ghi chú'        // P
+      'STT', 'Ngày', 'Loại GD', 'Mã CK', 'Số lượng', 'Giá gốc', 'Phí', 
+      'Tổng vốn', '💰 Cổ tức TM', '📈 Cổ tức CP', '📊 Giá ĐC', 
+      '💹 Giá HT', '💵 Giá trị HT', '📈 Lãi/Lỗ', '📊 % L/L', 'Ghi chú'
     ];
     
     sheet.getRange(1, 1, 1, headers.length)
@@ -314,111 +284,58 @@ const SheetInitializer = {
       .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
     
     // Column widths
-    sheet.setColumnWidth(1, 50);   // A: STT
-    sheet.setColumnWidth(2, 100);  // B: Ngày
-    sheet.setColumnWidth(3, 80);   // C: Loại GD
-    sheet.setColumnWidth(4, 80);   // D: Mã CK
-    sheet.setColumnWidth(5, 80);   // E: Số lượng
-    sheet.setColumnWidth(6, 100);  // F: Giá gốc
-    sheet.setColumnWidth(7, 100);  // G: Phí
-    sheet.setColumnWidth(8, 120);  // H: Tổng vốn
-    sheet.setColumnWidth(9, 110);  // I: Cổ tức TM
-    sheet.setColumnWidth(10, 100); // J: Cổ tức CP
-    sheet.setColumnWidth(11, 100); // K: Giá điều chỉnh
-    sheet.setColumnWidth(12, 100); // L: Giá hiện tại
-    sheet.setColumnWidth(13, 120); // M: Giá trị HT
-    sheet.setColumnWidth(14, 110); // N: Lãi/Lỗ
-    sheet.setColumnWidth(15, 80);  // O: % L/L
-    sheet.setColumnWidth(16, 250); // P: Ghi chú
+    sheet.setColumnWidth(1, 50);
+    sheet.setColumnWidth(2, 100);
+    sheet.setColumnWidth(3, 80);
+    sheet.setColumnWidth(4, 80);
+    sheet.setColumnWidth(5, 80);
+    sheet.setColumnWidth(6, 100);
+    sheet.setColumnWidth(7, 100);
+    sheet.setColumnWidth(8, 120);
+    sheet.setColumnWidth(9, 110);
+    sheet.setColumnWidth(10, 100);
+    sheet.setColumnWidth(11, 100);
+    sheet.setColumnWidth(12, 100);
+    sheet.setColumnWidth(13, 120);
+    sheet.setColumnWidth(14, 110);
+    sheet.setColumnWidth(15, 80);
+    sheet.setColumnWidth(16, 250);
     
-    // Format numbers
+    // Format
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('F2:H').setNumberFormat(APP_CONFIG.FORMATS.NUMBER); // Giá gốc, Phí, Tổng vốn
-    sheet.getRange('I2:I').setNumberFormat(APP_CONFIG.FORMATS.NUMBER); // Cổ tức TM
-    sheet.getRange('J2:J').setNumberFormat('0');                       // Cổ tức CP (số nguyên)
-    sheet.getRange('K2:M').setNumberFormat(APP_CONFIG.FORMATS.NUMBER); // Giá ĐC, Giá HT, Giá trị HT
-    sheet.getRange('N2:N').setNumberFormat(APP_CONFIG.FORMATS.NUMBER); // Lãi/Lỗ
-    sheet.getRange('O2:O').setNumberFormat('0.00%');                   // % L/L
+    this._fixDateColumn(sheet, 2);
+    sheet.getRange('F2:H').setNumberFormat('#,##0');
+    sheet.getRange('I2:I').setNumberFormat('#,##0');
+    sheet.getRange('J2:J').setNumberFormat('0');
+    sheet.getRange('K2:M').setNumberFormat('#,##0');
+    sheet.getRange('N2:N').setNumberFormat('#,##0');
+    sheet.getRange('O2:O').setNumberFormat('0.00%');
     
-    // Công thức tự động cho các cột
-    // K: Giá điều chỉnh = (Tổng vốn - Cổ tức TM) / Số lượng
+    // Formulas
     sheet.getRange('K2:K1000').setFormula('=IF(E2>0, (H2-I2)/E2, 0)');
-    
-    // M: Giá trị HT = Số lượng × Giá HT
     sheet.getRange('M2:M1000').setFormula('=IF(AND(E2>0, L2>0), E2*L2, 0)');
-    
-    // N: Lãi/Lỗ = Giá trị HT - (Tổng vốn - Cổ tức TM)
     sheet.getRange('N2:N1000').setFormula('=IF(M2>0, M2-(H2-I2), 0)');
-    
-    // O: % L/L = Lãi/Lỗ / (Tổng vốn - Cổ tức TM)
     sheet.getRange('O2:O1000').setFormula('=IF(AND(N2<>0, (H2-I2)>0), N2/(H2-I2), 0)');
     
-    // Conditional Formatting cho cột N (Lãi/Lỗ)
+    // Conditional Formatting
+    sheet.clearConditionalFormatRules();
     const profitLossRange = sheet.getRange('N2:N1000');
-    
-    // Rule 1: Lãi (xanh)
-    const profitRule = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberGreaterThan(0)
-      .setBackground('#D4EDDA')
-      .setFontColor('#155724')
-      .setRanges([profitLossRange])
-      .build();
-    
-    // Rule 2: Lỗ (đỏ)
-    const lossRule = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberLessThan(0)
-      .setBackground('#F8D7DA')
-      .setFontColor('#721C24')
-      .setRanges([profitLossRange])
-      .build();
-    
-    // Conditional Formatting cho cột O (% L/L)
     const percentRange = sheet.getRange('O2:O1000');
     
-    // Rule 3: % Lãi > 10% (xanh đậm)
-    const bigProfitRule = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberGreaterThan(0.1)
-      .setBackground('#28A745')
-      .setFontColor('#FFFFFF')
-      .setBold(true)
-      .setRanges([percentRange])
-      .build();
-    
-    // Rule 4: % Lãi 0-10% (xanh nhạt)
-    const smallProfitRule = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberBetween(0, 0.1)
-      .setBackground('#D4EDDA')
-      .setFontColor('#155724')
-      .setRanges([percentRange])
-      .build();
-    
-    // Rule 5: % Lỗ -10% đến 0 (đỏ nhạt)
-    const smallLossRule = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberBetween(-0.1, 0)
-      .setBackground('#F8D7DA')
-      .setFontColor('#721C24')
-      .setRanges([percentRange])
-      .build();
-    
-    // Rule 6: % Lỗ < -10% (đỏ đậm)
-    const bigLossRule = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberLessThan(-0.1)
-      .setBackground('#DC3545')
-      .setFontColor('#FFFFFF')
-      .setBold(true)
-      .setRanges([percentRange])
-      .build();
-    
-    // Apply all rules
-    const rules = sheet.getConditionalFormatRules();
-    rules.push(profitRule, lossRule, bigProfitRule, smallProfitRule, smallLossRule, bigLossRule);
+    const rules = [
+      SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0).setBackground('#D4EDDA').setFontColor('#155724').setRanges([profitLossRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0).setBackground('#F8D7DA').setFontColor('#721C24').setRanges([profitLossRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0.1).setBackground('#28A745').setFontColor('#FFFFFF').setBold(true).setRanges([percentRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberBetween(0, 0.1).setBackground('#D4EDDA').setFontColor('#155724').setRanges([percentRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberBetween(-0.1, 0).setBackground('#F8D7DA').setFontColor('#721C24').setRanges([percentRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(-0.1).setBackground('#DC3545').setFontColor('#FFFFFF').setBold(true).setRanges([percentRange]).build()
+    ];
     sheet.setConditionalFormatRules(rules);
     
-    // Freeze header
     sheet.setFrozenRows(1);
     
-    // Data validation cho Loại GD
+    // Validation
     const typeRange = sheet.getRange('C2:C1000');
     const typeRule = SpreadsheetApp.newDataValidation()
       .requireValueInList(['Mua', 'Bán', 'Thưởng'])
@@ -434,13 +351,7 @@ const SheetInitializer = {
    */
   initializeGoldSheet() {
     const ss = getSpreadsheet();
-    let sheet = ss.getSheetByName(APP_CONFIG.SHEETS.GOLD);
-    
-    if (sheet) {
-      ss.deleteSheet(sheet);
-    }
-    
-    sheet = ss.insertSheet(APP_CONFIG.SHEETS.GOLD);
+    const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.GOLD);
     
     // Header
     const headers = ['STT', 'Ngày', 'Loại GD', 'Loại vàng', 'Số lượng', 'Đơn vị', 'Giá', 'Tổng', 'Nơi lưu', 'Ghi chú'];
@@ -452,48 +363,29 @@ const SheetInitializer = {
       .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
     
     // Column widths
-    sheet.setColumnWidth(1, 50);   // STT
-    sheet.setColumnWidth(2, 100);  // Ngày
-    sheet.setColumnWidth(3, 80);   // Loại GD
-    sheet.setColumnWidth(4, 100);  // Loại vàng
-    sheet.setColumnWidth(5, 80);   // Số lượng
-    sheet.setColumnWidth(6, 70);   // Đơn vị
-    sheet.setColumnWidth(7, 100);  // Giá
-    sheet.setColumnWidth(8, 120);  // Tổng
-    sheet.setColumnWidth(9, 120);  // Nơi lưu
-    sheet.setColumnWidth(10, 200); // Ghi chú
+    sheet.setColumnWidth(1, 50);
+    sheet.setColumnWidth(2, 100);
+    sheet.setColumnWidth(3, 80);
+    sheet.setColumnWidth(4, 100);
+    sheet.setColumnWidth(5, 80);
+    sheet.setColumnWidth(6, 70);
+    sheet.setColumnWidth(7, 100);
+    sheet.setColumnWidth(8, 120);
+    sheet.setColumnWidth(9, 120);
+    sheet.setColumnWidth(10, 200);
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('G2:H').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    this._fixDateColumn(sheet, 2);
+    sheet.getRange('G2:H').setNumberFormat('#,##0');
     
-    // Freeze header
     sheet.setFrozenRows(1);
     
-    // Data validation cho Loại GD
-    const typeRange = sheet.getRange('C2:C1000');
-    const typeRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['Mua', 'Bán'])
-      .setAllowInvalid(false)
-      .build();
-    typeRange.setDataValidation(typeRule);
-    
-    // Data validation cho Loại vàng
-    const goldTypeRange = sheet.getRange('D2:D1000');
-    const goldTypeRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['SJC', '24K', '18K', '14K', '10K', 'Khác'])
-      .setAllowInvalid(false)
-      .build();
-    goldTypeRange.setDataValidation(goldTypeRule);
-    
-    // Data validation cho Đơn vị
-    const unitRange = sheet.getRange('F2:F1000');
-    const unitRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['chỉ', 'lượng', 'cây', 'gram'])
-      .setAllowInvalid(false)
-      .build();
-    unitRange.setDataValidation(unitRule);
+    // Validations
+    sheet.getRange('C2:C1000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Mua', 'Bán']).build());
+    sheet.getRange('D2:D1000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['SJC', '24K', '18K', '14K', '10K', 'Khác']).build());
+    sheet.getRange('F2:F1000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['chỉ', 'lượng', 'cây', 'gram']).build());
     
     return sheet;
   },
@@ -503,16 +395,10 @@ const SheetInitializer = {
    */
   initializeCryptoSheet() {
     const ss = getSpreadsheet();
-    let sheet = ss.getSheetByName(APP_CONFIG.SHEETS.CRYPTO);
-    
-    if (sheet) {
-      ss.deleteSheet(sheet);
-    }
-    
-    sheet = ss.insertSheet(APP_CONFIG.SHEETS.CRYPTO);
+    const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.CRYPTO);
     
     // Header
-    const headers = ['STT', 'Ngày', 'Loại GD', 'Coin', 'Số lượng', 'Giá (USD)', 'Tỷ giá', 'Giá (VNĐ)', 'Tổng (VNĐ)', 'Sàn', 'Ví', 'Ghi chú'];
+    const headers = ['STT', 'Ngày', 'Loại GD', 'Coin', 'Số lượng', 'Giá (USD)', 'Tỷ giá', 'Giá', 'Tổng', 'Sàn', 'Ví', 'Ghi chú'];
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])
       .setFontWeight('bold')
@@ -521,35 +407,30 @@ const SheetInitializer = {
       .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
     
     // Column widths
-    sheet.setColumnWidth(1, 50);   // STT
-    sheet.setColumnWidth(2, 100);  // Ngày
-    sheet.setColumnWidth(3, 80);   // Loại GD
-    sheet.setColumnWidth(4, 80);   // Coin
-    sheet.setColumnWidth(5, 100);  // Số lượng
-    sheet.setColumnWidth(6, 100);  // Giá USD
-    sheet.setColumnWidth(7, 80);   // Tỷ giá
-    sheet.setColumnWidth(8, 100);  // Giá VNĐ
-    sheet.setColumnWidth(9, 120);  // Tổng VNĐ
-    sheet.setColumnWidth(10, 100); // Sàn
-    sheet.setColumnWidth(11, 150); // Ví
-    sheet.setColumnWidth(12, 200); // Ghi chú
+    sheet.setColumnWidth(1, 50);
+    sheet.setColumnWidth(2, 100);
+    sheet.setColumnWidth(3, 80);
+    sheet.setColumnWidth(4, 80);
+    sheet.setColumnWidth(5, 100);
+    sheet.setColumnWidth(6, 100);
+    sheet.setColumnWidth(7, 80);
+    sheet.setColumnWidth(8, 100);
+    sheet.setColumnWidth(9, 120);
+    sheet.setColumnWidth(10, 100);
+    sheet.setColumnWidth(11, 150);
+    sheet.setColumnWidth(12, 200);
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('F2:F').setNumberFormat('#,##0.00" USD"');
-    sheet.getRange('H2:I').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    this._fixDateColumn(sheet, 2);
+    sheet.getRange('F2:F').setNumberFormat('#,##0.00');
+    sheet.getRange('H2:I').setNumberFormat('#,##0');
     
-    // Freeze header
     sheet.setFrozenRows(1);
     
-    // Data validation cho Loại GD
-    const typeRange = sheet.getRange('C2:C1000');
-    const typeRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['Mua', 'Bán', 'Swap', 'Stake', 'Unstake'])
-      .setAllowInvalid(false)
-      .build();
-    typeRange.setDataValidation(typeRule);
+    // Validation
+    sheet.getRange('C2:C1000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Mua', 'Bán', 'Swap', 'Stake', 'Unstake']).build());
     
     return sheet;
   },
@@ -559,13 +440,7 @@ const SheetInitializer = {
    */
   initializeOtherInvestmentSheet() {
     const ss = getSpreadsheet();
-    let sheet = ss.getSheetByName(APP_CONFIG.SHEETS.OTHER_INVESTMENT);
-    
-    if (sheet) {
-      ss.deleteSheet(sheet);
-    }
-    
-    sheet = ss.insertSheet(APP_CONFIG.SHEETS.OTHER_INVESTMENT);
+    const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.OTHER_INVESTMENT);
     
     // Header
     const headers = ['STT', 'Ngày', 'Loại đầu tư', 'Số tiền', 'Lãi suất (%)', 'Kỳ hạn (tháng)', 'Dự kiến thu về', 'Ghi chú'];
@@ -577,32 +452,27 @@ const SheetInitializer = {
       .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
     
     // Column widths
-    sheet.setColumnWidth(1, 50);   // STT
-    sheet.setColumnWidth(2, 100);  // Ngày
-    sheet.setColumnWidth(3, 150);  // Loại
-    sheet.setColumnWidth(4, 120);  // Số tiền
-    sheet.setColumnWidth(5, 100);  // Lãi suất
-    sheet.setColumnWidth(6, 100);  // Kỳ hạn
-    sheet.setColumnWidth(7, 120);  // Dự kiến
-    sheet.setColumnWidth(8, 250);  // Ghi chú
+    sheet.setColumnWidth(1, 50);
+    sheet.setColumnWidth(2, 100);
+    sheet.setColumnWidth(3, 150);
+    sheet.setColumnWidth(4, 120);
+    sheet.setColumnWidth(5, 100);
+    sheet.setColumnWidth(6, 100);
+    sheet.setColumnWidth(7, 120);
+    sheet.setColumnWidth(8, 250);
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
-    sheet.getRange('D2:D').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    this._fixDateColumn(sheet, 2);
+    sheet.getRange('D2:D').setNumberFormat('#,##0');
     sheet.getRange('E2:E').setNumberFormat('0.00"%"');
-    sheet.getRange('G2:G').setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+    sheet.getRange('G2:G').setNumberFormat('#,##0');
     
-    // Freeze header
     sheet.setFrozenRows(1);
     
-    // Data validation cho Loại đầu tư
-    const typeRange = sheet.getRange('C2:C1000');
-    const typeRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['Gửi tiết kiệm', 'Quỹ đầu tư', 'Bất động sản', 'Trái phiếu', 'P2P Lending', 'Khác'])
-      .setAllowInvalid(false)
-      .build();
-    typeRange.setDataValidation(typeRule);
+    // Validation
+    sheet.getRange('C2:C1000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Gửi tiết kiệm', 'Quỹ đầu tư', 'Bất động sản', 'Trái phiếu', 'P2P Lending', 'Khác']).build());
     
     return sheet;
   },
@@ -612,13 +482,7 @@ const SheetInitializer = {
    */
   initializeBudgetSheet() {
     const ss = getSpreadsheet();
-    let sheet = ss.getSheetByName(APP_CONFIG.SHEETS.BUDGET);
-    
-    if (sheet) {
-      ss.deleteSheet(sheet);
-    }
-    
-    sheet = ss.insertSheet(APP_CONFIG.SHEETS.BUDGET);
+    const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.BUDGET);
     
     // Lấy tháng/năm hiện tại
     const now = new Date();
@@ -639,9 +503,11 @@ const SheetInitializer = {
       .setFontWeight('bold')
       .setHorizontalAlignment('right');
     
-    sheet.getRange('B2:F2').merge()
-      .setValue(0) // Placeholder - user sẽ nhập
-      .setNumberFormat('#,##0" VNĐ"')
+    // Only set 0 if empty to avoid overwriting user input
+    if (sheet.getRange('B2').getValue() === '') {
+      sheet.getRange('B2:F2').merge().setValue(0);
+    }
+    sheet.getRange('B2').setNumberFormat('#,##0')
       .setFontWeight('bold')
       .setHorizontalAlignment('right')
       .setBackground('#E7E6E6');
@@ -651,8 +517,10 @@ const SheetInitializer = {
       .setFontWeight('bold')
       .setFontColor('#E74C3C');
     
-    sheet.getRange('B3').setValue(0.5) // 50% mặc định
-      .setNumberFormat('0.00%')
+    if (sheet.getRange('B3').getValue() === '') {
+      sheet.getRange('B3').setValue(0.5);
+    }
+    sheet.getRange('B3').setNumberFormat('0.00%')
       .setFontWeight('bold')
       .setBackground('#FFF3CD')
       .setHorizontalAlignment('center');
@@ -694,81 +562,56 @@ const SheetInitializer = {
       // A: Danh mục
       sheet.getRange(row, 1).setValue(category);
       
-      // B: % Nhóm
-      sheet.getRange(row, 2).setValue(pct)
-        .setNumberFormat('0.00%')
-        .setHorizontalAlignment('center');
+      // B: % Nhóm (Only set if empty)
+      if (sheet.getRange(row, 2).getValue() === '') {
+        sheet.getRange(row, 2).setValue(pct);
+      }
+      sheet.getRange(row, 2).setNumberFormat('0.00%').setHorizontalAlignment('center');
       
-      // C: Ngân sách = Thu nhập × % Nhóm Chi × % Danh mục
-      sheet.getRange(row, 3).setFormula(`=$B$2*$B$3*B${row}`)
-        .setNumberFormat('#,##0" VNĐ"');
+      // C: Ngân sách
+      sheet.getRange(row, 3).setFormula(`=$B$2*$B$3*B${row}`).setNumberFormat('#,##0');
       
-      // D: Đã chi = SUMIFS từ sheet CHI
+      // D: Đã chi
       const formulaChi = `=SUMIFS(CHI!C:C, CHI!D:D, A${row}, CHI!B:B, ">="&DATE(${currentYear},${currentMonth},1), CHI!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`;
-      sheet.getRange(row, 4).setFormula(formulaChi)
-        .setNumberFormat('#,##0" VNĐ"');
+      sheet.getRange(row, 4).setFormula(formulaChi).setNumberFormat('#,##0');
       
-      // E: Còn lại = Ngân sách - Đã chi
-      sheet.getRange(row, 5).setFormula(`=C${row}-D${row}`)
-        .setNumberFormat('#,##0" VNĐ"');
+      // E: Còn lại
+      sheet.getRange(row, 5).setFormula(`=C${row}-D${row}`).setNumberFormat('#,##0');
       
-      // F: Trạng thái thông minh theo ngày
+      // F: Trạng thái
       const statusFormula = `=IF(C${row}=0, "⚪ N/A", IF(E${row}<0, "🔴 " & TEXT(D${row}/C${row}, "0.0%"), IF(D${row}/C${row} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${row}/C${row}, "0.0%"), IF(D${row}/C${row} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${row}/C${row}, "0.0%"), "✅ " & TEXT(D${row}/C${row}, "0.0%")))))`;
       sheet.getRange(row, 6).setFormula(statusFormula);
     }
     
     // TỔNG CHI
     const chiEndRow = 6 + expenseCategories.length;
-    sheet.getRange(chiEndRow, 1).setValue('TỔNG CHI')
-      .setFontWeight('bold');
-    sheet.getRange(chiEndRow, 2).setFormula(`=SUM(B6:B${chiEndRow-1})`)
-      .setNumberFormat('0.00%')
-      .setFontWeight('bold')
-      .setHorizontalAlignment('center');
-    sheet.getRange(chiEndRow, 3).setFormula(`=SUM(C6:C${chiEndRow-1})`)
-      .setNumberFormat('#,##0" VNĐ"')
-      .setFontWeight('bold');
-    sheet.getRange(chiEndRow, 4).setFormula(`=SUM(D6:D${chiEndRow-1})`)
-      .setNumberFormat('#,##0" VNĐ"')
-      .setFontWeight('bold');
-    sheet.getRange(chiEndRow, 5).setFormula(`=SUM(E6:E${chiEndRow-1})`)
-      .setNumberFormat('#,##0" VNĐ"')
-      .setFontWeight('bold');
+    sheet.getRange(chiEndRow, 1).setValue('TỔNG CHI').setFontWeight('bold');
+    sheet.getRange(chiEndRow, 2).setFormula(`=SUM(B6:B${chiEndRow-1})`).setNumberFormat('0.00%').setFontWeight('bold').setHorizontalAlignment('center');
+    sheet.getRange(chiEndRow, 3).setFormula(`=SUM(C6:C${chiEndRow-1})`).setNumberFormat('#,##0').setFontWeight('bold');
+    sheet.getRange(chiEndRow, 4).setFormula(`=SUM(D6:D${chiEndRow-1})`).setNumberFormat('#,##0').setFontWeight('bold');
+    sheet.getRange(chiEndRow, 5).setFormula(`=SUM(E6:E${chiEndRow-1})`).setNumberFormat('#,##0').setFontWeight('bold');
     
-    // Trạng thái TỔNG CHI
     const tongChiStatus = `=IF(C${chiEndRow}=0, "⚪ N/A", IF(E${chiEndRow}<0, "🔴 " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%"), IF(D${chiEndRow}/C${chiEndRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%"), IF(D${chiEndRow}/C${chiEndRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%"), "✅ " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%")))))`;
-    sheet.getRange(chiEndRow, 6).setFormula(tongChiStatus)
-      .setFontWeight('bold');
+    sheet.getRange(chiEndRow, 6).setFormula(tongChiStatus).setFontWeight('bold');
     
     // ========== ROW: % NHÓM ĐẦU TƯ ==========
     const dautuRow = chiEndRow + 2;
-    sheet.getRange(dautuRow, 1).setValue('Nhóm Đầu tư:')
-      .setFontWeight('bold')
-      .setFontColor('#70AD47');
+    sheet.getRange(dautuRow, 1).setValue('Nhóm Đầu tư:').setFontWeight('bold').setFontColor('#70AD47');
     
-    sheet.getRange(dautuRow, 2).setValue(0.3) // 30% mặc định
-      .setNumberFormat('0.00%')
-      .setFontWeight('bold')
-      .setBackground('#D4EDDA')
-      .setHorizontalAlignment('center');
+    if (sheet.getRange(dautuRow, 2).getValue() === '') {
+      sheet.getRange(dautuRow, 2).setValue(0.3);
+    }
+    sheet.getRange(dautuRow, 2).setNumberFormat('0.00%').setFontWeight('bold').setBackground('#D4EDDA').setHorizontalAlignment('center');
     
     // ========== SECTION 2: ĐẦU TƯ ==========
     const dautuHeaderRow = dautuRow + 1;
     sheet.getRange(`A${dautuHeaderRow}:F${dautuHeaderRow}`).merge()
-      .setValue('💰 ĐẦU TƯ')
-      .setFontWeight('bold')
-      .setBackground('#70AD47')
-      .setFontColor('#FFFFFF')
-      .setHorizontalAlignment('center');
+      .setValue('💰 ĐẦU TƯ').setFontWeight('bold').setBackground('#70AD47').setFontColor('#FFFFFF').setHorizontalAlignment('center');
     
     const dautuColRow = dautuHeaderRow + 1;
     sheet.getRange(`A${dautuColRow}:F${dautuColRow}`).setValues([chiHeaders])
-      .setFontWeight('bold')
-      .setHorizontalAlignment('center')
-      .setBackground('#4472C4')
-      .setFontColor('#FFFFFF');
+      .setFontWeight('bold').setHorizontalAlignment('center').setBackground('#4472C4').setFontColor('#FFFFFF');
     
-    // Danh mục đầu tư với % mặc định
     const investCategories = [
       ['Chứng khoán', 0.50, `=SUMIFS('CHỨNG KHOÁN'!H:H, 'CHỨNG KHOÁN'!C:C, "Mua", 'CHỨNG KHOÁN'!B:B, ">="&DATE(${currentYear},${currentMonth},1), 'CHỨNG KHOÁN'!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`],
       ['Vàng', 0.20, `=SUMIFS(VÀNG!H:H, VÀNG!C:C, "Mua", VÀNG!B:B, ">="&DATE(${currentYear},${currentMonth},1), VÀNG!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`],
@@ -776,146 +619,25 @@ const SheetInitializer = {
       ['Đầu tư khác', 0.10, `=SUMIFS('ĐẦU TƯ KHÁC'!D:D, 'ĐẦU TƯ KHÁC'!B:B, ">="&DATE(${currentYear},${currentMonth},1), 'ĐẦU TƯ KHÁC'!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`]
     ];
     
-    // Điền dữ liệu đầu tư
     for (let i = 0; i < investCategories.length; i++) {
       const row = dautuColRow + 1 + i;
       const category = investCategories[i][0];
       const pct = investCategories[i][1];
       const formula = investCategories[i][2];
       
-      // A: Loại
       sheet.getRange(row, 1).setValue(category);
+      if (sheet.getRange(row, 2).getValue() === '') {
+        sheet.getRange(row, 2).setValue(pct);
+      }
+      sheet.getRange(row, 2).setNumberFormat('0.00%').setHorizontalAlignment('center');
+      sheet.getRange(row, 3).setFormula(`=$B$2*$B$${dautuRow}*B${row}`).setNumberFormat('#,##0');
+      sheet.getRange(row, 4).setFormula(formula).setNumberFormat('#,##0');
+      sheet.getRange(row, 5).setFormula(`=C${row}-D${row}`).setNumberFormat('#,##0');
       
-      // B: % Nhóm
-      sheet.getRange(row, 2).setValue(pct)
-        .setNumberFormat('0.00%')
-        .setHorizontalAlignment('center');
-      
-      // C: Target = Thu nhập × % Nhóm Đầu tư × % Loại
-      sheet.getRange(row, 3).setFormula(`=$B$2*$B$${dautuRow}*B${row}`)
-        .setNumberFormat('#,##0" VNĐ"');
-      
-      // D: Đã đầu tư
-      sheet.getRange(row, 4).setFormula(formula)
-        .setNumberFormat('#,##0" VNĐ"');
-      
-      // E: Còn lại
-      sheet.getRange(row, 5).setFormula(`=C${row}-D${row}`)
-        .setNumberFormat('#,##0" VNĐ"');
-      
-      // F: Trạng thái
-      const investStatusFormula = `=IF(C${row}=0, "⚪ N/A", IF(E${row}<0, "🔴 " & TEXT(D${row}/C${row}, "0.0%"), IF(D${row}/C${row} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${row}/C${row}, "0.0%"), IF(D${row}/C${row} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${row}/C${row}, "0.0%"), "✅ " & TEXT(D${row}/C${row}, "0.0%")))))`;
-      sheet.getRange(row, 6).setFormula(investStatusFormula);
+      const statusFormula = `=IF(C${row}=0, "⚪ N/A", IF(E${row}<0, "🔴 " & TEXT(D${row}/C${row}, "0.0%"), IF(D${row}/C${row} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${row}/C${row}, "0.0%"), IF(D${row}/C${row} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${row}/C${row}, "0.0%"), "✅ " & TEXT(D${row}/C${row}, "0.0%")))))`;
+      sheet.getRange(row, 6).setFormula(statusFormula);
     }
-    
-    // TỔNG ĐẦU TƯ
-    const dautuEndRow = dautuColRow + 1 + investCategories.length;
-    sheet.getRange(dautuEndRow, 1).setValue('TỔNG ĐT')
-      .setFontWeight('bold');
-    sheet.getRange(dautuEndRow, 2).setFormula(`=SUM(B${dautuColRow+1}:B${dautuEndRow-1})`)
-      .setNumberFormat('0.00%')
-      .setFontWeight('bold')
-      .setHorizontalAlignment('center');
-    sheet.getRange(dautuEndRow, 3).setFormula(`=SUM(C${dautuColRow+1}:C${dautuEndRow-1})`)
-      .setNumberFormat('#,##0" VNĐ"')
-      .setFontWeight('bold');
-    sheet.getRange(dautuEndRow, 4).setFormula(`=SUM(D${dautuColRow+1}:D${dautuEndRow-1})`)
-      .setNumberFormat('#,##0" VNĐ"')
-      .setFontWeight('bold');
-    sheet.getRange(dautuEndRow, 5).setFormula(`=SUM(E${dautuColRow+1}:E${dautuEndRow-1})`)
-      .setNumberFormat('#,##0" VNĐ"')
-      .setFontWeight('bold');
-    
-    const tongDtStatus = tongChiStatus.replace(new RegExp(`${chiEndRow}`, 'g'), dautuEndRow);
-    sheet.getRange(dautuEndRow, 6).setFormula(tongDtStatus)
-      .setFontWeight('bold');
-    
-    // ========== ROW: % NHÓM TRẢ NỢ ==========
-    const tranoRow = dautuEndRow + 2;
-    sheet.getRange(tranoRow, 1).setValue('Nhóm Trả nợ:')
-      .setFontWeight('bold')
-      .setFontColor('#F39C12');
-    
-    sheet.getRange(tranoRow, 2).setValue(0.2) // 20% mặc định
-      .setNumberFormat('0.00%')
-      .setFontWeight('bold')
-      .setBackground('#FFF3CD')
-      .setHorizontalAlignment('center');
-    
-    // ========== SECTION 3: TRẢ NỢ ==========
-    const tranoHeaderRow = tranoRow + 1;
-    sheet.getRange(`A${tranoHeaderRow}:F${tranoHeaderRow}`).merge()
-      .setValue('💳 TRẢ NỢ')
-      .setFontWeight('bold')
-      .setBackground('#F39C12')
-      .setFontColor('#FFFFFF')
-      .setHorizontalAlignment('center');
-    
-    const tranoColRow = tranoHeaderRow + 1;
-    sheet.getRange(`A${tranoColRow}:F${tranoColRow}`).setValues([chiHeaders])
-      .setFontWeight('bold')
-      .setHorizontalAlignment('center')
-      .setBackground('#4472C4')
-      .setFontColor('#FFFFFF');
-    
-    const tranoDataRow = tranoColRow + 1;
-    
-    // Trả nợ
-    sheet.getRange(tranoDataRow, 1).setValue('Trả nợ');
-    sheet.getRange(tranoDataRow, 2).setValue(1.0) // 100% của nhóm
-      .setNumberFormat('0.00%')
-      .setHorizontalAlignment('center');
-    sheet.getRange(tranoDataRow, 3).setFormula(`=$B$2*$B$${tranoRow}`)
-      .setNumberFormat('#,##0" VNĐ"');
-    
-    const tranoFormula = `=SUMIFS('TRẢ NỢ'!D:D, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${currentMonth},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1)) + SUMIFS('TRẢ NỢ'!E:E, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${currentMonth},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`;
-    sheet.getRange(tranoDataRow, 4).setFormula(tranoFormula)
-      .setNumberFormat('#,##0" VNĐ"');
-    sheet.getRange(tranoDataRow, 5).setFormula(`=C${tranoDataRow}-D${tranoDataRow}`)
-      .setNumberFormat('#,##0" VNĐ"');
-    
-    const tranoStatusFormula = `=IF(C${tranoDataRow}=0, "⚪ N/A", IF(E${tranoDataRow}<0, "🔴 " & TEXT(D${tranoDataRow}/C${tranoDataRow}, "0.0%"), IF(D${tranoDataRow}/C${tranoDataRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${tranoDataRow}/C${tranoDataRow}, "0.0%"), IF(D${tranoDataRow}/C${tranoDataRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${tranoDataRow}/C${tranoDataRow}, "0.0%"), "✅ " & TEXT(D${tranoDataRow}/C${tranoDataRow}, "0.0%")))))`;
-    sheet.getRange(tranoDataRow, 6).setFormula(tranoStatusFormula);
-    
-    // ========== FORMAT ==========
-    
-    // Column widths
-    sheet.setColumnWidth(1, 150);  // Danh mục
-    sheet.setColumnWidth(2, 80);   // % Nhóm
-    sheet.setColumnWidth(3, 120);  // Ngân sách
-    sheet.setColumnWidth(4, 120);  // Đã chi/đầu tư
-    sheet.setColumnWidth(5, 120);  // Còn lại
-    sheet.setColumnWidth(6, 120);  // Trạng thái
-    
-    // Borders
-    sheet.getRange(`A1:F${tranoDataRow}`).setBorder(
-      true, true, true, true, true, true,
-      '#CCCCCC', SpreadsheetApp.BorderStyle.SOLID
-    );
-    
-    // Freeze header
-    sheet.setFrozenRows(5);
-    
-    // Validation: Tổng % các nhóm phải = 100%
-    const validationCell = sheet.getRange('C2');
-    const totalPct = sheet.getRange('D2');
-    totalPct.setFormula(`=B3+B${dautuRow}+B${tranoRow}`)
-      .setNumberFormat('0.00%')
-      .setNote('Tổng % các nhóm (Chi + Đầu tư + Trả nợ). Phải = 100%');
-    
-    showSuccess('Thành công', '✅ Sheet BUDGET v3.5 đã được khởi tạo!\n\n' +
-      '📊 Cấu trúc mới:\n' +
-      '• Thu nhập dự kiến (cell B2)\n' +
-      '• 3 nhóm: Chi tiêu (B3), Đầu tư (B' + dautuRow + '), Trả nợ (B' + tranoRow + ')\n' +
-      '• % chi tiết trong mỗi nhóm\n\n' +
-      '⚠️ LƯU Ý:\n' +
-      '• Nhập Thu nhập dự kiến vào cell B2\n' +
-      '• Điều chỉnh % các nhóm để tổng = 100%\n' +
-      '• Điều chỉnh % chi tiết trong từng nhóm\n\n' +
-      '💡 Trạng thái tự động cảnh báo theo % ngày trong tháng!');
     
     return sheet;
   }
-
-// ==================== KẾT THÚC HÀM ====================
 };

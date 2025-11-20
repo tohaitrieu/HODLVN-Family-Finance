@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Đặt Ngân sách tháng</title>
-  
+
   <style>
     * {
       margin: 0;
@@ -25,7 +26,7 @@
       margin: 0 auto;
       background: white;
       border-radius: 15px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
       overflow: hidden;
       animation: slideIn 0.3s ease-out;
     }
@@ -35,6 +36,7 @@
         opacity: 0;
         transform: translateY(-20px);
       }
+
       to {
         opacity: 1;
         transform: translateY(0);
@@ -135,6 +137,7 @@
       from {
         opacity: 0;
       }
+
       to {
         opacity: 1;
       }
@@ -356,8 +359,13 @@
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     #error {
@@ -372,9 +380,19 @@
     }
 
     @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-10px); }
-      75% { transform: translateX(10px); }
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      25% {
+        transform: translateX(-10px);
+      }
+
+      75% {
+        transform: translateX(10px);
+      }
     }
 
     #success {
@@ -388,6 +406,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <div class="header">
@@ -434,7 +453,7 @@
         </div>
 
         <div class="form-group">
-          <label for="income">Thu nhập dự kiến tháng này (VNĐ):</label>
+          <label for="income">Thu nhập dự kiến tháng này:</label>
           <input type="number" id="income" placeholder="Ví dụ: 50000000" min="0" step="100000" required>
         </div>
 
@@ -483,23 +502,23 @@
               <input type="number" id="pctChi" min="0" max="100" step="5" value="50" oninput="updateTotal()">
               <span>%</span>
             </div>
-            <div style="text-align: right; color: #667eea; font-weight: bold;" id="amountChi">0 VNĐ</div>
-            
+            <div style="text-align: right; color: #667eea; font-weight: bold;" id="amountChi">0</div>
+
             <div class="percentage-item">
               <label>💰 Đầu tư:</label>
               <input type="number" id="pctDautu" min="0" max="100" step="5" value="30" oninput="updateTotal()">
               <span>%</span>
             </div>
-            <div style="text-align: right; color: #667eea; font-weight: bold;" id="amountDautu">0 VNĐ</div>
-            
+            <div style="text-align: right; color: #667eea; font-weight: bold;" id="amountDautu">0</div>
+
             <div class="percentage-item">
               <label>💳 Trả nợ:</label>
               <input type="number" id="pctTrano" min="0" max="100" step="5" value="20" oninput="updateTotal()">
               <span>%</span>
             </div>
-            <div style="text-align: right; color: #667eea; font-weight: bold;" id="amountTrano">0 VNĐ</div>
+            <div style="text-align: right; color: #667eea; font-weight: bold;" id="amountTrano">0</div>
           </div>
-          
+
           <div class="total-check" id="totalCheck">
             Tổng: 100% ✓
           </div>
@@ -600,19 +619,19 @@
 
     // Format currency
     function formatCurrency(amount) {
-      return new Intl.NumberFormat('vi-VN').format(amount) + ' VNĐ';
+      return new Intl.NumberFormat('vi-VN').format(amount);
     }
 
     // Select preset
     function selectPreset(type) {
       document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
       event.target.closest('.preset-btn').classList.add('active');
-      
+
       const preset = presets[type];
       document.getElementById('pctChi').value = preset.chi;
       document.getElementById('pctDautu').value = preset.dautu;
       document.getElementById('pctTrano').value = preset.trano;
-      
+
       updateTotal();
     }
 
@@ -622,16 +641,16 @@
       const chi = parseFloat(document.getElementById('pctChi').value) || 0;
       const dautu = parseFloat(document.getElementById('pctDautu').value) || 0;
       const trano = parseFloat(document.getElementById('pctTrano').value) || 0;
-      
+
       const total = chi + dautu + trano;
       const totalCheck = document.getElementById('totalCheck');
       const btn = document.getElementById('btn-step2');
-      
+
       // Update amounts
       document.getElementById('amountChi').textContent = formatCurrency(income * chi / 100);
       document.getElementById('amountDautu').textContent = formatCurrency(income * dautu / 100);
       document.getElementById('amountTrano').textContent = formatCurrency(income * trano / 100);
-      
+
       if (total === 100) {
         totalCheck.className = 'total-check valid';
         totalCheck.textContent = 'Tổng: 100% ✓';
@@ -650,10 +669,10 @@
       inputs.forEach(input => {
         total += parseFloat(input.value) || 0;
       });
-      
+
       const totalDiv = document.getElementById(`total${type.charAt(0).toUpperCase() + type.slice(1)}`);
       const btn = document.getElementById('btn-step3');
-      
+
       if (Math.abs(total - 100) < 0.01) {
         totalDiv.className = 'total-check valid';
         totalDiv.textContent = 'Tổng: 100% ✓';
@@ -661,13 +680,13 @@
         totalDiv.className = 'total-check invalid';
         totalDiv.textContent = `Tổng: ${total.toFixed(1)}% (Cần = 100%)`;
       }
-      
+
       // Check both totals
       const chiTotal = Array.from(document.querySelectorAll('#chiDetail input'))
         .reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
       const dautuTotal = Array.from(document.querySelectorAll('#dautuDetail input'))
         .reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
-      
+
       btn.disabled = Math.abs(chiTotal - 100) >= 0.01 || Math.abs(dautuTotal - 100) >= 0.01;
     }
 
@@ -685,7 +704,7 @@
           <div style="text-align: right; color: #667eea; font-weight: bold;" id="amount-chi-${cat.name}"></div>
         `;
       });
-      
+
       const dautuDetail = document.getElementById('dautuDetail');
       dautuDetail.innerHTML = '';
       dautuCategories.forEach(cat => {
@@ -698,7 +717,7 @@
           <div style="text-align: right; color: #667eea; font-weight: bold;" id="amount-dautu-${cat.name}"></div>
         `;
       });
-      
+
       updateCategoryAmounts();
       updateCategoryTotal('chi');
       updateCategoryTotal('dautu');
@@ -709,7 +728,7 @@
       const income = budgetData.income;
       const pctChi = budgetData.pctChi / 100;
       const pctDautu = budgetData.pctDautu / 100;
-      
+
       document.querySelectorAll('.cat-chi').forEach(input => {
         const pct = parseFloat(input.value) || 0;
         const amount = income * pctChi * (pct / 100);
@@ -717,7 +736,7 @@
         const el = document.getElementById(`amount-chi-${name}`);
         if (el) el.textContent = formatCurrency(amount);
       });
-      
+
       document.querySelectorAll('.cat-dautu').forEach(input => {
         const pct = parseFloat(input.value) || 0;
         const amount = income * pctDautu * (pct / 100);
@@ -733,7 +752,7 @@
       const pctChi = budgetData.pctChi / 100;
       const pctDautu = budgetData.pctDautu / 100;
       const pctTrano = budgetData.pctTrano / 100;
-      
+
       let html = `
         <tr>
           <th>Hạng mục</th>
@@ -749,7 +768,7 @@
           <td colspan="3" style="background: #FFF3CD; font-weight: bold;">📤 CHI TIÊU (${budgetData.pctChi}%)</td>
         </tr>
       `;
-      
+
       Object.entries(budgetData.chi).forEach(([name, pct]) => {
         const amount = income * pctChi * (pct / 100);
         html += `
@@ -760,13 +779,13 @@
           </tr>
         `;
       });
-      
+
       html += `
         <tr>
           <td colspan="3" style="background: #D4EDDA; font-weight: bold;">💰 ĐẦU TƯ (${budgetData.pctDautu}%)</td>
         </tr>
       `;
-      
+
       Object.entries(budgetData.dautu).forEach(([name, pct]) => {
         const amount = income * pctDautu * (pct / 100);
         html += `
@@ -777,7 +796,7 @@
           </tr>
         `;
       });
-      
+
       html += `
         <tr>
           <td colspan="3" style="background: #FFF3CD; font-weight: bold;">💳 TRẢ NỢ (${budgetData.pctTrano}%)</td>
@@ -788,7 +807,7 @@
           <td class="summary-value">${formatCurrency(income * pctTrano)}</td>
         </tr>
       `;
-      
+
       document.getElementById('summaryTable').innerHTML = html;
     }
 
@@ -807,7 +826,7 @@
         budgetData.pctChi = parseFloat(document.getElementById('pctChi').value);
         budgetData.pctDautu = parseFloat(document.getElementById('pctDautu').value);
         budgetData.pctTrano = parseFloat(document.getElementById('pctTrano').value);
-        
+
         if (currentStep === 2 && step === 3) {
           generateCategoryInputs();
         }
@@ -817,39 +836,39 @@
         document.querySelectorAll('.cat-chi').forEach(input => {
           budgetData.chi[input.dataset.name] = parseFloat(input.value);
         });
-        
+
         // Collect dautu data
         budgetData.dautu = {};
         document.querySelectorAll('.cat-dautu').forEach(input => {
           budgetData.dautu[input.dataset.name] = parseFloat(input.value);
         });
-        
+
         generateSummary();
       }
-      
+
       // Update UI
       document.getElementById(`step${currentStep}`).classList.remove('active');
       document.getElementById(`step${currentStep}-indicator`).classList.remove('active');
       document.getElementById(`step${currentStep}-indicator`).classList.add('completed');
-      
+
       currentStep = step;
-      
+
       document.getElementById(`step${currentStep}`).classList.add('active');
       document.getElementById(`step${currentStep}-indicator`).classList.add('active');
-      
+
       hideError();
     }
 
     function prevStep(step) {
       document.getElementById(`step${currentStep}`).classList.remove('active');
       document.getElementById(`step${currentStep}-indicator`).classList.remove('active');
-      
+
       currentStep = step;
-      
+
       document.getElementById(`step${currentStep}`).classList.add('active');
       document.getElementById(`step${currentStep}-indicator`).classList.add('active');
       document.getElementById(`step${currentStep}-indicator`).classList.remove('completed');
-      
+
       if (step === 2) {
         updateTotal();
       } else if (step === 3) {
@@ -861,7 +880,7 @@
     function submitBudget() {
       showLoading();
       hideError();
-      
+
       google.script.run
         .withSuccessHandler(onSuccess)
         .withFailureHandler(onFailure)
@@ -913,9 +932,10 @@
     }
 
     // Initialize
-    window.onload = function() {
+    window.onload = function () {
       updateTotal();
     };
   </script>
 </body>
+
 </html>

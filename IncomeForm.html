@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <base target="_top">
   <style>
@@ -8,16 +9,21 @@
       padding: 20px;
       margin: 0;
     }
+
     .form-group {
       margin-bottom: 15px;
     }
+
     label {
       display: block;
       font-weight: bold;
       margin-bottom: 5px;
       color: #333;
     }
-    input, select, textarea {
+
+    input,
+    select,
+    textarea {
       width: 100%;
       padding: 8px;
       border: 1px solid #ddd;
@@ -25,10 +31,14 @@
       box-sizing: border-box;
       font-size: 14px;
     }
-    input:focus, select:focus, textarea:focus {
+
+    input:focus,
+    select:focus,
+    textarea:focus {
       outline: none;
       border-color: #4472C4;
     }
+
     .btn {
       background-color: #70AD47;
       color: white;
@@ -41,100 +51,109 @@
       width: 100%;
       margin-top: 10px;
     }
+
     .btn:hover {
       background-color: #5a8c39;
     }
+
     .btn:disabled {
       background-color: #ccc;
       cursor: not-allowed;
     }
+
     .message {
       padding: 10px;
       margin-top: 15px;
       border-radius: 4px;
       display: none;
     }
+
     .message.success {
       background-color: #d4edda;
       color: #155724;
       border: 1px solid #c3e6cb;
     }
+
     .message.error {
       background-color: #f8d7da;
       color: #721c24;
       border: 1px solid #f5c6cb;
     }
+
     .required {
       color: red;
     }
   </style>
 </head>
+
 <body>
   <form id="incomeForm">
     <div class="form-group">
       <label for="date">Ngày <span class="required">*</span></label>
       <input type="date" id="date" required>
     </div>
-    
+
     <div class="form-group">
-      <label for="amount">Số tiền (VNĐ) <span class="required">*</span></label>
+      <label for="amount">Số tiền <span class="required">*</span></label>
       <input type="number" id="amount" required min="0" step="1000" placeholder="Nhập số tiền">
     </div>
-    
+
     <div class="form-group">
       <label for="source">Nguồn thu <span class="required">*</span></label>
       <select id="source" required>
         <option value="">-- Chọn nguồn --</option>
         <option value="Lương">Lương</option>
-        <option value="MMO">MMO (Make Money Online)</option>
+        <option value="MMO (Make Money Online)">MMO (Make Money Online)</option>
         <option value="Thưởng">Thưởng</option>
-        <option value="Bán CK">Bán chứng khoán</option>
-        <option value="Bán Vàng">Bán vàng</option>
+        <option value="Bán CK">Bán CK</option>
+        <option value="Bán Vàng">Bán Vàng</option>
         <option value="Bán Crypto">Bán Crypto</option>
         <option value="Lãi đầu tư">Lãi đầu tư</option>
         <option value="Thu hồi nợ">Thu hồi nợ</option>
+        <option value="Vay ngân hàng">Vay ngân hàng</option>
+        <option value="Vay cá nhân">Vay cá nhân</option>
         <option value="Khác">Khác</option>
       </select>
     </div>
-    
+
     <div class="form-group">
       <label for="note">Ghi chú</label>
       <textarea id="note" rows="3" placeholder="Thêm ghi chú (không bắt buộc)"></textarea>
     </div>
-    
+
     <button type="submit" class="btn" id="submitBtn">
       ➕ Thêm thu nhập
     </button>
   </form>
-  
+
   <div id="message" class="message"></div>
 
   <script>
     document.getElementById('date').valueAsDate = new Date();
-    
-    document.getElementById('incomeForm').addEventListener('submit', function(e) {
+
+    document.getElementById('incomeForm').addEventListener('submit', function (e) {
       e.preventDefault();
-      
+
       const submitBtn = document.getElementById('submitBtn');
       const messageDiv = document.getElementById('message');
-      
+
       submitBtn.disabled = true;
       submitBtn.textContent = '⏳ Đang xử lý...';
-      
+
       const data = {
         date: document.getElementById('date').value,
         amount: document.getElementById('amount').value,
         source: document.getElementById('source').value,
         note: document.getElementById('note').value
       };
-      
+
       google.script.run
-        .withSuccessHandler(function(result) {
+        .withSuccessHandler(function (result) {
           if (result.success) {
             showMessage(result.message, 'success');
             document.getElementById('incomeForm').reset();
             document.getElementById('date').valueAsDate = new Date();
-            setTimeout(function() {
+            setTimeout(function () {
               google.script.host.close();
             }, 1500);
           } else {
@@ -143,23 +162,24 @@
           submitBtn.disabled = false;
           submitBtn.textContent = '➕ Thêm thu nhập';
         })
-        .withFailureHandler(function(error) {
+        .withFailureHandler(function (error) {
           showMessage('Lỗi: ' + error.message, 'error');
           submitBtn.disabled = false;
           submitBtn.textContent = '➕ Thêm thu nhập';
         })
         .addIncome(data);
     });
-    
+
     function showMessage(text, type) {
       const messageDiv = document.getElementById('message');
       messageDiv.textContent = text;
       messageDiv.className = 'message ' + type;
       messageDiv.style.display = 'block';
-      setTimeout(function() {
+      setTimeout(function () {
         messageDiv.style.display = 'none';
       }, 5000);
     }
   </script>
 </body>
+
 </html>

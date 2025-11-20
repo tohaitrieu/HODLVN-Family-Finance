@@ -106,7 +106,7 @@ function addIncome(data) {
     
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
-      3: '#,##0" VNĐ"'
+      3: '#,##0'
     });
     
     Logger.log(`Đã thêm thu nhập: ${formatCurrency(amount)} - ${source}`);
@@ -173,7 +173,7 @@ function addExpense(data) {
     
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
-      3: '#,##0" VNĐ"'
+      3: '#,##0'
     });
     
     BudgetManager.updateBudgetSpent(category);
@@ -252,8 +252,8 @@ function addDebt(data) {
     
     formatNewRow(sheet, emptyRow, {
       3: 'dd/mm/yyyy',
-      4: '#,##0" VNĐ"',
-      5: '#,##0" VNĐ"',
+      4: '#,##0',
+      5: '#,##0',
       6: '0.00%',
       8: 'dd/mm/yyyy'
     });
@@ -335,9 +335,9 @@ function payDebt(data) {
     
     formatNewRow(paymentSheet, emptyRow, {
       2: 'dd/mm/yyyy',
-      4: '#,##0" VNĐ"',
-      5: '#,##0" VNĐ"',
-      6: '#,##0" VNĐ"'
+      4: '#,##0',
+      5: '#,##0',
+      6: '#,##0'
     });
     
     const debtEmptyRow = findEmptyRow(debtSheet, 2);
@@ -481,14 +481,14 @@ function addStock(data) {
     
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
-      6: '#,##0" VNĐ"',
-      7: '#,##0" VNĐ"',
-      8: '#,##0" VNĐ"',
-      9: '#,##0" VNĐ"',
-      11: '#,##0" VNĐ"',
-      12: '#,##0" VNĐ"',
-      13: '#,##0" VNĐ"',
-      14: '#,##0" VNĐ"',
+      6: '#,##0',
+      7: '#,##0',
+      8: '#,##0',
+      9: '#,##0',
+      11: '#,##0',
+      12: '#,##0',
+      13: '#,##0',
+      14: '#,##0',
       15: '0.00%'
     });
     
@@ -580,8 +580,8 @@ function addGold(data) {
     
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
-      7: '#,##0" VNĐ"',
-      8: '#,##0" VNĐ"'
+      7: '#,##0',
+      8: '#,##0'
     });
     
     BudgetManager.updateInvestmentBudget('Vàng', total);
@@ -658,9 +658,9 @@ function addCrypto(data) {
     
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
-      6: '#,##0" VNĐ"',
-      7: '#,##0" VNĐ"',
-      8: '#,##0" VNĐ"'
+      6: '#,##0',
+      7: '#,##0',
+      8: '#,##0'
     });
     
     BudgetManager.updateInvestmentBudget('Crypto', total);
@@ -729,7 +729,7 @@ function addOtherInvestment(data) {
     
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
-      4: '#,##0" VNĐ"'
+      4: '#,##0'
     });
     
     BudgetManager.updateInvestmentBudget('Đầu tư khác', amount);
@@ -1016,14 +1016,14 @@ function processDividend(data) {
       
       formatNewRow(stockSheet, emptyRow, {
         2: 'dd/mm/yyyy',
-        6: '#,##0" VNĐ"',
-        7: '#,##0" VNĐ"',
-        8: '#,##0" VNĐ"',
-        9: '#,##0" VNĐ"',
-        11: '#,##0" VNĐ"',
-        12: '#,##0" VNĐ"',
-        13: '#,##0" VNĐ"',
-        14: '#,##0" VNĐ"',
+        6: '#,##0',
+        7: '#,##0',
+        8: '#,##0',
+        9: '#,##0',
+        11: '#,##0',
+        12: '#,##0',
+        13: '#,##0',
+        14: '#,##0',
         15: '0.00%'
       });
       

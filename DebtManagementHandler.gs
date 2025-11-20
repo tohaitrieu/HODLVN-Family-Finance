@@ -172,7 +172,7 @@ function addDebtManagement(data) {
     // BƯỚC 3: TRẢ VỀ KẾT QUẢ
     // ============================================
     const resultMessage = `✅ Đã thêm khoản nợ: ${debtName}\n` +
-               `💰 Số tiền: ${principal.toLocaleString('vi-VN')} VNĐ\n` +
+               `💰 Số tiền: ${principal.toLocaleString('vi-VN')}\n` +
                `📅 Kỳ hạn: ${term} tháng\n` +
                `💳 Loại: ${debtType}\n` +
                `📊 Trạng thái: Chưa trả` +
