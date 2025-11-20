@@ -157,7 +157,7 @@ function addExpense(data) {
     const date = new Date(data.date);
     const amount = parseFloat(data.amount);
     const category = data.category.toString();
-    const subcategory = data.subcategory || '';
+    const subcategory = data.subcategory || data.detail || '';
     const note = data.note || '';
     
     const rowData = [
