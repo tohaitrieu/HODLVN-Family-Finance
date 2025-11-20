@@ -142,3 +142,8 @@ npm-debug.log*
 # macOS và Windows
 .DS_Store
 Thumbs.db
+
+# Antigravity
+
+walkthrough.md
+implementation_plan.md
