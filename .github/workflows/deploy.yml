@@ -1,0 +1,38 @@
+name: Deploy to GAS
+
+on:
+  push:
+    branches: [ "main" ] # Hoặc "master" tùy tên nhánh chính của bạn
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Tải code từ GitHub về máy ảo
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Cài đặt Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      # 3. Cài đặt CLASP
+      - name: Install CLASP
+        run: npm install @google/clasp -g
+
+      # 4. Tạo file cấu hình .clasp.json (chứa Script ID)
+      - name: Create .clasp.json
+        run: |
+          echo '{"scriptId":"${{ secrets.SCRIPT_ID }}","rootDir":"./"}' > .clasp.json
+
+      # 5. Tạo file đăng nhập .clasprc.json (từ Secret)
+      - name: Create .clasprc.json
+        run: |
+          echo '${{ secrets.CLASP_SECRET }}' > ~/.clasprc.json
+
+      # 6. Đẩy code lên GAS
+      - name: Push to GAS
+        run: clasp push -f
