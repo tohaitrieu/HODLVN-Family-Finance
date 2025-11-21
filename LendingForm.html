@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+
+        h2 {
+            color: #4472C4;
+            margin-top: 0;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #4472C4;
+        }
+
+        .btn {
+            background-color: #4472C4;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background-color: #365899;
+        }
+
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .message {
+            padding: 10px;
+            margin-top: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .required {
+            color: red;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .inline-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .inline-group .form-group {
+            flex: 1;
+        }
+
+        .info-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+
+        .info-box p {
+            margin: 5px 0;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>🤝 Thêm Khoản Cho Vay Mới</h2>
+
+    <div class="info-box">
+        <p><strong>💡 Lưu ý:</strong></p>
+        <p>• Khi thêm khoản cho vay, hệ thống sẽ <strong>TỰ ĐỘNG</strong> thêm khoản chi vào sheet CHI</p>
+        <p>• Ví dụ: Cho bạn vay 10 triệu → Tự động ghi nhận chi "Cho vay" 10 triệu</p>
+        <p>• Điều này phản ánh đúng thực tế: <strong>Cho vay = Tiền mặt giảm</strong></p>
+    </div>
+
+    <form id="lendingForm">
+        <div class="form-group">
+            <label for="date">Ngày cho vay <span class="required">*</span></label>
+            <input type="date" id="date" required>
+        </div>
+
+        <div class="form-group">
+            <label for="borrowerName">Tên người vay <span class="required">*</span></label>
+            <input type="text" id="borrowerName" required placeholder="VD: Nguyễn Văn A, Công ty B">
+        </div>
+
+        <div class="form-group">
+            <label for="lendingType">Loại cho vay <span class="required">*</span></label>
+            <select id="lendingType" required>
+                <option value="">-- Chọn loại --</option>
+                <option value="Cá nhân">Cá nhân</option>
+                <option value="P2P Lending">P2P Lending</option>
+                <option value="Doanh nghiệp">Doanh nghiệp</option>
+                <option value="Khác">Khác</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="principal">Số tiền gốc <span class="required">*</span></label>
+            <input type="number" id="principal" required min="0" step="1000" placeholder="Số tiền cho vay">
+        </div>
+
+        <div class="inline-group">
+            <div class="form-group">
+                <label for="interestRate">Lãi suất (%/năm) <span class="required">*</span></label>
+                <input type="number" id="interestRate" required min="0" step="0.1" placeholder="VD: 12.0">
+            </div>
+
+            <div class="form-group">
+                <label for="term">Kỳ hạn (tháng) <span class="required">*</span></label>
+                <input type="number" id="term" required min="1" step="1" placeholder="VD: 6">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="note">Ghi chú</label>
+            <textarea id="note" rows="3" placeholder="Thông tin bổ sung..."></textarea>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">Thêm khoản cho vay</button>
+    </form>
+
+    <div id="message" class="message"></div>
+
+    <script>
+        // Set ngày mặc định là hôm nay
+        document.getElementById('date').valueAsDate = new Date();
+
+        // Submit form
+        document.getElementById('lendingForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const messageDiv = document.getElementById('message');
+
+            // Disable button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Đang xử lý...';
+
+            // Prepare data
+            const data = {
+                date: document.getElementById('date').value,
+                borrowerName: document.getElementById('borrowerName').value,
+                lendingType: document.getElementById('lendingType').value,
+                principal: document.getElementById('principal').value,
+                interestRate: document.getElementById('interestRate').value,
+                term: document.getElementById('term').value,
+                note: document.getElementById('note').value
+            };
+
+            // Call server function
+            google.script.run
+                .withSuccessHandler(function (result) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Thêm khoản cho vay';
+
+                    if (result.success) {
+                        messageDiv.className = 'message success';
+                        messageDiv.textContent = result.message;
+                        messageDiv.style.display = 'block';
+
+                        // Reset form
+                        document.getElementById('lendingForm').reset();
+                        document.getElementById('date').valueAsDate = new Date();
+
+                        // Hide message after 3 seconds
+                        setTimeout(function () {
+                            messageDiv.style.display = 'none';
+                        }, 3000);
+                    } else {
+                        messageDiv.className = 'message error';
+                        messageDiv.textContent = result.message;
+                        messageDiv.style.display = 'block';
+                    }
+                })
+                .withFailureHandler(function (error) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Thêm khoản cho vay';
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = '❌ Lỗi: ' + error.message;
+                    messageDiv.style.display = 'block';
+                })
+                .addLending(data);
+        });
+    </script>
+</body>
+
+</html>

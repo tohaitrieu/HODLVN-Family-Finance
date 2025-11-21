@@ -50,6 +50,7 @@ const APP_CONFIG = {
     CRYPTO: 'CRYPTO',
     OTHER_INVESTMENT: 'ĐẦU TƯ KHÁC',
     DEBT_MANAGEMENT: 'QUẢN LÝ NỢ',
+    LENDING: 'CHO VAY',
     BUDGET: 'BUDGET',
     DASHBOARD: 'TỔNG QUAN'
   },
@@ -81,7 +82,7 @@ const APP_CONFIG = {
     ],
     EXPENSE: [
       'Ăn uống', 'Đi lại', 'Nhà ở', 'Y tế', 
-      'Giáo dục', 'Mua sắm', 'Giải trí', 'Khác'
+      'Giáo dục', 'Mua sắm', 'Giải trí', 'Cho vay', 'Khác'
     ]
   }
 };
@@ -101,6 +102,8 @@ function onOpen() {
       .addItem('📤 Nhập Chi tiêu', 'showExpenseForm')
       .addItem('💳 Thêm Khoản Nợ', 'showDebtManagementForm')
       .addItem('💳 Trả nợ', 'showDebtPaymentForm')
+      .addItem('🤝 Cho vay', 'showLendingForm')
+      .addItem('💰 Thu nợ & Lãi', 'showLendingPaymentForm')
       .addSeparator()
       .addItem('📈 Giao dịch Chứng khoán', 'showStockForm')
       .addItem('📊 Nhập Cổ tức', 'showDividendForm')
@@ -123,6 +126,7 @@ function onOpen() {
     // === NHÓM 3: THỐNG KÊ ===
     .addSubMenu(ui.createMenu('📊 Thống kê & Dashboard')
       .addItem('🔄 Cập nhật Dashboard', 'refreshDashboard')
+      .addItem('📅 Lịch trả nợ dự kiến', 'showDebtScheduleReport')
       .addSeparator()
       .addItem('📅 Xem Tất cả', 'viewAll')
       .addItem('📊 Xem Năm hiện tại', 'viewCurrentYear')
@@ -133,6 +137,7 @@ function onOpen() {
     
     // === NHÓM 4: TIỆN ÍCH ===
     .addSubMenu(ui.createMenu('🛠️ Tiện ích')
+      .addItem('✨ Chuẩn hóa dữ liệu', 'normalizeAllData')
       .addItem('🔍 Tìm kiếm giao dịch', 'searchTransaction')
       .addItem('📤 Xuất báo cáo PDF', 'exportToPDF')
       .addItem('🗑️ Xóa dữ liệu test', 'clearTestData'))
@@ -147,6 +152,7 @@ function onOpen() {
       .addItem('📤 Khởi tạo Sheet CHI', 'initializeExpenseSheet')
       .addItem('💳 Khởi tạo Sheet TRẢ NỢ', 'initializeDebtPaymentSheet')
       .addItem('📊 Khởi tạo Sheet QUẢN LÝ NỢ', 'initializeDebtManagementSheet')
+      .addItem('🤝 Khởi tạo Sheet CHO VAY', 'initializeLendingSheet')
       .addSeparator()
       .addItem('📈 Khởi tạo Sheet CHỨNG KHOÁN', 'initializeStockSheet')
       .addItem('🪙 Khởi tạo Sheet VÀNG', 'initializeGoldSheet')
@@ -198,6 +204,20 @@ function showExpenseForm() {
  */
 function showDebtPaymentForm() {
   showForm('DebtPaymentForm', '💳 Trả nợ', 600, 650);
+}
+
+/**
+ * Hiển thị form cho vay
+ */
+function showLendingForm() {
+  showForm('LendingForm', '🤝 Thêm Khoản Cho Vay Mới', 600, 700);
+}
+
+/**
+ * Hiển thị form thu nợ
+ */
+function showLendingPaymentForm() {
+  showForm('LendingPaymentForm', '💰 Thu Hồi Nợ & Lãi', 600, 650);
 }
 /**
  * Hiển thị form thêm khoản nợ mới
@@ -577,6 +597,15 @@ function initializeDebtManagementSheet(skipConfirm) {
   if (!skipConfirm && !confirmInitialize('Sheet QUẢN LÝ NỢ')) return;
   SheetInitializer.initializeDebtManagementSheet();
   if (!skipConfirm) showSuccess('Thành công', '✅ Đã khởi tạo Sheet QUẢN LÝ NỢ!');
+}
+
+/**
+ * Khởi tạo Sheet CHO VAY
+ */
+function initializeLendingSheet(skipConfirm) {
+  if (!skipConfirm && !confirmInitialize('Sheet CHO VAY')) return;
+  SheetInitializer.initializeLendingSheet();
+  if (!skipConfirm) showSuccess('Thành công', '✅ Đã khởi tạo Sheet CHO VAY!');
 }
 
 /**

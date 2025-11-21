@@ -1,29 +1,49 @@
-# Walkthrough - Remove Currency Units
+# Walkthrough - New Features: Lending, Debt Schedule, Data Normalization
 
-## Changes Made
+I have implemented the following features as requested:
 
-### 1. Removed "VNĐ" from Number Formats
-- **File:** `Main.gs`, `DataProcessor.gs`
-- **Action:** Updated `APP_CONFIG.FORMATS.NUMBER` and all hardcoded formats to use `'#,##0'` instead of `'#,##0" VNĐ"'`.
-- **Result:** Numbers in sheets will display as plain numbers (e.g., `1,000,000`) without the " VNĐ" suffix.
+## 1. Quản lý Cho vay (Lending Management)
 
-### 2. Updated HTML Forms
-- **Files:** `IncomeForm.html`, `ExpenseForm.html`, `DebtPaymentForm.html`, `StockForm.html`, `GoldForm.html`, `CryptoForm.html`, `SetBudgetForm.html`, `SetupWizard.html`, `OtherInvestmentForm.html`, `DebtManagementForm.html`
-- **Action:** Removed "(VNĐ)" from labels and " VNĐ" from JavaScript display logic.
-- **Result:** Forms now show cleaner labels (e.g., "Số tiền" instead of "Số tiền (VNĐ)") and input values.
+### ✨ Features
+- **New Sheet**: `CHO VAY` (Lending) to track loans given to others.
+- **Add Loan**: Form to add new loans. Automatically creates an "Expense" entry (Category: "Cho vay") in the `CHI` sheet to reflect cash outflow.
+- **Receive Payment**: Form to record Principal and Interest repayment. Automatically creates "Income" entries (Category: "Thu hồi nợ" / "Lãi đầu tư") in the `THU` sheet.
+- **Dashboard Integration**: "Cho vay" is now listed in the **Assets** (Tài sản) section of the Dashboard.
 
-### 3. Updated Utility Functions
-- **File:** `Utils.gs`
-- **Action:** Updated `formatCurrency` to return a decimal string without the currency symbol or unit.
+### 📂 Files Created/Modified
+- `SheetInitializer.gs`: Added `initializeLendingSheet`.
+- `LendingForm.html`: Form for adding loans.
+- `LendingPaymentForm.html`: Form for receiving payments.
+- `LendingHandler.gs`: Logic for adding loans and processing payments.
+- `Main.gs`: Added menu items and configuration.
+- `DashboardManager.gs`: Added "Cho vay" to Assets table.
 
-## Verification Steps
+## 2. Lịch Trả Nợ (Debt Repayment Schedule)
 
-### 1. Verify Sheet Formatting
-1.  Go to **Menu > Khởi tạo Sheet > 📥 Khởi tạo TẤT CẢ Sheet** (or individual sheets).
-2.  Enter new data via any form (e.g., Income, Expense).
-3.  Check the spreadsheet columns. Values should be formatted as `1,000,000` (no VNĐ).
+### ✨ Features
+- **Report**: A new report showing upcoming debt payments for the next month.
+- **Calculation**: Uses the "Reducing Balance" method (Dư nợ giảm dần) to estimate the next payment (Principal + Interest).
+- **Access**: Menu > **Thống kê & Dashboard** > **Lịch trả nợ dự kiến**.
 
-### 2. Verify Forms
-1.  Open any form (e.g., **Menu > Nhập liệu > ➕ Thu nhập**).
-2.  Check the "Số tiền" label. It should NOT say "(VNĐ)".
-3.  Enter a value. The display (if any) should not append "VNĐ".
+### 📂 Files Created/Modified
+- `DataNormalizer.gs`: Implemented `calculateNextDebtPayments` and `showDebtScheduleReport`.
+- `Main.gs`: Added menu item.
+
+## 3. Chuẩn hóa Dữ liệu (Data Normalization)
+
+### ✨ Features
+- **One-click Fix**: A tool to scan all sheets and normalize Date formats (dd/mm/yyyy) and Number formats.
+- **Access**: Menu > **Tiện ích** > **Chuẩn hóa dữ liệu**.
+
+### 📂 Files Created/Modified
+- `DataNormalizer.gs`: Implemented `normalizeAllData`.
+- `Main.gs`: Added menu item.
+
+## 🚀 How to Use
+
+1.  **Initialize**: Go to **Menu > Khởi tạo Sheet > Khởi tạo Sheet CHO VAY** (if not already done).
+2.  **Lending**:
+    -   **Add Loan**: Menu > **Nhập liệu > Cho vay**.
+    -   **Receive Payment**: Menu > **Nhập liệu > Thu nợ & Lãi**.
+3.  **Debt Schedule**: Menu > **Thống kê & Dashboard > Lịch trả nợ dự kiến**.
+4.  **Normalize Data**: Menu > **Tiện ích > Chuẩn hóa dữ liệu**.

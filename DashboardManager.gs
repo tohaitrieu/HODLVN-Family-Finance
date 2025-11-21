@@ -181,7 +181,7 @@ const DashboardManager = {
     sheet.getRange(liabStart + debtItems.length, cfg.LEFT_COL + 1).setFormula(`=SUM(R[-${debtItems.length}]C:R[-1]C)`);
     
     // 4. Assets Table
-    const assetRows = ['Tiền mặt (Ròng)', 'Chứng khoán', 'Vàng', 'Crypto', 'Đầu tư khác', 'TỔNG TÀI SẢN'];
+    const assetRows = ['Tiền mặt (Ròng)', 'Chứng khoán', 'Vàng', 'Crypto', 'Đầu tư khác', 'Cho vay', 'TỔNG TÀI SẢN'];
     const assetHeight = this._renderTable(sheet, currentRow, cfg.RIGHT_COL, '4. Báo cáo Tài sản', this.CONFIG.COLORS.ASSETS, assetRows);
     
     // Formulas for Assets
@@ -198,8 +198,9 @@ const DashboardManager = {
     sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUMIF(VÀNG!C:C, "Mua", VÀNG!H:H) - SUMIF(VÀNG!C:C, "Bán", VÀNG!H:H), 0)`);
     sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUMIF(CRYPTO!C:C, "Mua", CRYPTO!I:I) - SUMIF(CRYPTO!C:C, "Bán", CRYPTO!I:I), 0)`);
     sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('ĐẦU TƯ KHÁC'!D:D), 0)`);
+    sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CHO VAY'!J:J), 0)`);
     // Total Assets
-    sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 1).setFormula(`=SUM(R[-5]C:R[-1]C)`);
+    sheet.getRange(assetStart + 6, cfg.RIGHT_COL + 1).setFormula(`=SUM(R[-6]C:R[-1]C)`);
     
     // Calculate max height for Row 2
     const row2Height = Math.max(liabilityHeight, assetHeight);

@@ -263,6 +263,66 @@ const SheetInitializer = {
   },
   
   /**
+   * Khởi tạo Sheet CHO VAY
+   */
+  initializeLendingSheet() {
+    const ss = getSpreadsheet();
+    const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.LENDING);
+    
+    // Header
+    const headers = [
+      'STT', 'Tên người vay', 'Số tiền gốc', 'Lãi suất (%/năm)', 
+      'Kỳ hạn (tháng)', 'Ngày vay', 'Ngày đến hạn', 'Gốc đã thu', 
+      'Lãi đã thu', 'Còn lại', 'Trạng thái', 'Ghi chú'
+    ];
+    
+    sheet.getRange(1, 1, 1, headers.length)
+      .setValues([headers])
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center')
+      .setBackground(APP_CONFIG.COLORS.HEADER_BG)
+      .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
+    
+    // Column widths
+    sheet.setColumnWidth(1, 50);
+    sheet.setColumnWidth(2, 150);
+    sheet.setColumnWidth(3, 120);
+    sheet.setColumnWidth(4, 100);
+    sheet.setColumnWidth(5, 100);
+    sheet.setColumnWidth(6, 100);
+    sheet.setColumnWidth(7, 100);
+    sheet.setColumnWidth(8, 120);
+    sheet.setColumnWidth(9, 120);
+    sheet.setColumnWidth(10, 120);
+    sheet.setColumnWidth(11, 100);
+    sheet.setColumnWidth(12, 200);
+    
+    // Format
+    sheet.getRange('A2:A').setNumberFormat('0');
+    sheet.getRange('C2:C').setNumberFormat('#,##0');
+    sheet.getRange('D2:D').setNumberFormat('0.00"%"');
+    sheet.getRange('E2:E').setNumberFormat('0');
+    sheet.getRange('F2:G').setNumberFormat(APP_CONFIG.FORMATS.DATE);
+    this._fixDateColumn(sheet, 6); // Ngày vay
+    this._fixDateColumn(sheet, 7); // Ngày đến hạn
+    sheet.getRange('H2:J').setNumberFormat('#,##0');
+    
+    // Formula
+    sheet.getRange('J2:J1000').setFormula('=IFERROR(C2-H2, 0)');
+    
+    // Validation
+    const statusRange = sheet.getRange('K2:K1000');
+    const statusRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Đang vay', 'Đã tất toán', 'Quá hạn', 'Khó đòi'])
+      .setAllowInvalid(false)
+      .build();
+    statusRange.setDataValidation(statusRule);
+    
+    sheet.setFrozenRows(1);
+    return sheet;
+  },
+  
+  /**
    * Khởi tạo Sheet CHỨNG KHOÁN
    */
   initializeStockSheet() {
