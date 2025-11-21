@@ -32,6 +32,15 @@ jobs:
       - name: Create .clasprc.json
         run: |
           echo '${{ secrets.CLASP_SECRET }}' > ~/.clasprc.json
+      # --- BƯỚC KIỂM TRA MỚI (THÊM VÀO ĐÂY) ---
+      - name: DEBUG - Check file content
+        run: |
+          echo "Checking file structure..."
+          # In ra 20 ký tự đầu tiên xem có đúng là {"token": hay không
+          head -c 20 ~/.clasprc.json
+          echo "" 
+          # Kiểm tra dung lượng file (nếu là 0 tức là Secret rỗng)
+          ls -l ~/.clasprc.json
 
       # 6. Đẩy code lên GAS
       - name: Push to GAS
