@@ -101,61 +101,58 @@ function CPRICE(input) {
   throw 'CPRICE: Không lấy được giá cho ' + sym;
 }
 /**
- * Hàm lấy giá vàng mua vào (pb_1) từ BTMC.
+ * Hàm lấy giá vàng mua vào (pb) từ BTMC.
+ * Tự động tìm kiếm trong tất cả các dòng dữ liệu.
  * @param {string} tu_khoa Tên loại vàng (Ví dụ: "SJC", "Nhẫn", "Gold").
  * @return Giá mua vào.
  * @customfunction
  */
 function GPRICE(tu_khoa) {
-  // 1. Kiểm tra dữ liệu đầu vào
   if (!tu_khoa) return "Chưa nhập tên";
   
-  // Chuyển từ khóa về chữ thường để so sánh
   var keyword = tu_khoa.toString().toLowerCase();
 
-  // 2. QUY ĐỔI TỪ KHÓA (Mapping)
-  // Nếu nhập GOLD, XAUUSD, hoặc Vàng -> Mặc định tìm "Vàng Rồng Thăng Long"
+  // 1. Quy đổi từ khóa chung sang tên cụ thể của BTMC
   if (keyword === "gold" || keyword === "xauusd" || keyword === "vàng") {
     keyword = "vàng rồng thăng long"; 
   }
-
-  // 3. Kiểm tra Cache (Lưu tạm dữ liệu 60s để tránh gọi API quá nhiều khi kéo công thức)
+  
+  // 2. Lấy dữ liệu (có lưu cache 60s)
   var cache = CacheService.getScriptCache();
-  var xmlContent = cache.get("btmc_data_cache");
+  var xmlContent = cache.get("btmc_data_cache_v2"); // Đổi tên cache để làm mới
   
   if (!xmlContent) {
     var url = "http://api.btmc.vn/api/BTMCAPI/getpricebtmc?key=3kd8ub1llcg9t45hnoh8hmn7t5kc2v";
     try {
       var response = UrlFetchApp.fetch(url);
       xmlContent = response.getContentText();
-      cache.put("btmc_data_cache", xmlContent, 60); // Lưu cache trong 60 giây
+      cache.put("btmc_data_cache_v2", xmlContent, 60); 
     } catch (e) {
-      return "Lỗi kết nối API";
+      return "Lỗi API";
     }
   }
 
-  // 4. Xử lý tìm kiếm trong dữ liệu XML
+  // 3. Xử lý tìm kiếm thông minh (Bỏ qua số thứ tự dòng n_1, n_2...)
   var rawRows = xmlContent.split('<Data');
 
-  // Duyệt qua các dòng dữ liệu để tìm tên phù hợp
+  // Duyệt từ trên xuống dưới (Dữ liệu mới nhất thường ở trên cùng)
   for (var i = 1; i < rawRows.length; i++) {
     var line = rawRows[i];
-    var nameInApi = getValueRegex(line, 'n_1').toLowerCase();
+    
+    // Tìm tên vàng: Bắt pattern n_số="giá_trị"
+    var nameMatch = line.match(/n_\d+="([^"]*)"/);
+    var nameInApi = nameMatch ? nameMatch[1].toLowerCase() : "";
 
     // Nếu tên trong API có chứa từ khóa bạn nhập
     if (nameInApi.indexOf(keyword) > -1) {
-      // Lấy giá mua vào (pb_1)
-      var price = getValueRegex(line, 'pb_1');
+      
+      // Tìm giá mua vào (pb): Bắt pattern pb_số="giá_trị"
+      var priceMatch = line.match(/pb_\d+="([^"]*)"/);
+      var price = priceMatch ? priceMatch[1] : "0";
+      
       return parseFloat(price);
     }
   }
 
-  return "Không tìm thấy loại vàng này";
-}
-
-// Hàm phụ trợ tách dữ liệu
-function getValueRegex(text, key) {
-  var regex = new RegExp(key + '="([^"]*)"');
-  var match = text.match(regex);
-  return match ? match[1] : "";
+  return "Không tìm thấy";
 }
