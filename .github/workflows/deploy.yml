@@ -41,7 +41,11 @@ jobs:
           echo "" 
           # Kiểm tra dung lượng file (nếu là 0 tức là Secret rỗng)
           ls -l ~/.clasprc.json
-
+      # BƯỚC KIỂM TRA FILE (Thêm vào để debug)
+      - name: DEBUG - List all files
+        run: |
+          echo "Current folder structure:"
+          ls -R
       # 6. Đẩy code lên GAS
       - name: Push to GAS
         run: clasp push -f
