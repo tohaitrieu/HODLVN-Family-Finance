@@ -592,8 +592,8 @@ function addGold(data) {
     sheet.getRange(emptyRow, 14).setValue(note);
     
     // Set Formulas for J-M
-    // J: Giá HT = GPRICE(Loại vàng)
-    sheet.getRange(emptyRow, 10).setFormula(`=IF(E${emptyRow}<>"", GPRICE(E${emptyRow}), 0)`);
+    // J: Giá HT = GPRICE(Tài sản - Cột C)
+    sheet.getRange(emptyRow, 10).setFormula(`=IF(C${emptyRow}<>"", GPRICE(C${emptyRow}), 0)`);
     
     // K: Giá trị HT = Số lượng * Giá HT
     sheet.getRange(emptyRow, 11).setFormula(`=IF(AND(F${emptyRow}>0, J${emptyRow}>0), F${emptyRow}*J${emptyRow}, 0)`);

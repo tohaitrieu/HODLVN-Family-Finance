@@ -490,8 +490,8 @@ const SheetInitializer = {
     sheet.getRange('M2:M').setNumberFormat('0.00%');
     
     // Formulas
-    // J: Giá HT = GPRICE(Loại vàng)
-    sheet.getRange('J2:J1000').setFormula('=IF(E2<>"", GPRICE(E2), 0)');
+    // J: Giá HT = GPRICE(Tài sản - Cột C)
+    sheet.getRange('J2:J1000').setFormula('=IF(C2<>"", GPRICE(C2), 0)');
     
     // K: Giá trị HT = Số lượng * Giá HT
     // Lưu ý: GPRICE trả về giá VND (thường là cho 1 lượng/chỉ tùy loại). 
@@ -584,8 +584,9 @@ const SheetInitializer = {
     sheet.getRange('O2:O').setNumberFormat('0.00%');    // % Lãi/Lỗ
     
     // Formulas
-    // J: Giá HT (USD) = CPRICE(Coin + "USD")
-    sheet.getRange('J2:J1000').setFormula('=IF(D2<>"", CPRICE(D2&"USD"), 0)');
+    // J: Giá HT (USD) = CPRICE(Coin)
+    // User tự nhập mã (VD: BTC-USD, ETH-USD) hoặc mã Yahoo Finance
+    sheet.getRange('J2:J1000').setFormula('=IF(D2<>"", CPRICE(D2), 0)');
     
     // K: Giá trị HT (USD) = Số lượng * Giá HT (USD)
     sheet.getRange('K2:K1000').setFormula('=IF(AND(E2>0, J2>0), E2*J2, 0)');

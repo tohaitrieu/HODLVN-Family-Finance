@@ -38,6 +38,19 @@ function migrateGoldSheet() {
       'Giá vốn', 'Tổng vốn', 'Giá HT', 'Giá trị HT', 'Lãi/Lỗ', '% Lãi/Lỗ', 'Ghi chú'
     ];
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    
+    // Force update formulas for existing rows
+    const lastRow = sheet.getLastRow();
+    if (lastRow >= 2) {
+      // J: Giá HT = GPRICE(Tài sản - Cột C)
+      sheet.getRange(2, 10, lastRow - 1).setFormulaR1C1('=IF(R[0]C[-7]<>"", GPRICE(R[0]C[-7]), 0)');
+      // K: Giá trị HT
+      sheet.getRange(2, 11, lastRow - 1).setFormulaR1C1('=IF(AND(R[0]C[-5]>0, R[0]C[-1]>0), R[0]C[-5]*R[0]C[-1], 0)');
+      // L: Lãi/Lỗ
+      sheet.getRange(2, 12, lastRow - 1).setFormulaR1C1('=IF(R[0]C[-1]>0, R[0]C[-1]-R[0]C[-3], 0)');
+      // M: % Lãi/Lỗ
+      sheet.getRange(2, 13, lastRow - 1).setFormulaR1C1('=IF(R[0]C[-4]>0, R[0]C[-1]/R[0]C[-4], 0)');
+    }
     return;
   }
 
@@ -74,8 +87,9 @@ function migrateGoldSheet() {
   // 5. Update Formats & Formulas
   if (lastRow >= 2) {
     // Formulas
-    // J: Giá HT = GPRICE(Loại vàng)
-    sheet.getRange(2, 10, lastRow - 1).setFormulaR1C1('=IF(R[0]C[-5]<>"", GPRICE(R[0]C[-5]), 0)');
+    // J: Giá HT = GPRICE(Tài sản - Cột C)
+    // Col J is 10, Col C is 3. Offset is -7.
+    sheet.getRange(2, 10, lastRow - 1).setFormulaR1C1('=IF(R[0]C[-7]<>"", GPRICE(R[0]C[-7]), 0)');
     
     // K: Giá trị HT = Số lượng * Giá HT
     sheet.getRange(2, 11, lastRow - 1).setFormulaR1C1('=IF(AND(R[0]C[-5]>0, R[0]C[-1]>0), R[0]C[-5]*R[0]C[-1], 0)');
@@ -110,6 +124,23 @@ function migrateCryptoSheet() {
       'Sàn', 'Ví', 'Ghi chú'
     ];
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    
+    // Force update formulas for existing rows
+    const lastRow = sheet.getLastRow();
+    if (lastRow >= 2) {
+      // J: Giá HT (USD)
+      sheet.getRange(2, 10, lastRow - 1).setFormulaR1C1('=IF(R[0]C[-6]<>"", CPRICE(R[0]C[-6]&"USD"), 0)');
+      // K: Giá trị HT (USD)
+      sheet.getRange(2, 11, lastRow - 1).setFormulaR1C1('=IF(AND(R[0]C[-6]>0, R[0]C[-1]>0), R[0]C[-6]*R[0]C[-1], 0)');
+      // L: Giá HT (VND)
+      sheet.getRange(2, 12, lastRow - 1).setFormulaR1C1('=IF(AND(R[0]C[-2]>0, R[0]C[-5]>0), R[0]C[-2]*R[0]C[-5], 0)');
+      // M: Giá trị HT (VND)
+      sheet.getRange(2, 13, lastRow - 1).setFormulaR1C1('=IF(AND(R[0]C[-2]>0, R[0]C[-6]>0), R[0]C[-2]*R[0]C[-6], 0)');
+      // N: Lãi/Lỗ
+      sheet.getRange(2, 14, lastRow - 1).setFormulaR1C1('=IF(R[0]C[-1]>0, R[0]C[-1]-R[0]C[-5], 0)');
+      // O: % Lãi/Lỗ
+      sheet.getRange(2, 15, lastRow - 1).setFormulaR1C1('=IF(R[0]C[-6]>0, R[0]C[-1]/R[0]C[-6], 0)');
+    }
     return;
   }
 
