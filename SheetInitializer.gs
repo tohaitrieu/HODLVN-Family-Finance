@@ -453,7 +453,12 @@ const SheetInitializer = {
     const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.GOLD);
     
     // Header
-    const headers = ['STT', 'Ngày', 'Loại GD', 'Loại vàng', 'Số lượng', 'Đơn vị', 'Giá', 'Tổng', 'Nơi lưu', 'Ghi chú'];
+    // [NEW] Thêm cột Tài sản, Giá vốn, Tổng vốn, Giá HT, Giá trị HT, Lãi/Lỗ
+    const headers = [
+      'STT', 'Ngày', 'Tài sản', 'Loại GD', 'Loại vàng', 'Số lượng', 'Đơn vị', 
+      'Giá vốn', 'Tổng vốn', 'Giá HT', 'Giá trị HT', 'Lãi/Lỗ', '% Lãi/Lỗ', 'Ghi chú'
+    ];
+    
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])
       .setFontWeight('bold')
@@ -462,29 +467,64 @@ const SheetInitializer = {
       .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
     
     // Column widths
-    sheet.setColumnWidth(1, 50);
-    sheet.setColumnWidth(2, 100);
-    sheet.setColumnWidth(3, 80);
-    sheet.setColumnWidth(4, 100);
-    sheet.setColumnWidth(5, 80);
-    sheet.setColumnWidth(6, 70);
-    sheet.setColumnWidth(7, 100);
-    sheet.setColumnWidth(8, 120);
-    sheet.setColumnWidth(9, 120);
-    sheet.setColumnWidth(10, 200);
+    sheet.setColumnWidth(1, 50);   // STT
+    sheet.setColumnWidth(2, 100);  // Ngày
+    sheet.setColumnWidth(3, 80);   // Tài sản
+    sheet.setColumnWidth(4, 80);   // Loại GD
+    sheet.setColumnWidth(5, 100);  // Loại vàng
+    sheet.setColumnWidth(6, 80);   // Số lượng
+    sheet.setColumnWidth(7, 70);   // Đơn vị
+    sheet.setColumnWidth(8, 100);  // Giá vốn
+    sheet.setColumnWidth(9, 120);  // Tổng vốn
+    sheet.setColumnWidth(10, 100); // Giá HT
+    sheet.setColumnWidth(11, 120); // Giá trị HT
+    sheet.setColumnWidth(12, 110); // Lãi/Lỗ
+    sheet.setColumnWidth(13, 80);  // % Lãi/Lỗ
+    sheet.setColumnWidth(14, 200); // Ghi chú
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
     this._fixDateColumn(sheet, 2);
-    sheet.getRange('G2:H').setNumberFormat('#,##0');
+    sheet.getRange('H2:L').setNumberFormat('#,##0'); // Giá vốn -> Lãi/Lỗ
+    sheet.getRange('M2:M').setNumberFormat('0.00%');
+    
+    // Formulas
+    // J: Giá HT = GPRICE(Loại vàng)
+    sheet.getRange('J2:J1000').setFormula('=IF(E2<>"", GPRICE(E2), 0)');
+    
+    // K: Giá trị HT = Số lượng * Giá HT
+    // Lưu ý: GPRICE trả về giá VND (thường là cho 1 lượng/chỉ tùy loại). 
+    // Giả định Số lượng và Giá HT tương thích đơn vị.
+    sheet.getRange('K2:K1000').setFormula('=IF(AND(F2>0, J2>0), F2*J2, 0)');
+    
+    // L: Lãi/Lỗ = Giá trị HT - Tổng vốn
+    sheet.getRange('L2:L1000').setFormula('=IF(K2>0, K2-I2, 0)');
+    
+    // M: % Lãi/Lỗ
+    sheet.getRange('M2:M1000').setFormula('=IF(I2>0, L2/I2, 0)');
+    
+    // Conditional Formatting for Profit/Loss
+    sheet.clearConditionalFormatRules();
+    const profitLossRange = sheet.getRange('L2:L1000');
+    const percentRange = sheet.getRange('M2:M1000');
+    
+    const rules = [
+      SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0).setBackground('#D4EDDA').setFontColor('#155724').setRanges([profitLossRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0).setBackground('#F8D7DA').setFontColor('#721C24').setRanges([profitLossRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0.1).setBackground('#28A745').setFontColor('#FFFFFF').setBold(true).setRanges([percentRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberBetween(0, 0.1).setBackground('#D4EDDA').setFontColor('#155724').setRanges([percentRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberBetween(-0.1, 0).setBackground('#F8D7DA').setFontColor('#721C24').setRanges([percentRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(-0.1).setBackground('#DC3545').setFontColor('#FFFFFF').setBold(true).setRanges([percentRange]).build()
+    ];
+    sheet.setConditionalFormatRules(rules);
     
     sheet.setFrozenRows(1);
     
     // Validations
-    sheet.getRange('C2:C1000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Mua', 'Bán']).build());
-    sheet.getRange('D2:D1000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['SJC', '24K', '18K', '14K', '10K', 'Khác']).build());
-    sheet.getRange('F2:F1000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['chỉ', 'lượng', 'cây', 'gram']).build());
+    sheet.getRange('D2:D1000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Mua', 'Bán']).build());
+    sheet.getRange('E2:E1000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['SJC', '24K', '18K', '14K', '10K', 'Khác']).build());
+    sheet.getRange('G2:G1000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['chỉ', 'lượng', 'cây', 'gram']).build());
     
     return sheet;
   },
@@ -497,7 +537,13 @@ const SheetInitializer = {
     const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.CRYPTO);
     
     // Header
-    const headers = ['STT', 'Ngày', 'Loại GD', 'Coin', 'Số lượng', 'Giá (USD)', 'Tỷ giá', 'Giá', 'Tổng', 'Sàn', 'Ví', 'Ghi chú'];
+    // [NEW] Thêm cột Giá HT (USD), Giá trị HT (USD), Giá HT (VND), Giá trị HT (VND), Lãi/Lỗ
+    const headers = [
+      'STT', 'Ngày', 'Loại GD', 'Coin', 'Số lượng', 'Giá (USD)', 'Tỷ giá', 'Giá (VND)', 'Tổng vốn',
+      'Giá HT (USD)', 'Giá trị HT (USD)', 'Giá HT (VND)', 'Giá trị HT (VND)', 'Lãi/Lỗ', '% Lãi/Lỗ',
+      'Sàn', 'Ví', 'Ghi chú'
+    ];
+    
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])
       .setFontWeight('bold')
@@ -506,25 +552,70 @@ const SheetInitializer = {
       .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
     
     // Column widths
-    sheet.setColumnWidth(1, 50);
-    sheet.setColumnWidth(2, 100);
-    sheet.setColumnWidth(3, 80);
-    sheet.setColumnWidth(4, 80);
-    sheet.setColumnWidth(5, 100);
-    sheet.setColumnWidth(6, 100);
-    sheet.setColumnWidth(7, 80);
-    sheet.setColumnWidth(8, 100);
-    sheet.setColumnWidth(9, 120);
-    sheet.setColumnWidth(10, 100);
-    sheet.setColumnWidth(11, 150);
-    sheet.setColumnWidth(12, 200);
+    sheet.setColumnWidth(1, 50);   // STT
+    sheet.setColumnWidth(2, 100);  // Ngày
+    sheet.setColumnWidth(3, 80);   // Loại GD
+    sheet.setColumnWidth(4, 80);   // Coin
+    sheet.setColumnWidth(5, 100);  // Số lượng
+    sheet.setColumnWidth(6, 100);  // Giá (USD)
+    sheet.setColumnWidth(7, 80);   // Tỷ giá
+    sheet.setColumnWidth(8, 100);  // Giá (VND)
+    sheet.setColumnWidth(9, 120);  // Tổng vốn
+    sheet.setColumnWidth(10, 100); // Giá HT (USD)
+    sheet.setColumnWidth(11, 120); // Giá trị HT (USD)
+    sheet.setColumnWidth(12, 100); // Giá HT (VND)
+    sheet.setColumnWidth(13, 120); // Giá trị HT (VND)
+    sheet.setColumnWidth(14, 110); // Lãi/Lỗ
+    sheet.setColumnWidth(15, 80);  // % Lãi/Lỗ
+    sheet.setColumnWidth(16, 100); // Sàn
+    sheet.setColumnWidth(17, 150); // Ví
+    sheet.setColumnWidth(18, 200); // Ghi chú
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
     this._fixDateColumn(sheet, 2);
-    sheet.getRange('F2:F').setNumberFormat('#,##0.00');
-    sheet.getRange('H2:I').setNumberFormat('#,##0');
+    sheet.getRange('F2:F').setNumberFormat('#,##0.00'); // Giá USD
+    sheet.getRange('G2:G').setNumberFormat('#,##0');    // Tỷ giá
+    sheet.getRange('H2:I').setNumberFormat('#,##0');    // Giá VND, Tổng vốn
+    sheet.getRange('J2:J').setNumberFormat('#,##0.00'); // Giá HT USD
+    sheet.getRange('K2:K').setNumberFormat('#,##0.00'); // Giá trị HT USD
+    sheet.getRange('L2:N').setNumberFormat('#,##0');    // Giá HT VND -> Lãi/Lỗ
+    sheet.getRange('O2:O').setNumberFormat('0.00%');    // % Lãi/Lỗ
+    
+    // Formulas
+    // J: Giá HT (USD) = CPRICE(Coin + "USD")
+    sheet.getRange('J2:J1000').setFormula('=IF(D2<>"", CPRICE(D2&"USD"), 0)');
+    
+    // K: Giá trị HT (USD) = Số lượng * Giá HT (USD)
+    sheet.getRange('K2:K1000').setFormula('=IF(AND(E2>0, J2>0), E2*J2, 0)');
+    
+    // L: Giá HT (VND) = Giá HT (USD) * Tỷ giá (Cột G)
+    sheet.getRange('L2:L1000').setFormula('=IF(AND(J2>0, G2>0), J2*G2, 0)');
+    
+    // M: Giá trị HT (VND) = Giá trị HT (USD) * Tỷ giá
+    sheet.getRange('M2:M1000').setFormula('=IF(AND(K2>0, G2>0), K2*G2, 0)');
+    
+    // N: Lãi/Lỗ = Giá trị HT (VND) - Tổng vốn
+    sheet.getRange('N2:N1000').setFormula('=IF(M2>0, M2-I2, 0)');
+    
+    // O: % Lãi/Lỗ
+    sheet.getRange('O2:O1000').setFormula('=IF(I2>0, N2/I2, 0)');
+    
+    // Conditional Formatting
+    sheet.clearConditionalFormatRules();
+    const profitLossRange = sheet.getRange('N2:N1000');
+    const percentRange = sheet.getRange('O2:O1000');
+    
+    const rules = [
+      SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0).setBackground('#D4EDDA').setFontColor('#155724').setRanges([profitLossRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0).setBackground('#F8D7DA').setFontColor('#721C24').setRanges([profitLossRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0.1).setBackground('#28A745').setFontColor('#FFFFFF').setBold(true).setRanges([percentRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberBetween(0, 0.1).setBackground('#D4EDDA').setFontColor('#155724').setRanges([percentRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberBetween(-0.1, 0).setBackground('#F8D7DA').setFontColor('#721C24').setRanges([percentRange]).build(),
+      SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(-0.1).setBackground('#DC3545').setFontColor('#FFFFFF').setBold(true).setRanges([percentRange]).build()
+    ];
+    sheet.setConditionalFormatRules(rules);
     
     sheet.setFrozenRows(1);
     

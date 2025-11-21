@@ -533,6 +533,11 @@ function addStock(data) {
  * @param {Object} data - {date, type, goldType, unit, quantity, price, note}
  * @return {Object} {success, message}
  */
+/**
+ * Thêm giao dịch vàng
+ * @param {Object} data - {date, type, goldType, unit, quantity, price, note}
+ * @return {Object} {success, message}
+ */
 function addGold(data) {
   try {
     if (!data.date || !data.type || !data.goldType || !data.quantity || !data.price) {
@@ -564,24 +569,49 @@ function addGold(data) {
     const total = quantity * price;
     const note = data.note || '';
     
+    // [NEW] Structure: 
+    // A: STT, B: Ngày, C: Tài sản (GOLD), D: Loại GD, E: Loại vàng, F: Số lượng, G: Đơn vị, 
+    // H: Giá vốn, I: Tổng vốn, J-M: Formulas, N: Ghi chú
+    
     const rowData = [
       stt,
       date,
+      'GOLD',
       type,
       goldType,
-      unit,
       quantity,
+      unit,
       price,
-      total,
-      note
+      total
     ];
     
-    sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+    // Write A-I (9 columns)
+    sheet.getRange(emptyRow, 1, 1, 9).setValues([rowData]);
+    
+    // Write Note to N (Column 14)
+    sheet.getRange(emptyRow, 14).setValue(note);
+    
+    // Set Formulas for J-M
+    // J: Giá HT = GPRICE(Loại vàng)
+    sheet.getRange(emptyRow, 10).setFormula(`=IF(E${emptyRow}<>"", GPRICE(E${emptyRow}), 0)`);
+    
+    // K: Giá trị HT = Số lượng * Giá HT
+    sheet.getRange(emptyRow, 11).setFormula(`=IF(AND(F${emptyRow}>0, J${emptyRow}>0), F${emptyRow}*J${emptyRow}, 0)`);
+    
+    // L: Lãi/Lỗ = Giá trị HT - Tổng vốn
+    sheet.getRange(emptyRow, 12).setFormula(`=IF(K${emptyRow}>0, K${emptyRow}-I${emptyRow}, 0)`);
+    
+    // M: % Lãi/Lỗ
+    sheet.getRange(emptyRow, 13).setFormula(`=IF(I${emptyRow}>0, L${emptyRow}/I${emptyRow}, 0)`);
     
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
-      7: '#,##0',
-      8: '#,##0'
+      8: '#,##0', // Giá vốn
+      9: '#,##0', // Tổng vốn
+      10: '#,##0', // Giá HT
+      11: '#,##0', // Giá trị HT
+      12: '#,##0', // Lãi/Lỗ
+      13: '0.00%'  // % Lãi/Lỗ
     });
     
     BudgetManager.updateInvestmentBudget('Vàng', total);
@@ -606,6 +636,11 @@ function addGold(data) {
 
 // ==================== CRYPTO ====================
 
+/**
+ * Thêm giao dịch crypto
+ * @param {Object} data - {date, type, coin, quantity, price, fee, note}
+ * @return {Object} {success, message}
+ */
 /**
  * Thêm giao dịch crypto
  * @param {Object} data - {date, type, coin, quantity, price, fee, note}
@@ -637,10 +672,24 @@ function addCrypto(data) {
     const type = data.type.toString();
     const coin = data.coin.toString().toUpperCase();
     const quantity = parseFloat(data.quantity);
-    const price = parseFloat(data.price);
-    const fee = parseFloat(data.fee) || 0;
-    const total = (quantity * price) + fee;
+    const priceUSD = parseFloat(data.priceUSD); // Corrected key from form
+    
+    const rate = parseFloat(data.exchangeRate) || 25300; // Corrected key from form
+    
+    const priceVND = priceUSD * rate;
+    const fee = parseFloat(data.fee) || 0; 
+    
+    const totalUSD = (quantity * priceUSD) + fee;
+    const totalVND = totalUSD * rate;
+    
     const note = data.note || '';
+    const san = data.exchange || ''; // Corrected key from form
+    const vi = data.wallet || '';   // Corrected key from form
+    
+    // [NEW] Structure:
+    // A: STT, B: Ngày, C: Loại GD, D: Coin, E: Số lượng, F: Giá (USD), G: Tỷ giá, H: Giá (VND), I: Tổng vốn
+    // J-O: Formulas
+    // P: Sàn, Q: Ví, R: Ghi chú
     
     const rowData = [
       stt,
@@ -648,30 +697,60 @@ function addCrypto(data) {
       type,
       coin,
       quantity,
-      price,
-      fee,
-      total,
-      note
+      priceUSD,
+      rate,
+      priceVND,
+      totalVND
     ];
     
-    sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+    // Write A-I (9 columns)
+    sheet.getRange(emptyRow, 1, 1, 9).setValues([rowData]);
+    
+    // Write P-R (3 columns)
+    sheet.getRange(emptyRow, 16, 1, 3).setValues([[san, vi, note]]);
+    
+    // Set Formulas for J-O
+    // J: Giá HT (USD)
+    sheet.getRange(emptyRow, 10).setFormula(`=IF(D${emptyRow}<>"", CPRICE(D${emptyRow}&"USD"), 0)`);
+    
+    // K: Giá trị HT (USD)
+    sheet.getRange(emptyRow, 11).setFormula(`=IF(AND(E${emptyRow}>0, J${emptyRow}>0), E${emptyRow}*J${emptyRow}, 0)`);
+    
+    // L: Giá HT (VND)
+    sheet.getRange(emptyRow, 12).setFormula(`=IF(AND(J${emptyRow}>0, G${emptyRow}>0), J${emptyRow}*G${emptyRow}, 0)`);
+    
+    // M: Giá trị HT (VND)
+    sheet.getRange(emptyRow, 13).setFormula(`=IF(AND(K${emptyRow}>0, G${emptyRow}>0), K${emptyRow}*G${emptyRow}, 0)`);
+    
+    // N: Lãi/Lỗ
+    sheet.getRange(emptyRow, 14).setFormula(`=IF(M${emptyRow}>0, M${emptyRow}-I${emptyRow}, 0)`);
+    
+    // O: % Lãi/Lỗ
+    sheet.getRange(emptyRow, 15).setFormula(`=IF(I${emptyRow}>0, N${emptyRow}/I${emptyRow}, 0)`);
     
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
-      6: '#,##0',
-      7: '#,##0',
-      8: '#,##0'
+      6: '#,##0.00', // Giá USD
+      7: '#,##0',    // Tỷ giá
+      8: '#,##0',    // Giá VND
+      9: '#,##0',    // Tổng vốn
+      10: '#,##0.00', // Giá HT USD
+      11: '#,##0.00', // Giá trị HT USD
+      12: '#,##0',    // Giá HT VND
+      13: '#,##0',    // Giá trị HT VND
+      14: '#,##0',    // Lãi/Lỗ
+      15: '0.00%'     // % Lãi/Lỗ
     });
     
-    BudgetManager.updateInvestmentBudget('Crypto', total);
+    BudgetManager.updateInvestmentBudget('Crypto', totalVND);
     
     Logger.log(`Đã thêm giao dịch crypto: ${type} ${quantity} ${coin}`);
     
     return {
       success: true,
       message: `✅ Đã ghi nhận ${type} ${quantity} ${coin}!\n` +
-               `💰 Giá: ${formatCurrency(price)}/${coin}\n` +
-               `💵 Tổng: ${formatCurrency(total)}`
+               `💰 Giá: $${formatCurrency(priceUSD)}\n` +
+               `💵 Tổng: ${formatCurrency(totalVND)}`
     };
     
   } catch (error) {
