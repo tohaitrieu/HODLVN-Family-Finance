@@ -107,52 +107,24 @@ function CPRICE(input) {
  * @return Giá mua vào.
  * @customfunction
  */
-function GPRICE(tu_khoa) {
-  if (!tu_khoa) return "Chưa nhập tên";
+function GPRICE(product) {
+  var url = "http://api.btmc.vn/api/BTMCAPI/getpricebtmc?key=3kd8ub1llcg9t45hnoh8hmn7t5kc2v";
   
-  var keyword = tu_khoa.toString().toLowerCase();
-
-  // 1. Quy đổi từ khóa chung sang tên cụ thể của BTMC
-  if (keyword === "gold" || keyword === "xauusd" || keyword === "vàng") {
-    keyword = "vàng rồng thăng long"; 
-  }
-  
-  // 2. Lấy dữ liệu (có lưu cache 60s)
-  var cache = CacheService.getScriptCache();
-  var xmlContent = cache.get("btmc_data_cache_v2"); // Đổi tên cache để làm mới
-  
-  if (!xmlContent) {
-    var url = "http://api.btmc.vn/api/BTMCAPI/getpricebtmc?key=3kd8ub1llcg9t45hnoh8hmn7t5kc2v";
-    try {
-      var response = UrlFetchApp.fetch(url);
-      xmlContent = response.getContentText();
-      cache.put("btmc_data_cache_v2", xmlContent, 60); 
-    } catch (e) {
-      return "Lỗi API";
-    }
-  }
-
-  // 3. Xử lý tìm kiếm thông minh (Bỏ qua số thứ tự dòng n_1, n_2...)
-  var rawRows = xmlContent.split('<Data');
-
-  // Duyệt từ trên xuống dưới (Dữ liệu mới nhất thường ở trên cùng)
-  for (var i = 1; i < rawRows.length; i++) {
-    var line = rawRows[i];
+  try {
+    var response = UrlFetchApp.fetch(url);
+    var xml = response.getContentText();
     
-    // Tìm tên vàng: Bắt pattern n_số="giá_trị"
-    var nameMatch = line.match(/n_\d+="([^"]*)"/);
-    var nameInApi = nameMatch ? nameMatch[1].toLowerCase() : "";
-
-    // Nếu tên trong API có chứa từ khóa bạn nhập
-    if (nameInApi.indexOf(keyword) > -1) {
-      
-      // Tìm giá mua vào (pb): Bắt pattern pb_số="giá_trị"
-      var priceMatch = line.match(/pb_\d+="([^"]*)"/);
-      var price = priceMatch ? priceMatch[1] : "0";
-      
-      return parseFloat(price);
+    // Lấy pb_1 từ row đầu tiên
+    var pattern = /row="1"[^>]*pb_1="([^"]*)"/;
+    var match = xml.match(pattern);
+    
+    if (match && match[1]) {
+      return Number(match[1]);
     }
+    
+    return "Không tìm thấy dữ liệu";
+    
+  } catch (e) {
+    return "Lỗi: " + e.toString();
   }
-
-  return "Không tìm thấy";
 }
