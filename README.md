@@ -7,6 +7,10 @@
 
 Hệ thống quản lý tài chính cá nhân và gia đình toàn diện được xây dựng trên Google Sheets và Google Apps Script, được thiết kế đặc biệt cho người Việt Nam.
 
+
+![Dashboard](docs/images/hffs-tong-quan.png)
+*Dashboard hiển thị tổng quan tài chính realtime*
+
 ---
 
 ## 📑 MỤC LỤC
