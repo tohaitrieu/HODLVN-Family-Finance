@@ -101,30 +101,44 @@ function CPRICE(input) {
   throw 'CPRICE: Không lấy được giá cho ' + sym;
 }
 /**
- * Hàm lấy giá vàng mua vào (pb) từ BTMC.
+ * Hàm lấy giá vàng mua vào (pb) từ DOJI.
  * Tự động tìm kiếm trong tất cả các dòng dữ liệu.
  * @param {string} tu_khoa Tên loại vàng (Ví dụ: "SJC", "Nhẫn", "Gold").
  * @return Giá mua vào.
  * @customfunction
  */
 function GPRICE(product) {
-  var url = "http://api.btmc.vn/api/BTMCAPI/getpricebtmc?key=3kd8ub1llcg9t45hnoh8hmn7t5kc2v";
+  var url = "https://giavang.doji.vn/api/giavang/?api_key=258fbd2a72ce8481089d88c678e9fe4f";
   
   try {
-    var response = UrlFetchApp.fetch(url);
+    var response = UrlFetchApp.fetch(url, {
+      'muteHttpExceptions': true
+    });
+    
     var xml = response.getContentText();
     
-    // Lấy pb_1 từ row đầu tiên
-    var pattern = /row="1"[^>]*pb_1="([^"]*)"/;
+    // Tìm dòng có Key="dojihanoile" và lấy Sell
+    var pattern = /Key="dojihanoile"[^>]*Sell="([^"]*)"/;
     var match = xml.match(pattern);
     
     if (match && match[1]) {
-      return Number(match[1]);
+      var sellPrice = match[1];
+      
+      // Xóa dấu phẩy: "149,800" -> "149800"
+      sellPrice = sellPrice.replace(/,/g, '');
+      
+      // Chuyển thành số
+      var price = Number(sellPrice);
+      
+      // Quy đổi: 149,800 -> 14,980,000 (nhân 100)
+      price = price * 100;
+      
+      return price;
     }
     
-    return "Không tìm thấy dữ liệu";
+    return "Không tìm thấy giá";
     
   } catch (e) {
-    return "Lỗi: " + e.toString();
+    return "Lỗi: " + e.message;
   }
 }
