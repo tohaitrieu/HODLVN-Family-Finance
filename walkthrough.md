@@ -47,3 +47,13 @@ I have implemented the following features as requested:
     -   **Receive Payment**: Menu > **Nhập liệu > Thu nợ & Lãi**.
 3.  **Debt Schedule**: Menu > **Thống kê & Dashboard > Lịch trả nợ dự kiến**.
 4.  **Normalize Data**: Menu > **Tiện ích > Chuẩn hóa dữ liệu**.
+
+## 4. Cập nhật Giá Chứng Khoán (Stock Price Update)
+
+### ✨ Features
+- **Automatic Price Update**: The "Giá HT" (Current Price) column in the `CHỨNG KHOÁN` sheet now automatically updates using the `MPRICE` custom function.
+- **Financial Functions**: Added a suite of financial functions (`TCBS_BARS`, `HODLDATA`, `PIVOTFIB`, `ATR`, `STOCHASTIC`, `RSI`, `EMA`, `MACD`, `AVERAGE_DOWN`) for advanced analysis.
+
+### 📂 Files Created/Modified
+- `StockFunctions.gs`: Created to house `MPRICE` and other financial functions.
+- `SheetInitializer.gs`: Updated `initializeStockSheet` to apply the `MPRICE` formula to the "Giá HT" column.

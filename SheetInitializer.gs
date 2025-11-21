@@ -374,6 +374,7 @@ const SheetInitializer = {
     
     // Formulas
     sheet.getRange('K2:K1000').setFormula('=IF(E2>0, (H2-I2)/E2, 0)');
+    sheet.getRange('L2:L1000').setFormula('=IF(D2<>"", MPRICE(D2), 0)');
     sheet.getRange('M2:M1000').setFormula('=IF(AND(E2>0, L2>0), E2*L2, 0)');
     sheet.getRange('N2:N1000').setFormula('=IF(M2>0, M2-(H2-I2), 0)');
     sheet.getRange('O2:O1000').setFormula('=IF(AND(N2<>0, (H2-I2)>0), N2/(H2-I2), 0)');
