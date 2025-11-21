@@ -323,6 +323,44 @@ const SheetInitializer = {
   },
   
   /**
+   * Khởi tạo Sheet THU NỢ
+   */
+  initializeLendingRepaymentSheet() {
+    const ss = getSpreadsheet();
+    const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.LENDING_REPAYMENT);
+    
+    // Header
+    const headers = ['STT', 'Ngày', 'Người vay', 'Thu gốc', 'Thu lãi', 'Tổng thu', 'Ghi chú'];
+    sheet.getRange(1, 1, 1, headers.length)
+      .setValues([headers])
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center')
+      .setBackground(APP_CONFIG.COLORS.HEADER_BG)
+      .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
+    
+    // Column widths
+    sheet.setColumnWidth(1, 50);
+    sheet.setColumnWidth(2, 100);
+    sheet.setColumnWidth(3, 150);
+    sheet.setColumnWidth(4, 120);
+    sheet.setColumnWidth(5, 120);
+    sheet.setColumnWidth(6, 120);
+    sheet.setColumnWidth(7, 250);
+    
+    // Format
+    sheet.getRange('A2:A').setNumberFormat('0');
+    sheet.getRange('B2:B').setNumberFormat(APP_CONFIG.FORMATS.DATE);
+    this._fixDateColumn(sheet, 2);
+    sheet.getRange('D2:F').setNumberFormat('#,##0');
+    
+    // Formula (Safe to re-apply)
+    sheet.getRange('F2:F1000').setFormula('=IFERROR(D2+E2, 0)');
+    
+    sheet.setFrozenRows(1);
+    return sheet;
+  },
+  
+  /**
    * Khởi tạo Sheet CHỨNG KHOÁN
    */
   initializeStockSheet() {

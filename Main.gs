@@ -51,6 +51,7 @@ const APP_CONFIG = {
     OTHER_INVESTMENT: 'ĐẦU TƯ KHÁC',
     DEBT_MANAGEMENT: 'QUẢN LÝ NỢ',
     LENDING: 'CHO VAY',
+    LENDING_REPAYMENT: 'THU NỢ',
     BUDGET: 'BUDGET',
     DASHBOARD: 'TỔNG QUAN'
   },
@@ -153,6 +154,7 @@ function onOpen() {
       .addItem('💳 Khởi tạo Sheet TRẢ NỢ', 'initializeDebtPaymentSheet')
       .addItem('📊 Khởi tạo Sheet QUẢN LÝ NỢ', 'initializeDebtManagementSheet')
       .addItem('🤝 Khởi tạo Sheet CHO VAY', 'initializeLendingSheet')
+      .addItem('💰 Khởi tạo Sheet THU NỢ', 'initializeLendingRepaymentSheet')
       .addSeparator()
       .addItem('📈 Khởi tạo Sheet CHỨNG KHOÁN', 'initializeStockSheet')
       .addItem('🪙 Khởi tạo Sheet VÀNG', 'initializeGoldSheet')
@@ -392,6 +394,7 @@ function processSetupWizard(setupData) {
     initializeGoldSheet(true);
     initializeCryptoSheet(true);
     initializeOtherInvestmentSheet(true);
+    initializeLendingRepaymentSheet(true);
     initializeBudgetSheet(true); // ✅ v3.4: Gọi hàm chuẩn từ SheetInitializer
     initializeDashboardSheet(true);
     
@@ -606,6 +609,15 @@ function initializeLendingSheet(skipConfirm) {
   if (!skipConfirm && !confirmInitialize('Sheet CHO VAY')) return;
   SheetInitializer.initializeLendingSheet();
   if (!skipConfirm) showSuccess('Thành công', '✅ Đã khởi tạo Sheet CHO VAY!');
+}
+
+/**
+ * Khởi tạo Sheet THU NỢ
+ */
+function initializeLendingRepaymentSheet(skipConfirm) {
+  if (!skipConfirm && !confirmInitialize('Sheet THU NỢ')) return;
+  SheetInitializer.initializeLendingRepaymentSheet();
+  if (!skipConfirm) showSuccess('Thành công', '✅ Đã khởi tạo Sheet THU NỢ!');
 }
 
 /**
