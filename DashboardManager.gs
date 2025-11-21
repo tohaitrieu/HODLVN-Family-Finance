@@ -193,10 +193,11 @@ const DashboardManager = {
       .setHorizontalAlignment('left');
       
     // Sub-headers
+    // [NEW] Layout: Danh mục | Tổng vốn | Lãi/Lỗ (VND) | Giá trị HT
     sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL).setValue('Danh mục').setFontWeight('bold');
-    sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL + 1).setValue('Giá trị HT').setFontWeight('bold');
-    sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL + 2).setValue('Lãi/Lỗ').setFontWeight('bold');
-    sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL + 3).setValue('%').setFontWeight('bold');
+    sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL + 1).setValue('Tổng vốn').setFontWeight('bold');
+    sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL + 2).setValue('Lãi/Lỗ (VND)').setFontWeight('bold');
+    sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL + 3).setValue('Giá trị HT').setFontWeight('bold');
     
     // Rows
     assetRows.forEach((name, idx) => {
@@ -222,8 +223,8 @@ const DashboardManager = {
     const totalExpense = `(${this._createDynamicSumFormula('CHI', 'C')} + ${this._createDynamicSumFormula('TRẢ NỢ', 'D')} + ${this._createDynamicSumFormula('TRẢ NỢ', 'E')})`;
     // Invest Flow Out (Mua)
     const investCK = `SUMIF('CHỨNG KHOÁN'!C:C,"Mua",'CHỨNG KHOÁN'!H:H)`;
-    const investGold = `SUMIF(VÀNG!D:D,"Mua",VÀNG!I:I)`; // Gold Total Cost is now Col I (9), Type is Col D (4)
-    const investCrypto = `SUMIF(CRYPTO!C:C,"Mua",CRYPTO!I:I)`; // Crypto Total Cost is Col I (9), Type is Col C (3)
+    const investGold = `SUMIF(VÀNG!D:D,"Mua",VÀNG!I:I)`; // Gold Total Cost is Col I
+    const investCrypto = `SUMIF(CRYPTO!C:C,"Mua",CRYPTO!I:I)`; // Crypto Total Cost is Col I
     const investOther = `SUM('ĐẦU TƯ KHÁC'!D:D)`;
     const totalInvest = `(${investCK} + ${investGold} + ${investCrypto} + ${investOther})`;
     
@@ -234,44 +235,45 @@ const DashboardManager = {
     const totalDivest = `(${divestCK} + ${divestGold} + ${divestCrypto})`;
     
     // Net Cash
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 1).setFormula('=' + `IFERROR(${totalIncome} - ${totalExpense} - ${totalInvest} + ${totalDivest}, 0)`);
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 2).setValue(0); // Cash Profit/Loss N/A
+    const netCashFormula = `IFERROR(${totalIncome} - ${totalExpense} - ${totalInvest} + ${totalDivest}, 0)`;
     
-    // Investments - Current Value & Profit/Loss
-    // Chứng khoán: Value = Col M (13), P/L = Col N (14)
-    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!M:M), 0)`);
+    // 1. Tiền mặt
+    sheet.getRange(assetStart, cfg.RIGHT_COL + 1).setFormula('=' + netCashFormula); // Tổng vốn
+    sheet.getRange(assetStart, cfg.RIGHT_COL + 2).setValue(0); // Lãi/Lỗ
+    sheet.getRange(assetStart, cfg.RIGHT_COL + 3).setFormula('=' + netCashFormula); // Giá trị HT
+    
+    // 2. Chứng khoán
+    // Tổng vốn = Tổng vốn (H) - Cổ tức TM (I) [Theo logic sheet CK: P/L = Value - (Cost - Dividend)]
+    // => Cost Basis = Value - P/L
+    // Hoặc dùng SUM(H) - SUM(I).
+    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!H:H) - SUM('CHỨNG KHOÁN'!I:I), 0)`);
     sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!N:N), 0)`);
+    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!M:M), 0)`);
     
-    // Vàng: Value = Col K (11), P/L = Col L (12)
-    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM(VÀNG!K:K), 0)`);
+    // 3. Vàng
+    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM(VÀNG!I:I), 0)`);
     sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(SUM(VÀNG!L:L), 0)`);
+    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM(VÀNG!K:K), 0)`);
     
-    // Crypto: Value = Col M (13), P/L = Col N (14)
-    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM(CRYPTO!M:M), 0)`);
+    // 4. Crypto
+    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM(CRYPTO!I:I), 0)`);
     sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(SUM(CRYPTO!N:N), 0)`);
+    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM(CRYPTO!M:M), 0)`);
     
-    // Đầu tư khác: Value = Col D (4), P/L = 0 (Manual?)
+    // 5. Đầu tư khác
     sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('ĐẦU TƯ KHÁC'!D:D), 0)`);
     sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 2).setValue(0);
+    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('ĐẦU TƯ KHÁC'!D:D), 0)`);
     
-    // Cho vay: Value = Col J (10), P/L = 0
+    // 6. Cho vay
     sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CHO VAY'!J:J), 0)`);
     sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 2).setValue(0);
+    sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CHO VAY'!J:J), 0)`);
     
     // Total Assets
     sheet.getRange(assetStart + 6, cfg.RIGHT_COL + 1).setFormula(`=SUM(R[-6]C:R[-1]C)`);
     sheet.getRange(assetStart + 6, cfg.RIGHT_COL + 2).setFormula(`=SUM(R[-6]C:R[-1]C)`);
-    
-    // Calculate % Profit/Loss
-    // Formula: P/L / (Value - P/L)  (Since Value = Cost + P/L => Cost = Value - P/L)
-    // Or just P/L / Cost. Cost is not shown.
-    // Let's use: IF(Value-PL > 0, PL / (Value-PL), 0)
-    for(let i=0; i<7; i++) {
-      const r = assetStart + i;
-      const valCell = `R${r}C${cfg.RIGHT_COL + 1}`; // Relative R1C1 might be tricky if mixed. Let's use A1 notation logic or R[0]C[-2]
-      // Using R[0]C[-2] (Value) and R[0]C[-1] (P/L) relative to % column
-      sheet.getRange(r, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(R[0]C[-1] / (R[0]C[-2] - R[0]C[-1]), 0)`);
-    }
+    sheet.getRange(assetStart + 6, cfg.RIGHT_COL + 3).setFormula(`=SUM(R[-6]C:R[-1]C)`);
     
     // Calculate max height for Row 2
     const row2Height = Math.max(liabilityHeight, assetRows.length + 2);
@@ -283,10 +285,8 @@ const DashboardManager = {
     sheet.getRange(expStart, cfg.RIGHT_COL + 1, 3, 1).setNumberFormat('#,##0');
     // Liabilities
     sheet.getRange(liabStart, cfg.LEFT_COL + 1, debtItems.length + 1, 1).setNumberFormat('#,##0');
-    // Assets (Value & P/L)
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 1, 7, 2).setNumberFormat('#,##0');
-    // Assets %
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 3, 7, 1).setNumberFormat('0.00%');
+    // Assets (All 3 columns are numbers)
+    sheet.getRange(assetStart, cfg.RIGHT_COL + 1, 7, 3).setNumberFormat('#,##0');
     
     return currentRow + row2Height;
   },

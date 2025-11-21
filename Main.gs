@@ -127,6 +127,8 @@ function onOpen() {
     // === NHÓM 3: THỐNG KÊ ===
     .addSubMenu(ui.createMenu('📊 Thống kê & Dashboard')
       .addItem('🔄 Cập nhật Dashboard', 'refreshDashboard')
+      .addItem('♻️ Cập nhật cấu trúc dữ liệu', 'runMigrations')
+      .addSeparator()
       .addItem('📅 Lịch trả nợ dự kiến', 'showDebtScheduleReport')
       .addSeparator()
       .addItem('📅 Xem Tất cả', 'viewAll')
