@@ -16,19 +16,17 @@ jobs:
           node-version: '18'
       
       - name: Install CLASP
-        run: npm install @google/clasp -g
-      
-      - name: Write Service Account credentials
-        run: |
-          echo '${{ secrets.SERVICE_ACCOUNT_KEY }}' > /tmp/service-account.json
-      
-      - name: Authenticate with Service Account
-        run: |
-          clasp login --creds /tmp/service-account.json --no-localhost
+        run: npm install -g @google/clasp
       
       - name: Create .clasp.json
         run: |
           echo '{"scriptId":"${{ secrets.SCRIPT_ID }}","rootDir":"./"}' > .clasp.json
+      
+      - name: Setup clasp credentials
+        run: |
+          cat > ~/.clasprc.json << 'EOF'
+          ${{ secrets.CLASP_TOKEN }}
+          EOF
       
       - name: Push to Apps Script
         run: clasp push -f
