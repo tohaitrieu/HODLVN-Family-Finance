@@ -1,4 +1,4 @@
-name: Deploy to Google Apps Script
+name: Deploy to GAS
 
 on:
   push:
@@ -7,95 +7,28 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-      
-      - name: Install dependencies
-        run: |
-          npm install -g @google/clasp
-          npm install google-auth-library
-      
-      - name: Write Service Account
-        run: |
-          echo '${{ secrets.SERVICE_ACCOUNT_KEY }}' > service-account.json
-      
-      # DEBUG - Kiểm tra Script ID
-      - name: Verify Script ID
-        run: |
-          if [ -z "${{ secrets.SCRIPT_ID }}" ]; then
-            echo "❌ ERROR: SCRIPT_ID is empty or not set!"
-            echo "Please add SCRIPT_ID to GitHub Secrets"
-            exit 1
-          else
-            echo "✅ SCRIPT_ID is set"
-            echo "Script ID length: ${#SCRIPT_ID}"
-          fi
-        env:
-          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
-      
+
+      - name: Install CLASP
+        run: npm install @google/clasp -g
+
+      # Tạo file cấu hình dự án
       - name: Create .clasp.json
         run: |
           echo '{"scriptId":"${{ secrets.SCRIPT_ID }}","rootDir":"./"}' > .clasp.json
-          echo "=== .clasp.json content ==="
-          cat .clasp.json
-      
-      - name: Generate token from Service Account
+
+      # Tạo file đăng nhập từ Secret (Cách này ổn định nhất)
+      - name: Create .clasprc.json
         run: |
-          cat > generate-token.js << 'ENDSCRIPT'
-          const { GoogleAuth } = require('google-auth-library');
-          const fs = require('fs');
-          const path = require('path');
-          const os = require('os');
-          
-          async function generateToken() {
-            try {
-              const auth = new GoogleAuth({
-                keyFile: 'service-account.json',
-                scopes: [
-                  'https://www.googleapis.com/auth/script.projects',
-                  'https://www.googleapis.com/auth/script.deployments',
-                  'https://www.googleapis.com/auth/drive.file',
-                  'https://www.googleapis.com/auth/script.webapp.deploy'
-                ]
-              });
-              
-              const client = await auth.getClient();
-              const tokenResponse = await client.getAccessToken();
-              
-              const clasprc = {
-                token: {
-                  access_token: tokenResponse.token,
-                  token_type: 'Bearer'
-                }
-              };
-              
-              const clasprcPath = path.join(os.homedir(), '.clasprc.json');
-              fs.writeFileSync(clasprcPath, JSON.stringify(clasprc, null, 2));
-              
-              console.log('✅ Token generated successfully');
-            } catch (error) {
-              console.error('❌ Error generating token:', error.message);
-              process.exit(1);
-            }
-          }
-          
-          generateToken();
-          ENDSCRIPT
-          
-          node generate-token.js
-      
-      - name: Push to Apps Script
-        run: |
-          echo "=== Attempting to push to Apps Script ==="
-          clasp push -f
-      
-      - name: Cleanup
-        if: always()
-        run: rm -f service-account.json generate-token.js
+          echo '${{ secrets.CLASP_SECRET }}' > ~/.clasprc.json
+
+      - name: Push to GAS
+        run: clasp push -f
