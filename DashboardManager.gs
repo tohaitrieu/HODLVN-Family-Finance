@@ -405,76 +405,92 @@ const DashboardManager = {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // 1. Debt Payments (QUẢN LÝ NỢ)
-    const debtSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
-    if (debtSheet) {
-      const lastRow = debtSheet.getLastRow();
-      if (lastRow >= 2) {
-        // Col C (2): Type, Col H (7): Due Date, Col K (10): Remaining, Col L (11): Status
-        // Note: Indices changed due to new column structure
-        // A(0): STT, B(1): Name, C(2): Type, D(3): Principal, E(4): Rate, F(5): Term, G(6): Date, H(7): Maturity
-        // I(8): PaidPrin, J(9): PaidInt, K(10): Remaining, L(11): Status
-        const data = debtSheet.getRange(2, 1, lastRow - 1, 12).getValues();
-        data.forEach(row => {
-          const name = row[1];
-          const type = row[2];
-          const dueDate = row[7]; // H
-          const remaining = row[10]; // K
-          const status = row[11]; // L
-          
-          if (dueDate instanceof Date && dueDate >= today && status !== 'Đã thanh toán' && remaining > 0) {
-            let principal = remaining;
-            let interest = 0;
+    // Helper to process installments
+    const processInstallments = (sheetName, isDebt) => {
+      const sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return;
+      
+      const lastRow = sheet.getLastRow();
+      if (lastRow < 2) return;
+      
+      // A(0): STT, B(1): Name, C(2): Type, D(3): Principal, E(4): Rate, F(5): Term, G(6): Date, H(7): Maturity
+      // I(8): PaidPrin, J(9): PaidInt, K(10): Remaining, L(11): Status
+      const data = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
+      
+      data.forEach(row => {
+        const name = row[1];
+        const initialPrincipal = parseFloat(row[3]) || 0;
+        const rate = parseFloat(row[4]) || 0; // Annual Rate (decimal)
+        const term = parseInt(row[5]) || 1;
+        const startDate = row[6];
+        const maturityDate = row[7];
+        const remaining = parseFloat(row[10]) || 0;
+        const status = row[11];
+        
+        // Check active status
+        const isActive = isDebt ? (status !== 'Đã thanh toán') : (status === 'Đang vay');
+        
+        if (isActive && remaining > 0 && startDate instanceof Date) {
+          if (term > 1) {
+            // Installment Logic
+            const monthlyPrincipal = initialPrincipal / term;
+            let simulatedRemaining = remaining;
             
-            // Simple logic for split based on Type
-            if (type === 'Nợ ngân hàng') {
-               // Bank loan: Pay interest monthly, principal at end.
-               // Assuming 'remaining' is Principal.
-               // Interest = Principal * Rate / 12.
-               // But we don't have Rate here easily without parsing.
-               // Let's assume the "Event" is the monthly payment?
-               // Or is it the Final Due Date?
-               // The code checks `dueDate` (Maturity).
-               // If Maturity is coming up, it's likely the Principal payment.
-               principal = remaining;
-               interest = 0; 
+            // We need to find the "next" payment index to start correct interest calculation
+            // Logic: The sheet's 'remaining' is the balance *after* the last recorded payment.
+            // So for the *next* payment, Interest = Remaining * Rate / 12.
+            // We iterate through all theoretical payment dates.
+            
+            for (let i = 1; i <= term; i++) {
+              let payDate = new Date(startDate);
+              payDate.setMonth(payDate.getMonth() + i);
+              
+              if (payDate >= today) {
+                // This is a future (or due today) payment
+                
+                let currentPrincipal = monthlyPrincipal;
+                if (simulatedRemaining < currentPrincipal) currentPrincipal = simulatedRemaining;
+                
+                // Interest = Current Remaining Balance * Rate / 12
+                // Note: We use 'simulatedRemaining' which starts at 'remaining' (from sheet)
+                // for the first future payment found.
+                let currentInterest = simulatedRemaining * (rate / 12);
+                
+                events.push({
+                  date: payDate,
+                  name: isDebt ? `Trả nợ: ${name} (Kỳ ${i}/${term})` : `Thu nợ: ${name} (Kỳ ${i}/${term})`,
+                  principal: currentPrincipal,
+                  interest: currentInterest
+                });
+                
+                // Reduce remaining for the NEXT iteration in this loop
+                simulatedRemaining -= currentPrincipal;
+                if (simulatedRemaining <= 0.1) break; // Float tolerance
+              }
             }
-            
-            events.push({
-              date: dueDate,
-              name: `Trả nợ: ${name}`,
-              principal: principal,
-              interest: interest
-            });
+          } else {
+            // Bullet Logic (Pay all at end)
+            if (maturityDate instanceof Date && maturityDate >= today) {
+              // Interest: Simple 1 month interest on the remaining balance
+              let currentInterest = remaining * (rate / 12);
+              
+              events.push({
+                date: maturityDate,
+                name: isDebt ? `Trả nợ: ${name} (Tất toán)` : `Thu nợ: ${name} (Tất toán)`,
+                principal: remaining,
+                interest: currentInterest
+              });
+            }
           }
-        });
-      }
-    }
+        }
+      });
+    };
     
-    // 2. Lending Collections (CHO VAY)
-    const lendingSheet = ss.getSheetByName(APP_CONFIG.SHEETS.LENDING);
-    if (lendingSheet) {
-      const lastRow = lendingSheet.getLastRow();
-      if (lastRow >= 2) {
-        // Similar structure
-        const data = lendingSheet.getRange(2, 1, lastRow - 1, 12).getValues();
-        data.forEach(row => {
-          const name = row[1];
-          const dueDate = row[7]; // H
-          const remaining = row[10]; // K
-          const status = row[11]; // L
-          
-          if (dueDate instanceof Date && dueDate >= today && status === 'Đang vay' && remaining > 0) {
-            events.push({
-              date: dueDate,
-              name: `Thu nợ: ${name}`,
-              principal: remaining,
-              interest: 0
-            });
-          }
-        });
-      }
-    }
+    // 1. Debt Payments
+    processInstallments(APP_CONFIG.SHEETS.DEBT_MANAGEMENT, true);
+    
+    // 2. Lending Collections
+    processInstallments(APP_CONFIG.SHEETS.LENDING, false);
     
     // Sort by Date
     events.sort((a, b) => a.date - b.date);
