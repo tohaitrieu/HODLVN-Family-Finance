@@ -4,10 +4,10 @@
 I have refactored the "Lịch sự kiện" (Event Calendar) in `DashboardManager.gs` to provide a more detailed and organized view.
 
 ### Key Improvements
-1.  **Split Tables**:
-    *   **KHOẢN PHẢI TRẢ (Sắp tới)**: Displays the top 10 upcoming debt payments.
-    *   **KHOẢN PHẢI THU (Sắp tới)**: Displays the top 10 upcoming lending collections.
-    *   Each table has its own "TỔNG CỘNG" row.
+1.  **Split Tables & Aligned Layout**:
+    *   **Row 1**: Income | Expense | **KHOẢN PHẢI TRẢ** (Payables)
+    *   **Row 2**: Liabilities | Assets | **KHOẢN PHẢI THU** (Receivables)
+    *   This ensures "Nợ phải trả" (Liabilities), "Tài sản" (Assets), and "Phải thu" (Receivables) are aligned in the second row.
 
 2.  **New Column Structure (6 Columns)**:
     *   **Ngày** (Date): Bold formatted.

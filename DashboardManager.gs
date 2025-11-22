@@ -127,7 +127,10 @@ const DashboardManager = {
     const cfg = this.CONFIG.LAYOUT;
     let currentRow = startRow;
     
-    // === ROW 1: INCOME (Left) & EXPENSE (Middle) & CALENDAR (Right) ===
+    // Fetch events once
+    const events = this._getCalendarEvents();
+    
+    // === ROW 1: INCOME (Left) & EXPENSE (Middle) & PAYABLES (Right) ===
     
     // 1. Income Table (3 Cols: Name, Value, %)
     const incomeCategories = APP_CONFIG.CATEGORIES.INCOME;
@@ -176,14 +179,14 @@ const DashboardManager = {
     sheet.getRange(expTotalRow, cfg.RIGHT_COL + 1).setFormula(`=SUM(R[-${expenseCategories.length + 1}]C:R[-1]C)`);
     sheet.getRange(expTotalRow, cfg.RIGHT_COL + 2).setValue(1).setNumberFormat('0%');
     
-    // 3. Calendar of Events (Right - Col K)
-    const calendarHeight = this._renderCalendarTable(sheet, currentRow, cfg.CALENDAR_COL);
+    // 3. Payables Table (Right - Col K)
+    const payablesHeight = this._renderPayables(sheet, currentRow, cfg.CALENDAR_COL, events);
 
     // Calculate max height for Row 1
-    const row1Height = Math.max(incomeHeight, expenseHeight, calendarHeight);
+    const row1Height = Math.max(incomeHeight, expenseHeight, payablesHeight);
     currentRow += row1Height + 2; // +2 padding
     
-    // === ROW 2: LIABILITIES (Left) & ASSETS (Right) ===
+    // === ROW 2: LIABILITIES (Left) & ASSETS (Middle) & RECEIVABLES (Right) ===
     
     // 4. Liabilities Table (3 Cols: Name, Value, %)
     const debtItems = this._getDebtItems();
@@ -226,83 +229,67 @@ const DashboardManager = {
     sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL + 3).setValue('Giá trị HT').setFontWeight('bold');
     sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL + 4).setValue('Tỷ lệ').setFontWeight('bold');
     
-    // Rows
-    assetRows.forEach((name, idx) => {
-      const r = assetHeaderRow + 2 + idx;
-      sheet.getRange(r, cfg.RIGHT_COL).setValue(name);
-      
-      if (idx === assetRows.length - 1) {
-        sheet.getRange(r, cfg.RIGHT_COL).setFontWeight('bold');
-        sheet.getRange(r, cfg.RIGHT_COL, 1, 5).setBackground('#EEEEEE');
-      }
-    });
-    
-    // Border
-    sheet.getRange(assetHeaderRow, cfg.RIGHT_COL, assetRows.length + 2, 5)
-      .setBorder(true, true, true, true, true, true);
-    
+    // Rows for Assets
     const assetStart = assetHeaderRow + 2;
-    const assetTotalRow = assetStart + 6;
+    const assetTotalRow = assetStart + 6; // 6 items
     
-    // Formulas for Assets
-    // Cash
-    const totalIncome = this._createDynamicSumFormula('THU', 'C');
-    const totalExpense = `(${this._createDynamicSumFormula('CHI', 'C')} + ${this._createDynamicSumFormula('TRẢ NỢ', 'D')} + ${this._createDynamicSumFormula('TRẢ NỢ', 'E')})`;
-    const investCK = `SUMIF('CHỨNG KHOÁN'!C:C,"Mua",'CHỨNG KHOÁN'!H:H)`;
-    const investGold = `SUMIF(VÀNG!D:D,"Mua",VÀNG!I:I)`;
-    const investCrypto = `SUMIF(CRYPTO!C:C,"Mua",CRYPTO!I:I)`;
-    const investOther = `SUM('ĐẦU TƯ KHÁC'!D:D)`;
-    const totalInvest = `(${investCK} + ${investGold} + ${investCrypto} + ${investOther})`;
-    const divestCK = `SUMIF('CHỨNG KHOÁN'!C:C,"Bán",'CHỨNG KHOÁN'!H:H)`;
-    const divestGold = `SUMIF(VÀNG!D:D,"Bán",VÀNG!I:I)`;
-    const divestCrypto = `SUMIF(CRYPTO!C:C,"Bán",CRYPTO!I:I)`;
-    const totalDivest = `(${divestCK} + ${divestGold} + ${divestCrypto})`;
-    const netCashFormula = `IFERROR(${totalIncome} - ${totalExpense} - ${totalInvest} + ${totalDivest}, 0)`;
+    // 1. Cash (Net)
+    sheet.getRange(assetStart, cfg.RIGHT_COL).setValue('Tiền mặt (Ròng)');
+    sheet.getRange(assetStart, cfg.RIGHT_COL + 1).setValue('-'); // Capital N/A
+    sheet.getRange(assetStart, cfg.RIGHT_COL + 2).setValue('-'); // P/L N/A
+    sheet.getRange(assetStart, cfg.RIGHT_COL + 3).setFormula('=' + `${this._createDynamicSumFormula('THU', 'C')} - ${this._createDynamicSumFormula('CHI', 'C')}`);
     
-    // 1. Tiền mặt
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 1).setFormula('=' + netCashFormula);
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 2).setValue(0);
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 3).setFormula('=' + netCashFormula);
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 4).setFormula(`=IFERROR(R[0]C[-1] / R${assetTotalRow}C[-1], 0)`);
+    // 2. Stock
+    sheet.getRange(assetStart + 1, cfg.RIGHT_COL).setValue('Chứng khoán');
+    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!J:J), 0)`); // Total Cost
+    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(R[0]C[1] - R[0]C[-1], 0)`); // Current - Cost
+    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!M:M), 0)`); // Market Value
     
-    // 2. Chứng khoán
-    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!H:H) - SUM('CHỨNG KHOÁN'!I:I), 0)`);
-    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!N:N), 0)`);
-    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!M:M), 0)`);
-    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 4).setFormula(`=IFERROR(R[0]C[-1] / R${assetTotalRow}C[-1], 0)`);
-    
-    // 3. Vàng
-    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM(VÀNG!I:I), 0)`);
-    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(SUM(VÀNG!L:L), 0)`);
-    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM(VÀNG!K:K), 0)`);
-    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 4).setFormula(`=IFERROR(R[0]C[-1] / R${assetTotalRow}C[-1], 0)`);
+    // 3. Gold
+    sheet.getRange(assetStart + 2, cfg.RIGHT_COL).setValue('Vàng');
+    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('VÀNG'!J:J), 0)`); // Total Cost
+    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(R[0]C[1] - R[0]C[-1], 0)`);
+    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('VÀNG'!M:M), 0)`); // Market Value
     
     // 4. Crypto
-    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM(CRYPTO!I:I), 0)`);
-    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(SUM(CRYPTO!N:N), 0)`);
-    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM(CRYPTO!M:M), 0)`);
-    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 4).setFormula(`=IFERROR(R[0]C[-1] / R${assetTotalRow}C[-1], 0)`);
+    sheet.getRange(assetStart + 3, cfg.RIGHT_COL).setValue('Crypto');
+    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CRYPTO'!L:L), 0)`); // Total Cost VND
+    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(R[0]C[1] - R[0]C[-1], 0)`);
+    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CRYPTO'!N:N), 0)`); // Market Value VND
     
-    // 5. Đầu tư khác
-    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('ĐẦU TƯ KHÁC'!D:D), 0)`);
-    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 2).setValue(0);
-    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('ĐẦU TƯ KHÁC'!D:D), 0)`);
-    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 4).setFormula(`=IFERROR(R[0]C[-1] / R${assetTotalRow}C[-1], 0)`);
+    // 5. Other Investment
+    sheet.getRange(assetStart + 4, cfg.RIGHT_COL).setValue('Đầu tư khác');
+    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('ĐẦU TƯ KHÁC'!D:D), 0)`); // Capital
+    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(SUM('ĐẦU TƯ KHÁC'!H:H), 0)`); // Profit
+    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(R[0]C[-2] + R[0]C[-1], 0)`); // Capital + Profit
     
-    // 6. Cho vay
-    sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CHO VAY'!K:K), 0)`); // K is Remaining
-    sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 2).setValue(0);
-    sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CHO VAY'!K:K), 0)`);
-    sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 4).setFormula(`=IFERROR(R[0]C[-1] / R${assetTotalRow}C[-1], 0)`);
+    // 6. Lending (Receivables)
+    sheet.getRange(assetStart + 5, cfg.RIGHT_COL).setValue('Cho vay');
+    sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CHO VAY'!D:D), 0)`); // Principal
+    sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(SUM('CHO VAY'!J:J), 0)`); // Interest Collected
+    sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CHO VAY'!K:K), 0)`); // Remaining Principal
     
     // Total Assets
+    sheet.getRange(assetTotalRow, cfg.RIGHT_COL).setValue('TỔNG TÀI SẢN').setFontWeight('bold');
     sheet.getRange(assetTotalRow, cfg.RIGHT_COL + 1).setFormula(`=SUM(R[-6]C:R[-1]C)`);
     sheet.getRange(assetTotalRow, cfg.RIGHT_COL + 2).setFormula(`=SUM(R[-6]C:R[-1]C)`);
     sheet.getRange(assetTotalRow, cfg.RIGHT_COL + 3).setFormula(`=SUM(R[-6]C:R[-1]C)`);
+    
+    // % Column
+    for (let i = 0; i < 6; i++) {
+      sheet.getRange(assetStart + i, cfg.RIGHT_COL + 4).setFormula(`=IFERROR(R[0]C[-1] / R${assetTotalRow}C[-1], 0)`);
+    }
     sheet.getRange(assetTotalRow, cfg.RIGHT_COL + 4).setValue(1).setNumberFormat('0%');
     
+    sheet.getRange(assetHeaderRow, cfg.RIGHT_COL, 9, 5).setBorder(true, true, true, true, true, true);
+    
+    const assetHeight = 9; // Fixed height for Assets table
+    
+    // 6. Receivables Table (Right - Col K, Row 2)
+    const receivablesHeight = this._renderReceivables(sheet, currentRow, cfg.CALENDAR_COL, events);
+
     // Calculate max height for Row 2
-    const row2Height = Math.max(liabilityHeight, assetRows.length + 2);
+    const row2Height = Math.max(liabilityHeight, assetHeight, receivablesHeight);
     
     // === FORMAT NUMBERS FOR ALL TABLES ===
     // Income
@@ -357,72 +344,63 @@ const DashboardManager = {
     return rows.length + 2; // Header + SubHeader + Data rows
   },
 
-  _renderCalendarTable(sheet, startRow, startCol) {
-    const events = this._getCalendarEvents();
-    const colorPayable = this.CONFIG.COLORS.CALENDAR; // Use existing color for Payable
-    const colorReceivable = '#70AD47'; // Green for Receivable
+  _renderPayables(sheet, startRow, startCol, events) {
+    return this._renderEventTable(sheet, startRow, startCol, '📅 Lịch sự kiện: KHOẢN PHẢI TRẢ (Sắp tới)', events.payables, this.CONFIG.COLORS.CALENDAR);
+  },
+
+  _renderReceivables(sheet, startRow, startCol, events) {
+    return this._renderEventTable(sheet, startRow, startCol, '📅 Lịch sự kiện: KHOẢN PHẢI THU (Sắp tới)', events.receivables, '#70AD47');
+  },
+
+  _renderEventTable(sheet, startRow, startCol, title, data, color) {
     const numCols = 6; // Date, Action, Event, Remaining, Principal, Interest
     
-    let currentRow = startRow;
+    // Header
+    sheet.getRange(startRow, startCol, 1, numCols).merge()
+      .setValue(title)
+      .setFontWeight('bold')
+      .setBackground(color)
+      .setFontColor('#FFFFFF')
+      .setHorizontalAlignment('left');
+      
+    // Sub-header
+    const headers = ['Ngày', 'Hành động', 'Sự kiện', 'Gốc còn lại', 'Gốc trả kỳ này', 'Lãi trả kỳ này'];
+    sheet.getRange(startRow + 1, startCol, 1, numCols).setValues([headers]).setFontWeight('bold');
     
-    // Helper to render a single table
-    const renderTable = (title, data, color) => {
-      // Header
-      sheet.getRange(currentRow, startCol, 1, numCols).merge()
-        .setValue(title)
-        .setFontWeight('bold')
-        .setBackground(color)
-        .setFontColor('#FFFFFF')
-        .setHorizontalAlignment('left');
-        
-      // Sub-header
-      const headers = ['Ngày', 'Hành động', 'Sự kiện', 'Gốc còn lại', 'Gốc trả kỳ này', 'Lãi trả kỳ này'];
-      sheet.getRange(currentRow + 1, startCol, 1, numCols).setValues([headers]).setFontWeight('bold');
-      
-      // Data
-      if (data.length === 0) {
-          sheet.getRange(currentRow + 2, startCol, 1, numCols).merge().setValue('Không có sự kiện sắp tới');
-          sheet.getRange(currentRow, startCol, 3, numCols).setBorder(true, true, true, true, true, true);
-          currentRow += 4; // Space after table
-          return;
-      }
-      
-      let totalPrincipal = 0;
-      let totalInterest = 0;
-      
-      data.forEach((evt, idx) => {
-        const r = currentRow + 2 + idx;
-        sheet.getRange(r, startCol).setValue(evt.date).setNumberFormat('dd/MM/yyyy').setFontWeight('bold');
-        sheet.getRange(r, startCol + 1).setValue(evt.action);
-        sheet.getRange(r, startCol + 2).setValue(evt.name);
-        sheet.getRange(r, startCol + 3).setValue(evt.remaining).setNumberFormat('#,##0');
-        sheet.getRange(r, startCol + 4).setValue(evt.principalPayment).setNumberFormat('#,##0');
-        sheet.getRange(r, startCol + 5).setValue(evt.interestPayment).setNumberFormat('#,##0');
-        
-        totalPrincipal += evt.principalPayment;
-        totalInterest += evt.interestPayment;
-      });
-      
-      // Total Row
-      const totalRow = currentRow + 2 + data.length;
-      sheet.getRange(totalRow, startCol, 1, 4).merge().setValue('TỔNG CỘNG').setFontWeight('bold').setHorizontalAlignment('right');
-      sheet.getRange(totalRow, startCol + 4).setValue(totalPrincipal).setNumberFormat('#,##0').setFontWeight('bold');
-      sheet.getRange(totalRow, startCol + 5).setValue(totalInterest).setNumberFormat('#,##0').setFontWeight('bold');
-      
-      // Border
-      sheet.getRange(currentRow, startCol, data.length + 3, numCols)
-        .setBorder(true, true, true, true, true, true);
-        
-      currentRow += data.length + 4; // Move down for next table
-    };
+    // Data
+    if (data.length === 0) {
+        sheet.getRange(startRow + 2, startCol, 1, numCols).merge().setValue('Không có sự kiện sắp tới');
+        sheet.getRange(startRow, startCol, 3, numCols).setBorder(true, true, true, true, true, true);
+        return 3;
+    }
     
-    // Render Payables Table
-    renderTable('📅 Lịch sự kiện: KHOẢN PHẢI TRẢ (Sắp tới)', events.payables, '#E74C3C'); // Red for Payable
+    let totalPrincipal = 0;
+    let totalInterest = 0;
     
-    // Render Receivables Table
-    renderTable('📅 Lịch sự kiện: KHOẢN PHẢI THU (Sắp tới)', events.receivables, '#28A745'); // Green for Receivable
+    data.forEach((evt, idx) => {
+      const r = startRow + 2 + idx;
+      sheet.getRange(r, startCol).setValue(evt.date).setNumberFormat('dd/MM/yyyy').setFontWeight('bold');
+      sheet.getRange(r, startCol + 1).setValue(evt.action);
+      sheet.getRange(r, startCol + 2).setValue(evt.name);
+      sheet.getRange(r, startCol + 3).setValue(evt.remaining).setNumberFormat('#,##0');
+      sheet.getRange(r, startCol + 4).setValue(evt.principalPayment).setNumberFormat('#,##0');
+      sheet.getRange(r, startCol + 5).setValue(evt.interestPayment).setNumberFormat('#,##0');
+      
+      totalPrincipal += evt.principalPayment;
+      totalInterest += evt.interestPayment;
+    });
     
-    return currentRow - startRow;
+    // Total Row
+    const totalRow = startRow + 2 + data.length;
+    sheet.getRange(totalRow, startCol, 1, 4).merge().setValue('TỔNG CỘNG').setFontWeight('bold').setHorizontalAlignment('right');
+    sheet.getRange(totalRow, startCol + 4).setValue(totalPrincipal).setNumberFormat('#,##0').setFontWeight('bold');
+    sheet.getRange(totalRow, startCol + 5).setValue(totalInterest).setNumberFormat('#,##0').setFontWeight('bold');
+    
+    // Border
+    sheet.getRange(startRow, startCol, data.length + 3, numCols)
+      .setBorder(true, true, true, true, true, true);
+      
+    return data.length + 3;
   },
 
   _getCalendarEvents() {
