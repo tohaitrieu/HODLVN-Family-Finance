@@ -431,7 +431,6 @@ const DashboardManager = {
     const parseDate = (d) => {
       if (d instanceof Date) return d;
       if (typeof d === 'string') {
-        // Try parsing "dd/MM/yyyy" or ISO
         if (d.includes('/')) {
           const parts = d.split('/');
           if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]);
@@ -439,6 +438,20 @@ const DashboardManager = {
         return new Date(d);
       }
       return null;
+    };
+
+    // Helper to parse currency safely (handle formatted strings like "100.000.000")
+    const parseCurrency = (val) => {
+      if (typeof val === 'number') return val;
+      if (typeof val === 'string') {
+        // Remove all non-numeric characters except dot and comma
+        // If it's VND, usually no decimals. Safe to remove all non-digits?
+        // Let's try to be smarter. Remove thousands separators.
+        // If string contains both . and , assume last one is decimal.
+        // For simplicity and VND context: Remove all non-digits.
+        return parseFloat(val.replace(/\D/g, ''));
+      }
+      return 0;
     };
     
     // Helper to process installments
@@ -455,19 +468,26 @@ const DashboardManager = {
       
       data.forEach(row => {
         const name = row[1];
-        const initialPrincipal = parseFloat(row[3]) || 0;
+        const initialPrincipal = parseCurrency(row[3]);
         const rate = parseFloat(row[4]) || 0; // Annual Rate (decimal)
         const term = parseInt(row[5]) || 1;
         const rawStartDate = row[6];
         const rawMaturityDate = row[7];
-        const remaining = parseFloat(row[10]) || 0;
+        const remaining = parseCurrency(row[10]);
         const status = row[11];
         
         const startDate = parseDate(rawStartDate);
         const maturityDate = parseDate(rawMaturityDate);
         
         // Check active status
-        const isActive = isDebt ? (status !== 'Đã thanh toán') : (status === 'Đang vay');
+        // Debt: Track 'Chưa trả' and 'Đang trả'. Exclude 'Đã thanh toán'.
+        // Lending: Track 'Đang vay'.
+        let isActive = false;
+        if (isDebt) {
+          isActive = (status === 'Chưa trả' || status === 'Đang trả');
+        } else {
+          isActive = (status === 'Đang vay');
+        }
         
         if (isActive && remaining > 0 && startDate) {
           if (term > 1) {
@@ -501,7 +521,7 @@ const DashboardManager = {
                 });
                 
                 simulatedRemaining -= currentPrincipal;
-                if (simulatedRemaining <= 0.1) break;
+                if (simulatedRemaining <= 1000) break; // Float tolerance (1000 VND)
               }
             }
           } else {
