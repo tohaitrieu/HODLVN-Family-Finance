@@ -697,7 +697,7 @@ const DashboardManager = {
     sheet.setColumnWidth(2, 120); // B: Value
     sheet.setColumnWidth(3, 60);  // C: %
     
-    sheet.setColumnWidth(4, 30);  // D: Spacer
+    sheet.setColumnWidth(4, 50);  // D: Spacer
     
     // E, F, G, H, I: Expense / Assets
     // Expense: E, F, G (Name, Value, %)
@@ -708,7 +708,7 @@ const DashboardManager = {
     sheet.setColumnWidth(8, 120); // H: Current Val
     sheet.setColumnWidth(9, 60);  // I: % (Assets)
     
-    sheet.setColumnWidth(10, 30); // J: Spacer
+    sheet.setColumnWidth(10, 50); // J: Spacer
     
     // K, L, M, N: Calendar / Chart
     sheet.setColumnWidth(11, 100); // K: Date
