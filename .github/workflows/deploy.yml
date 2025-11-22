@@ -9,26 +9,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: "18"
 
       - name: Install CLASP
-        run: npm install @google/clasp -g
+        run: npm install -g @google/clasp
 
-      # Tạo file cấu hình dự án
+      # Khôi phục ~/.clasprc.json từ secret base64
+      - name: Restore clasp credentials
+        run: |
+          echo "${{ secrets.CLASPRC_BASE64 }}" | base64 -d > ~/.clasprc.json
+          # debug nhẹ:
+          head -c 80 ~/.clasprc.json || true
+
+      # Nếu bạn KHÔNG commit .clasp.json vào repo
+      # thì dùng step này để tạo lại từ SCRIPT_ID
       - name: Create .clasp.json
         run: |
-          echo '{"scriptId":"${{ secrets.SCRIPT_ID }}","rootDir":"./"}' > .clasp.json
+          cat > .clasp.json << 'EOF'
+          {
+            "scriptId": "${{ secrets.SCRIPT_ID }}",
+            "rootDir": "./"
+          }
+          EOF
 
-      # Tạo file đăng nhập từ Secret (Cách này ổn định nhất)
-      - name: Create .clasprc.json
+      # Debug: kiểm tra file có đúng như local không
+      - name: Debug manifest
         run: |
-          echo '${{ secrets.CLASP_SECRET }}' > ~/.clasprc.json
+          pwd
+          ls -la
+          echo "----- .clasp.json -----"
+          cat .clasp.json
+          echo "----- appsscript.json -----"
+          ls appsscript.json
+          echo "----- manifest describe -----"
+          clasp manifest describe
 
       - name: Push to GAS
         run: clasp push -f
