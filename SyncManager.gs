@@ -259,7 +259,7 @@ var SyncManager = {
     } catch (error) {
       Logger.log('Lỗi updateSheetSTT: ' + error.message);
     }
-  }
+  },
   /**
    * Quét và xóa các dòng mồ côi (Orphans)
    * Dùng để sửa lỗi khi đồng bộ thất bại
