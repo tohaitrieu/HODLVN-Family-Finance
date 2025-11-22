@@ -17,28 +17,27 @@ jobs:
         with:
           node-version: "18"
 
-      - name: Install CLASP
-        run: npm install -g @google/clasp
-      
-      - name: Check clasp version
-        run: clasp --version
+      # Cài CLASP bản 3.1.3 LOCAL (node_modules/.bin)
+      - name: Install CLASP locally
+        run: |
+          npm install @google/clasp@3.1.3
+          npx clasp --version
 
-      # Ghi thẳng CLASP_SECRET (raw JSON) vào ~/.clasprc.json
+      # Restore ~/.clasprc.json từ secret (đã base64)
       - name: Restore clasp credentials
         run: |
-          printf '%s\n' "${{ secrets.CLASP_SECRET }}" > ~/.clasprc.json
+          echo "${{ secrets.CLASP_SECRET }}" | base64 -d > ~/.clasprc.json
           echo "===== ~/.clasprc.json (first 120 chars) ====="
           head -c 120 ~/.clasprc.json || true
           echo ""
 
-      # Tạo .clasp.json nếu bạn không commit sẵn
+      # Tạo .clasp.json nếu không commit sẵn
       - name: Create .clasp.json
         run: |
           printf '{"scriptId":"%s","rootDir":"./"}\n' "${{ secrets.SCRIPT_ID }}" > .clasp.json
           echo "===== .clasp.json ====="
           cat .clasp.json
 
-      # Debug cấu trúc project
       - name: Debug project structure
         run: |
           echo "===== pwd ====="
@@ -52,9 +51,6 @@ jobs:
 
       - name: Push to GAS
         run: |
-          echo "===== clasp --version ====="
-          clasp --version
-          echo "===== clasp status ====="
-          clasp status || true
-          echo "===== clasp push -f ====="
-          clasp push -f
+          echo "===== Using npx clasp ====="
+          npx clasp status || true
+          npx clasp push -f
