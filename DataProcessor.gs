@@ -225,37 +225,49 @@ function addDebt(data) {
     
     const loanDate = new Date(data.loanDate);
     const debtName = data.debtName.toString();
+    const debtType = data.debtType || (debtName.toLowerCase().includes('margin') ? 'Margin chứng khoán' : 'Khác');
     const amount = parseFloat(data.amount);
     const interestRate = parseFloat(data.interestRate) || 0;
     const term = parseInt(data.term) || 12;
-    const purpose = data.purpose || '';
-    const note = data.note || '';
+    const note = data.note || data.purpose || '';
     
     const dueDate = new Date(loanDate);
     dueDate.setMonth(dueDate.getMonth() + term);
     
-    const rowData = [
-      stt,
-      debtName,
-      loanDate,
-      amount,
-      amount,
-      interestRate / 100,
-      term,
-      dueDate,
-      purpose,
-      'Chưa trả',
-      note
+    // Phần 1: Cột A-J (STT đến Đã trả lãi) - 10 cột
+    const rowDataPart1 = [
+      stt,                    // A: STT
+      debtName,               // B: Tên khoản nợ
+      debtType,               // C: Loại hình (NEW)
+      amount,                 // D: Gốc
+      interestRate / 100,     // E: Lãi suất
+      term,                   // F: Kỳ hạn
+      loanDate,               // G: Ngày vay
+      dueDate,                // H: Đáo hạn
+      0,                      // I: Đã trả gốc
+      0                       // J: Đã trả lãi
     ];
     
-    sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+    // Phần 2: Cột L-M (Trạng thái và Ghi chú) - 2 cột
+    const rowDataPart2 = [
+      'Chưa trả',             // L: Trạng thái
+      note                    // M: Ghi chú
+    ];
+    
+    // Insert Phần 1
+    sheet.getRange(emptyRow, 1, 1, rowDataPart1.length).setValues([rowDataPart1]);
+    
+    // Insert Phần 2 (Bỏ qua cột K)
+    sheet.getRange(emptyRow, 12, 1, rowDataPart2.length).setValues([rowDataPart2]);
     
     formatNewRow(sheet, emptyRow, {
-      3: 'dd/mm/yyyy',
-      4: '#,##0',
-      5: '#,##0',
-      6: '0.00%',
-      8: 'dd/mm/yyyy'
+      4: '#,##0',           // D: Gốc
+      5: '0.00"%"',         // E: Lãi suất
+      7: 'dd/mm/yyyy',      // G: Ngày vay
+      8: 'dd/mm/yyyy',      // H: Đáo hạn
+      9: '#,##0',           // I: Đã trả gốc
+      10: '#,##0',          // J: Đã trả lãi
+      11: '#,##0'           // K: Còn nợ
     });
     
     const incomeResult = addIncome({
@@ -340,24 +352,41 @@ function payDebt(data) {
       6: '#,##0'
     });
     
+    // Update Debt Sheet
     const debtEmptyRow = findEmptyRow(debtSheet, 2);
     const debtDataRows = debtEmptyRow - 2;
     
     if (debtDataRows > 0) {
+      // Read Col B (Name) to Col K (Remaining)
+      // B(1), C(2), D(3), E(4), F(5), G(6), H(7), I(8), J(9), K(10)
+      // Indices in values: 0=B, ..., 9=K
       const debtData = debtSheet.getRange(2, 2, debtDataRows, 10).getValues();
       
       for (let i = 0; i < debtData.length; i++) {
-        const rowDebtName = debtData[i][0];
+        const rowDebtName = debtData[i][0]; // Col B
         
         if (rowDebtName === debtName) {
-          const currentBalance = parseFloat(debtData[i][3]) || 0;
-          const newBalance = currentBalance - principalAmount;
           const row = i + 2;
           
-          debtSheet.getRange(row, 5).setValue(newBalance);
+          // Get current Paid Principal (Col I - Index 9 in sheet, Index 7 in range?)
+          // Wait, getRange(2, 2, ..., 10) -> B, C, D, E, F, G, H, I, J, K
+          // I is index 7. J is index 8. K is index 9.
           
-          if (newBalance <= 0) {
-            debtSheet.getRange(row, 10).setValue('Đã thanh toán');
+          // Better: Get exact cells to update
+          const paidPrinCell = debtSheet.getRange(row, 9); // Col I
+          const paidIntCell = debtSheet.getRange(row, 10); // Col J
+          
+          const currentPaidPrin = paidPrinCell.getValue() || 0;
+          const currentPaidInt = paidIntCell.getValue() || 0;
+          
+          paidPrinCell.setValue(currentPaidPrin + principalAmount);
+          paidIntCell.setValue(currentPaidInt + interestAmount);
+          
+          // Check Remaining (Col K - 11)
+          const remaining = debtSheet.getRange(row, 11).getValue();
+          
+          if (remaining <= 0) {
+            debtSheet.getRange(row, 12).setValue('Đã thanh toán'); // Col L
           }
           
           break;

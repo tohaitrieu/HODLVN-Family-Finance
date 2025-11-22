@@ -72,42 +72,43 @@ function addLending(data) {
     const emptyRow = findEmptyRow(lendingSheet, 2);
     const stt = getNextSTT(lendingSheet, 2);
     
-    // Phần 1: Cột A-I (STT đến Lãi đã thu) - 9 cột
-    // 'STT', 'Tên người vay', 'Số tiền gốc', 'Lãi suất (%/năm)', 
+    // Phần 1: Cột A-J (STT đến Lãi đã thu) - 10 cột
+    // 'STT', 'Tên người vay', 'Loại hình', 'Số tiền gốc', 'Lãi suất (%/năm)', 
     // 'Kỳ hạn (tháng)', 'Ngày vay', 'Ngày đến hạn', 'Gốc đã thu', 'Lãi đã thu'
     const rowDataPart1 = [
       stt,                    // A: STT
       borrowerName,           // B: Tên người vay
-      principal,              // C: Gốc
-      interestRate / 100,     // D: Lãi suất
-      term,                   // E: Kỳ hạn
-      date,                   // F: Ngày vay
-      maturityDate,           // G: Đáo hạn
-      0,                      // H: Gốc đã thu
-      0                       // I: Lãi đã thu
+      lendingType,            // C: Loại hình (NEW)
+      principal,              // D: Gốc
+      interestRate / 100,     // E: Lãi suất
+      term,                   // F: Kỳ hạn
+      date,                   // G: Ngày vay
+      maturityDate,           // H: Đáo hạn
+      0,                      // I: Gốc đã thu
+      0                       // J: Lãi đã thu
     ];
     
-    // Phần 2: Cột K-L (Trạng thái và Ghi chú) - 2 cột
+    // Phần 2: Cột L-M (Trạng thái và Ghi chú) - 2 cột
     const rowDataPart2 = [
-      'Đang vay',             // K: Trạng thái
-      note                    // L: Ghi chú
+      'Đang vay',             // L: Trạng thái
+      note                    // M: Ghi chú
     ];
     
     // Insert Phần 1
     lendingSheet.getRange(emptyRow, 1, 1, rowDataPart1.length).setValues([rowDataPart1]);
     
-    // Insert Phần 2 (Bỏ qua cột J - Còn lại)
-    lendingSheet.getRange(emptyRow, 11, 1, rowDataPart2.length).setValues([rowDataPart2]);
+    // Insert Phần 2 (Bỏ qua cột K - Còn lại)
+    lendingSheet.getRange(emptyRow, 12, 1, rowDataPart2.length).setValues([rowDataPart2]);
     
     // Format
     formatNewRow(lendingSheet, emptyRow, {
-      3: '#,##0',           // Gốc
-      4: '0.00"%"',         // Lãi suất
-      6: 'dd/mm/yyyy',      // Ngày vay
-      7: 'dd/mm/yyyy',      // Đáo hạn
-      8: '#,##0',           // Gốc đã thu
-      9: '#,##0',           // Lãi đã thu
-      10: '#,##0'           // Còn lại
+      4: '#,##0',           // D: Gốc
+      5: '0.00"%"',         // E: Lãi suất
+      7: 'dd/mm/yyyy',      // G: Ngày vay
+      8: 'dd/mm/yyyy',      // H: Đáo hạn
+      9: '#,##0',           // I: Gốc đã thu
+      10: '#,##0',          // J: Lãi đã thu
+      11: '#,##0'           // K: Còn lại
     });
     
     // ============================================

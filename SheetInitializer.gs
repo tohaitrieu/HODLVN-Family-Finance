@@ -211,7 +211,7 @@ const SheetInitializer = {
     
     // Header
     const headers = [
-      'STT', 'Tên khoản nợ', 'Nợ gốc ban đầu', 'Lãi suất (%/năm)', 
+      'STT', 'Tên khoản nợ', 'Loại hình', 'Nợ gốc ban đầu', 'Lãi suất (%/năm)', 
       'Kỳ hạn (tháng)', 'Ngày vay', 'Ngày đến hạn', 'Đã trả gốc', 
       'Đã trả lãi', 'Còn nợ', 'Trạng thái', 'Ghi chú'
     ];
@@ -271,9 +271,9 @@ const SheetInitializer = {
     
     // Header
     const headers = [
-      'STT', 'Tên người vay', 'Số tiền gốc', 'Lãi suất (%/năm)', 
-      'Kỳ hạn (tháng)', 'Ngày vay', 'Ngày đến hạn', 'Gốc đã thu', 
-      'Lãi đã thu', 'Còn lại', 'Trạng thái', 'Ghi chú'
+      'STT', 'Tên người vay', 'Loại hình', 'Số tiền gốc', 'Lãi suất (%/năm)', 
+      'Kỳ hạn (tháng)', 'Ngày vay', 'Ngày đến hạn', 'Gốc đã thu', 'Lãi đã thu', 
+      'Còn lại', 'Trạng thái', 'Ghi chú'
     ];
     
     sheet.getRange(1, 1, 1, headers.length)

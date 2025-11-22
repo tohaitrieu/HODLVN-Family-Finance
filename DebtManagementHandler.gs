@@ -81,47 +81,49 @@ function addDebtManagement(data) {
     Logger.log('QUẢN LÝ NỢ - STT: ' + stt);
     
     // ============================================
-    // CRITICAL FIX v3.3.2: Chia làm 2 phần để KHÔNG ghi đè công thức cột J
+    // CRITICAL FIX v3.3.2: Chia làm 2 phần để KHÔNG ghi đè công thức cột K (Mới)
     // ============================================
     
-    // Phần 1: Cột A-I (STT đến Đã trả lãi) - 9 cột
+    // Phần 1: Cột A-J (STT đến Đã trả lãi) - 10 cột
+    // STT, Name, Type, Principal, Rate, Term, Date, Maturity, PaidPrin, PaidInt
     const rowDataPart1 = [
       stt,                    // A: STT
       debtName,               // B: Tên khoản nợ
-      principal,              // C: Gốc
-      interestRate / 100,     // D: Lãi suất (chuyển % sang decimal)
-      term,                   // E: Kỳ hạn
-      date,                   // F: Ngày vay
-      maturityDate,           // G: Đáo hạn
-      0,                      // H: Đã trả gốc
-      0                       // I: Đã trả lãi
+      debtType,               // C: Loại hình (NEW)
+      principal,              // D: Gốc
+      interestRate / 100,     // E: Lãi suất (chuyển % sang decimal)
+      term,                   // F: Kỳ hạn
+      date,                   // G: Ngày vay
+      maturityDate,           // H: Đáo hạn
+      0,                      // I: Đã trả gốc
+      0                       // J: Đã trả lãi
     ];
     
-    // Phần 2: Cột K-L (Trạng thái và Ghi chú) - 2 cột
+    // Phần 2: Cột L-M (Trạng thái và Ghi chú) - 2 cột
     const rowDataPart2 = [
-      'Chưa trả',             // K: Trạng thái
-      note                    // L: Ghi chú
+      'Chưa trả',             // L: Trạng thái
+      note                    // M: Ghi chú
     ];
     
-    // ✅ Insert Phần 1: Cột A-I (9 cột)
+    // ✅ Insert Phần 1: Cột A-J (10 cột)
     debtSheet.getRange(emptyRow, 1, 1, rowDataPart1.length).setValues([rowDataPart1]);
     
-    // ✅ BỎ QUA cột J (cột 10) - GIỮ NGUYÊN CÔNG THỨC =C-H
+    // ✅ BỎ QUA cột K (cột 11) - GIỮ NGUYÊN CÔNG THỨC =D-I
     
-    // ✅ Insert Phần 2: Cột K-L (2 cột, bắt đầu từ cột 11)
-    debtSheet.getRange(emptyRow, 11, 1, rowDataPart2.length).setValues([rowDataPart2]);
+    // ✅ Insert Phần 2: Cột L-M (2 cột, bắt đầu từ cột 12)
+    debtSheet.getRange(emptyRow, 12, 1, rowDataPart2.length).setValues([rowDataPart2]);
     
-    Logger.log('✅ ĐÃ INSERT XONG! Công thức cột J được giữ nguyên.');
+    Logger.log('✅ ĐÃ INSERT XONG! Công thức cột K được giữ nguyên.');
     
     // Format
     formatNewRow(debtSheet, emptyRow, {
-      3: '#,##0',           // Gốc
-      4: '0.00"%"',         // Lãi suất
-      6: 'dd/mm/yyyy',      // Ngày vay
-      7: 'dd/mm/yyyy',      // Đáo hạn
-      8: '#,##0',           // Đã trả gốc
-      9: '#,##0',           // Đã trả lãi
-      10: '#,##0'           // Còn nợ (công thức đã có sẵn)
+      4: '#,##0',           // D: Gốc
+      5: '0.00"%"',         // E: Lãi suất
+      7: 'dd/mm/yyyy',      // G: Ngày vay
+      8: 'dd/mm/yyyy',      // H: Đáo hạn
+      9: '#,##0',           // I: Đã trả gốc
+      10: '#,##0',          // J: Đã trả lãi
+      11: '#,##0'           // K: Còn nợ (công thức đã có sẵn)
     });
     
     // ============================================
