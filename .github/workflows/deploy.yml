@@ -1,51 +1,34 @@
 name: Deploy to GAS
-
 on:
   push:
-    branches: [ "main" ] # Hoặc "master" tùy tên nhánh chính của bạn
+    branches: [ "main" ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Tải code từ GitHub về máy ảo
       - name: Checkout code
         uses: actions/checkout@v3
-
-      # 2. Cài đặt Node.js
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-
-      # 3. Cài đặt CLASP
+      
       - name: Install CLASP
         run: npm install @google/clasp -g
-
-      # 4. Tạo file cấu hình .clasp.json (chứa Script ID)
+      
+      - name: Write Service Account credentials
+        run: |
+          echo '${{ secrets.SERVICE_ACCOUNT_KEY }}' > /tmp/service-account.json
+      
+      - name: Authenticate with Service Account
+        run: |
+          clasp login --creds /tmp/service-account.json --no-localhost
+      
       - name: Create .clasp.json
         run: |
           echo '{"scriptId":"${{ secrets.SCRIPT_ID }}","rootDir":"./"}' > .clasp.json
-
-      # 5. Tạo file đăng nhập .clasprc.json (từ Secret)
-      - name: Create .clasprc.json
-        run: |
-          echo '${{ secrets.CLASP_SECRET }}' > ~/.clasprc.json
-      # --- BƯỚC KIỂM TRA MỚI (THÊM VÀO ĐÂY) ---
-      - name: DEBUG - Check file content
-        run: |
-          echo "Checking file structure..."
-          # In ra 20 ký tự đầu tiên xem có đúng là {"token": hay không
-          head -c 20 ~/.clasprc.json
-          echo "" 
-          # Kiểm tra dung lượng file (nếu là 0 tức là Secret rỗng)
-          ls -l ~/.clasprc.json
-      # BƯỚC KIỂM TRA FILE (Thêm vào để debug)
-      - name: DEBUG - List all files
-        run: |
-          echo "Current folder structure:"
-          ls -R
-      # 6. Đẩy code lên GAS
-      - name: Push to GAS
+      
+      - name: Push to Apps Script
         run: clasp push -f
