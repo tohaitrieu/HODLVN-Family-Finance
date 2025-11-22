@@ -20,15 +20,13 @@ jobs:
       - name: Install CLASP
         run: npm install -g @google/clasp
 
-      # Khôi phục ~/.clasprc.json từ secret base64
       - name: Restore clasp credentials
         run: |
           echo "${{ secrets.CLASP_SECRET }}" | base64 -d > ~/.clasprc.json
-          # debug nhẹ:
-          head -c 80 ~/.clasprc.json || true
+          echo "===== ~/.clasprc.json (first 120 chars) ====="
+          head -c 120 ~/.clasprc.json || true
+          echo ""
 
-      # Nếu bạn KHÔNG commit .clasp.json vào repo
-      # thì dùng step này để tạo lại từ SCRIPT_ID
       - name: Create .clasp.json
         run: |
           cat > .clasp.json << 'EOF'
@@ -38,17 +36,24 @@ jobs:
           }
           EOF
 
-      # Debug: kiểm tra file có đúng như local không
-      - name: Debug manifest
+      - name: Debug project structure
         run: |
+          echo "===== pwd ====="
           pwd
+          echo "===== ls ====="
           ls -la
-          echo "----- .clasp.json -----"
+          echo "===== .clasp.json ====="
           cat .clasp.json
-          echo "----- appsscript.json -----"
-          ls appsscript.json
-          echo "----- manifest describe -----"
-          clasp manifest describe
+          echo "===== .claspignore ====="
+          if [ -f .claspignore ]; then cat .claspignore; else echo "(no .claspignore)"; fi
+          echo "===== appsscript.json exists? ====="
+          if [ -f appsscript.json ]; then echo "OK - appsscript.json found"; else echo "MISSING appsscript.json"; fi
 
       - name: Push to GAS
-        run: clasp push -f
+        run: |
+          echo "===== clasp --version ====="
+          clasp --version
+          echo "===== clasp status ====="
+          clasp status || true
+          echo "===== clasp push -f ====="
+          clasp push -f
