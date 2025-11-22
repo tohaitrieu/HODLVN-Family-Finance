@@ -148,5 +148,12 @@ Thumbs.db
 walkthrough.md
 implementation_plan.md
 HODLVN-Family-Finance_tree.txt
+.clasp.json
+.clasprc.json
+clasp.json
+*.txt
 creds.json
-*.json
+credentials.json
+token.json
+secret.json
+clasprc.b64
