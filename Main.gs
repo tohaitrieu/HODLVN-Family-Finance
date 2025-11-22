@@ -72,7 +72,7 @@ const APP_CONFIG = {
   FORMATS: {
     NUMBER: '#,##0',
     PERCENTAGE: '0.00%',
-    DATE: 'dd/mm/yyyy'
+    DATE: 'dd/MM/yyyy'
   },
   
   // Danh mục thu chi (Centralized Categories)

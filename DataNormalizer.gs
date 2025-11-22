@@ -12,42 +12,142 @@ function normalizeAllData() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
   try {
-    ui.alert('Đang xử lý...', 'Hệ thống đang chuẩn hóa dữ liệu. Vui lòng đợi...', ui.ButtonSet.OK);
+    const toast = (msg) => ss.toast(msg, 'Chuẩn hóa dữ liệu', 3);
+    toast('Đang xử lý...');
     
-    // 1. Define map of Sheet -> Date Columns (1-indexed)
-    const dateColumnsMap = {
-      [APP_CONFIG.SHEETS.INCOME]: [2],
-      [APP_CONFIG.SHEETS.EXPENSE]: [2],
-      [APP_CONFIG.SHEETS.DEBT_PAYMENT]: [2],
-      [APP_CONFIG.SHEETS.DEBT_MANAGEMENT]: [6, 7], // Ngày vay, Ngày đến hạn
-      [APP_CONFIG.SHEETS.LENDING]: [6, 7],         // Ngày vay, Ngày đến hạn
-      [APP_CONFIG.SHEETS.STOCK]: [2],
-      [APP_CONFIG.SHEETS.GOLD]: [2],
-      [APP_CONFIG.SHEETS.CRYPTO]: [2],
-      [APP_CONFIG.SHEETS.OTHER_INVESTMENT]: [2]
-    };
+    // Configuration for normalization
+    const sheetConfigs = [
+      {
+        name: APP_CONFIG.SHEETS.INCOME,
+        dates: ['B2:B'],
+        currency: ['C2:C'],
+        numbers: []
+      },
+      {
+        name: APP_CONFIG.SHEETS.EXPENSE,
+        dates: ['B2:B'],
+        currency: ['C2:C'],
+        numbers: []
+      },
+      {
+        name: APP_CONFIG.SHEETS.DEBT_PAYMENT,
+        dates: ['B2:B'],
+        currency: ['D2:F'],
+        numbers: []
+      },
+      {
+        name: APP_CONFIG.SHEETS.DEBT_MANAGEMENT,
+        dates: ['G2:H'], // Ngày vay, Ngày đến hạn
+        currency: ['D2:D', 'I2:K'], // Gốc, Đã trả, Còn lại
+        numbers: ['E2:E'], // Lãi suất (decimal) handled separately? No, E is Rate, F is Term.
+        // Wait, Debt Management: 
+        // D: Principal (Currency)
+        // E: Rate (Percent)
+        // F: Term (Number)
+        // G: Start Date
+        // H: Maturity Date
+        // I, J, K: Paid Prin, Paid Int, Remaining (Currency)
+        custom: (sheet) => {
+           sheet.getRange('E2:E').setNumberFormat('0.00"%"');
+           sheet.getRange('F2:F').setNumberFormat('0'); // Term
+        }
+      },
+      {
+        name: APP_CONFIG.SHEETS.LENDING,
+        dates: ['G2:H'],
+        currency: ['D2:D', 'I2:K'],
+        custom: (sheet) => {
+           sheet.getRange('E2:E').setNumberFormat('0.00"%"');
+           sheet.getRange('F2:F').setNumberFormat('0'); // Term
+        }
+      },
+      {
+        name: APP_CONFIG.SHEETS.LENDING_REPAYMENT,
+        dates: ['B2:B'],
+        currency: ['D2:F'],
+        numbers: []
+      },
+      {
+        name: APP_CONFIG.SHEETS.STOCK,
+        dates: ['B2:B'],
+        currency: ['F2:I', 'K2:N'], // Prices and Values
+        numbers: ['E2:E'], // Quantity
+        custom: (sheet) => {
+           sheet.getRange('O2:O').setNumberFormat('0.00%');
+        }
+      },
+      {
+        name: APP_CONFIG.SHEETS.GOLD,
+        dates: ['B2:B'],
+        currency: ['H2:L'],
+        numbers: ['F2:F'], // Quantity
+        custom: (sheet) => {
+           sheet.getRange('M2:M').setNumberFormat('0.00%');
+        }
+      },
+      {
+        name: APP_CONFIG.SHEETS.CRYPTO,
+        dates: ['B2:B'],
+        currency: ['H2:I', 'L2:N'], // VND Values
+        numbers: ['E2:E'], // Quantity
+        custom: (sheet) => {
+           sheet.getRange('F2:F').setNumberFormat('#,##0.00'); // USD Price
+           sheet.getRange('J2:K').setNumberFormat('#,##0.00'); // USD Values
+           sheet.getRange('O2:O').setNumberFormat('0.00%');
+        }
+      },
+      {
+        name: APP_CONFIG.SHEETS.OTHER_INVESTMENT,
+        dates: ['B2:B'],
+        currency: ['D2:D', 'G2:G'],
+        numbers: ['F2:F'], // Term
+        custom: (sheet) => {
+           sheet.getRange('E2:E').setNumberFormat('0.00"%"');
+        }
+      }
+    ];
     
     let totalFixed = 0;
     
-    // 2. Iterate and fix
-    for (const [sheetName, cols] of Object.entries(dateColumnsMap)) {
-      const sheet = ss.getSheetByName(sheetName);
-      if (!sheet) continue;
+    sheetConfigs.forEach(config => {
+      const sheet = ss.getSheetByName(config.name);
+      if (!sheet) return;
       
-      cols.forEach(col => {
-        // Use SheetInitializer's helper if available, or local implementation
-        if (SheetInitializer && SheetInitializer._fixDateColumn) {
-          SheetInitializer._fixDateColumn(sheet, col);
-        } else {
-          // Fallback implementation
-          _fixDateColumnLocal(sheet, col);
-        }
-      });
+      // 1. Fix Dates
+      if (config.dates) {
+        config.dates.forEach(rangeA1 => {
+          const range = sheet.getRange(rangeA1);
+          // Apply format
+          range.setNumberFormat(APP_CONFIG.FORMATS.DATE);
+          // Fix data types (String -> Date)
+          _fixDateRange(range);
+        });
+      }
+      
+      // 2. Fix Currency
+      if (config.currency) {
+        config.currency.forEach(rangeA1 => {
+          sheet.getRange(rangeA1).setNumberFormat(APP_CONFIG.FORMATS.NUMBER);
+        });
+      }
+      
+      // 3. Fix Numbers (General integer/float)
+      if (config.numbers) {
+        config.numbers.forEach(rangeA1 => {
+          sheet.getRange(rangeA1).setNumberFormat('0'); // Or general number
+        });
+      }
+      
+      // 4. Custom Rules
+      if (config.custom) {
+        config.custom(sheet);
+      }
       
       totalFixed++;
-    }
+    });
     
-    ui.alert('Thành công', `✅ Đã chuẩn hóa dữ liệu cho ${totalFixed} sheet!`, ui.ButtonSet.OK);
+    toast(`✅ Đã chuẩn hóa ${totalFixed} sheet!`);
+    ui.alert('Thành công', `✅ Đã chuẩn hóa dữ liệu cho ${totalFixed} sheet!\n\n- Định dạng Ngày: dd/MM/yyyy\n- Định dạng Tiền: #,##0\n- Định dạng Số: Chuẩn hóa theo loại dữ liệu`, ui.ButtonSet.OK);
     
   } catch (error) {
     ui.alert('Lỗi', '❌ Có lỗi xảy ra: ' + error.message, ui.ButtonSet.OK);
@@ -56,13 +156,9 @@ function normalizeAllData() {
 }
 
 /**
- * Local helper to fix date column (fallback)
+ * Helper to fix date values in a range
  */
-function _fixDateColumnLocal(sheet, colIndex) {
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return;
-  
-  const range = sheet.getRange(2, colIndex, lastRow - 1, 1);
+function _fixDateRange(range) {
   const values = range.getValues();
   let hasChange = false;
   
@@ -97,7 +193,6 @@ function _fixDateColumnLocal(sheet, colIndex) {
   if (hasChange) {
     range.setValues(fixedValues);
   }
-  range.setNumberFormat('dd/mm/yyyy');
 }
 
 /**

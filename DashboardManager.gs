@@ -411,12 +411,76 @@ const DashboardManager = {
     sheet.getRange(startRow, startCol, events.length + 3, numCols) // +3 for Header, SubHeader, Total
       .setBorder(true, true, true, true, true, true);
       
-    return events.length + 3;
+    const colorPayable = this.CONFIG.COLORS.CALENDAR; // Use existing color for Payable
+    const colorReceivable = '#70AD47'; // Green for Receivable
+    const numCols = 6; // Date, Action, Event, Remaining, Principal, Interest
+    
+    let currentRow = startRow;
+    
+    // Helper to render a single table
+    const renderTable = (title, data, color) => {
+      // Header
+      sheet.getRange(currentRow, startCol, 1, numCols).merge()
+        .setValue(title)
+        .setFontWeight('bold')
+        .setBackground(color)
+        .setFontColor('#FFFFFF')
+        .setHorizontalAlignment('left');
+        
+      // Sub-header
+      const headers = ['Ngày', 'Hành động', 'Sự kiện', 'Gốc còn lại', 'Gốc trả kỳ này', 'Lãi trả kỳ này'];
+      sheet.getRange(currentRow + 1, startCol, 1, numCols).setValues([headers]).setFontWeight('bold');
+      
+      // Data
+      if (data.length === 0) {
+          sheet.getRange(currentRow + 2, startCol, 1, numCols).merge().setValue('Không có sự kiện sắp tới');
+          sheet.getRange(currentRow, startCol, 3, numCols).setBorder(true, true, true, true, true, true);
+          currentRow += 4; // Space after table
+          return;
+      }
+      
+      let totalPrincipal = 0;
+      let totalInterest = 0;
+      
+      data.forEach((evt, idx) => {
+        const r = currentRow + 2 + idx;
+        sheet.getRange(r, startCol).setValue(evt.date).setNumberFormat('dd/MM/yyyy').setFontWeight('bold');
+        sheet.getRange(r, startCol + 1).setValue(evt.action);
+        sheet.getRange(r, startCol + 2).setValue(evt.name);
+        sheet.getRange(r, startCol + 3).setValue(evt.remaining).setNumberFormat('#,##0');
+        sheet.getRange(r, startCol + 4).setValue(evt.principalPayment).setNumberFormat('#,##0');
+        sheet.getRange(r, startCol + 5).setValue(evt.interestPayment).setNumberFormat('#,##0');
+        
+        totalPrincipal += evt.principalPayment;
+        totalInterest += evt.interestPayment;
+      });
+      
+      // Total Row
+      const totalRow = currentRow + 2 + data.length;
+      sheet.getRange(totalRow, startCol, 1, 4).merge().setValue('TỔNG CỘNG').setFontWeight('bold').setHorizontalAlignment('right');
+      sheet.getRange(totalRow, startCol + 4).setValue(totalPrincipal).setNumberFormat('#,##0').setFontWeight('bold');
+      sheet.getRange(totalRow, startCol + 5).setValue(totalInterest).setNumberFormat('#,##0').setFontWeight('bold');
+      
+      // Border
+      sheet.getRange(currentRow, startCol, data.length + 3, numCols)
+        .setBorder(true, true, true, true, true, true);
+        
+      currentRow += data.length + 4; // Move down for next table
+    };
+    
+    // Render Payables Table
+    renderTable('📅 Lịch sự kiện: KHOẢN PHẢI TRẢ (Sắp tới)', events.payables, '#E74C3C'); // Red for Payable
+    
+    // Render Receivables Table
+    renderTable('📅 Lịch sự kiện: KHOẢN PHẢI THU (Sắp tới)', events.receivables, '#28A745'); // Green for Receivable
+    
+    return currentRow - startRow;
   },
 
   _getCalendarEvents() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const events = [];
+    const payables = [];
+    const receivables = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -440,15 +504,10 @@ const DashboardManager = {
       return null;
     };
 
-    // Helper to parse currency safely (handle formatted strings like "100.000.000")
+    // Helper to parse currency safely
     const parseCurrency = (val) => {
       if (typeof val === 'number') return val;
       if (typeof val === 'string') {
-        // Remove all non-numeric characters except dot and comma
-        // If it's VND, usually no decimals. Safe to remove all non-digits?
-        // Let's try to be smarter. Remove thousands separators.
-        // If string contains both . and , assume last one is decimal.
-        // For simplicity and VND context: Remove all non-digits.
         return parseFloat(val.replace(/\D/g, ''));
       }
       return 0;
@@ -490,6 +549,8 @@ const DashboardManager = {
         }
         
         if (isActive && remaining > 0 && startDate) {
+          const targetList = isDebt ? payables : receivables;
+          
           if (term > 1) {
             // Installment Logic
             const monthlyPrincipal = initialPrincipal / term;
@@ -511,7 +572,7 @@ const DashboardManager = {
                 const days = getDaysDiff(prevDate, payDate);
                 let currentInterest = days * (rate * simulatedRemaining) / 360;
                 
-                events.push({
+                targetList.push({
                   date: payDate,
                   action: isDebt ? 'Phải trả' : 'Phải thu',
                   name: isDebt ? `${name} (Kỳ ${i}/${term})` : `${name} (Kỳ ${i}/${term})`,
@@ -530,7 +591,7 @@ const DashboardManager = {
                const days = getDaysDiff(startDate, maturityDate);
                let currentInterest = days * (rate * remaining) / 360;
                
-               events.push({
+               targetList.push({
                   date: maturityDate,
                   action: isDebt ? 'Phải trả' : 'Phải thu',
                   name: isDebt ? `${name} (Tất toán)` : `${name} (Đáo hạn)`,
@@ -550,11 +611,14 @@ const DashboardManager = {
     // 2. Lending Collections
     processInstallments(APP_CONFIG.SHEETS.LENDING, false);
     
-    // Sort by Date
-    events.sort((a, b) => a.date - b.date);
+    // Sort and Limit
+    payables.sort((a, b) => a.date - b.date);
+    receivables.sort((a, b) => a.date - b.date);
     
-    // Limit to top 10
-    return events.slice(0, 10);
+    return {
+      payables: payables.slice(0, 10),
+      receivables: receivables.slice(0, 10)
+    };
   },
   
   _getDebtItems() {

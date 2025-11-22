@@ -266,8 +266,8 @@ const SheetInitializer = {
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('C2:C').setNumberFormat('#,##0');
     sheet.getRange('D2:D').setNumberFormat('0.00"%"');
-    sheet.getRange('E2:E').setNumberFormat('0');
-    sheet.getRange('F2:G').setNumberFormat(APP_CONFIG.FORMATS.DATE);
+    sheet.getRange('E2:E').setNumberFormat('0'); // Term (Month) - Number
+    sheet.getRange('F2:G').setNumberFormat(APP_CONFIG.FORMATS.DATE); // Start Date, Maturity Date
     this._fixDateColumn(sheet, 6); // Ngày vay
     this._fixDateColumn(sheet, 7); // Ngày đến hạn
     sheet.getRange('H2:J').setNumberFormat('#,##0');
@@ -328,8 +328,8 @@ const SheetInitializer = {
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('C2:C').setNumberFormat('#,##0');
     sheet.getRange('D2:D').setNumberFormat('0.00"%"');
-    sheet.getRange('E2:E').setNumberFormat('0');
-    sheet.getRange('F2:G').setNumberFormat(APP_CONFIG.FORMATS.DATE);
+    sheet.getRange('E2:E').setNumberFormat('0'); // Term - Number
+    sheet.getRange('F2:G').setNumberFormat(APP_CONFIG.FORMATS.DATE); // Start Date, Maturity Date
     this._fixDateColumn(sheet, 6); // Ngày vay
     this._fixDateColumn(sheet, 7); // Ngày đến hạn
     sheet.getRange('H2:J').setNumberFormat('#,##0');

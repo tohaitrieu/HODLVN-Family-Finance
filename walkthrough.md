@@ -1,57 +1,40 @@
 # Walkthrough - Refactor Event Calendar
 
 ## Changes
-I have refactored the "Lịch sự kiện" (Event Calendar) in `DashboardManager.gs` to provide a more detailed view of upcoming financial obligations.
+I have refactored the "Lịch sự kiện" (Event Calendar) in `DashboardManager.gs` to provide a more detailed and organized view.
 
 ### Key Improvements
-1.  **New Column Structure (6 Columns)**:
+1.  **Split Tables**:
+    *   **KHOẢN PHẢI TRẢ (Sắp tới)**: Displays the top 10 upcoming debt payments.
+    *   **KHOẢN PHẢI THU (Sắp tới)**: Displays the top 10 upcoming lending collections.
+    *   Each table has its own "TỔNG CỘNG" row.
+
+2.  **New Column Structure (6 Columns)**:
     *   **Ngày** (Date): Bold formatted.
-    *   **Hành động** (Action): "Phải trả" (Payable) or "Phải thu" (Receivable).
-    *   **Sự kiện** (Event): Name of the debt or loan (e.g., "Trả nợ: Vay mua nhà (Kỳ 1/12)").
-    *   **Gốc còn lại** (Remaining Principal): Shows the outstanding balance *before* the payment.
-    *   **Gốc trả kỳ này** (Principal Payment): The principal amount due for this specific event.
-    *   **Lãi trả kỳ này** (Interest Payment): The interest amount due, calculated based on the declining balance.
+    *   **Hành động** (Action): "Phải trả" or "Phải thu".
+    *   **Sự kiện** (Event): Name of the debt or loan.
+    *   **Gốc còn lại** (Remaining Principal): Outstanding balance before payment.
+    *   **Gốc trả kỳ này** (Principal Payment): Amount due.
+    *   **Lãi trả kỳ này** (Interest Payment): Interest due.
 
-2.  **Enhanced Logic**:
-    *   **Installment Debts**:
-        *   Generates monthly events based on the Start Date and Term.
-        *   Calculates interest using `Days * (Rate * Remaining) / 360`.
-        *   Simulates the declining principal balance for future projections.
-    *   **Lending (Cho vay)**:
-        *   Treated as "Bullet" repayment (one-time collection at maturity).
-        *   Shows "Phải thu" action.
-        *   Interest is calculated for the full duration (Start to Maturity).
-    *   **Robust Data Parsing**:
-        *   **Currency**: Added `parseCurrency` to correctly handle formatted numbers.
-        *   **Date**: Added `parseDate` to correctly handle date strings.
-    *   **Status Tracking**:
-        *   **Debts**: Now explicitly tracks both **"Chưa trả"** and **"Đang trả"** statuses.
-        *   **Lending**: Tracks "Đang vay".
-
-3.  **Total Row**:
-    *   Added a summary row at the bottom of the calendar table.
-    *   Sums up the total "Principal Payment" and "Interest Payment" for the displayed events.
+3.  **Enhanced Logic**:
+    *   **Installment Debts**: Monthly events, declining balance interest.
+    *   **Lending**: Bullet repayment at maturity.
+    *   **Robust Parsing**: Correctly handles formatted currency and date strings.
+    *   **Status Tracking**: Includes "Chưa trả", "Đang trả" (Debts) and "Đang vay" (Lending).
 
 ## Verification Results
 ### Automated Logic Check
-*   **Scenario 1: Installment Loan**
-    *   Input: Loan 120M, 12 months, 10% rate.
+*   **Scenario 1: Mixed Debts and Lending**
+    *   Input: 1 Installment Loan, 1 Lending.
     *   Result:
-        *   Shows 12 monthly events.
-        *   "Gốc trả kỳ này" = 10M/month.
-        *   "Lãi trả kỳ này" decreases each month as "Gốc còn lại" decreases.
-*   **Scenario 2: Lending**
-    *   Input: Lend 50M, 6 months, 12% rate.
-    *   Result:
-        *   Shows 1 event at Maturity Date.
-        *   Action: "Phải thu".
-        *   "Gốc trả kỳ này" = 50M.
-        *   "Lãi trả kỳ này" = Interest for 6 months.
+        *   **Table 1 (Payables)**: Shows monthly installments for the loan.
+        *   **Table 2 (Receivables)**: Shows the maturity event for the lending.
 
 ### Manual Verification Required
 1.  Open the "Tổng quan" (Dashboard) sheet.
 2.  Trigger a dashboard update (Menu > Cập nhật Dashboard).
-3.  Inspect the "Lịch sự kiện" table (Columns K-P).
-4.  Verify the columns match the new structure.
-5.  Check if the calculations for Principal and Interest look correct for your data.
-6.  Verify the Total row at the bottom.
+3.  Inspect the "Lịch sự kiện" area (Columns K-P).
+4.  Verify there are **TWO** separate tables.
+5.  Check if the data in each table corresponds to the correct category (Payable vs Receivable).
+6.  Verify the Total rows for each table.
