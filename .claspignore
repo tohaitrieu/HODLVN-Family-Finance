@@ -1,4 +1,34 @@
-# Bỏ qua các file tài liệu và ảnh
+# ===========================
+# IGNORE RÁC - AN TOÀN - CHUẨN
+# ===========================
+
+# Ignore tất cả JSON trừ App Script manifest
+*.json
+!appsscript.json
+
+# Ignore private / secrets
+.clasp.json
+.clasprc.json
+creds.json
+credentials.json
+token.json
+secret.json
+clasprc.b64
+
+# Ignore node_modules (full)
+node_modules/
+**/node_modules/**
+npm-debug.log*
+
+# Ignore build output
+dist/
+build/
+out/
+coverage/
+.eslintcache
+*.map
+
+# Ignore docs / markdown / assets
 *.md
 *.png
 *.jpg
@@ -6,23 +36,16 @@
 *.gif
 LICENSE
 README.md
+docs/
 
-# Bỏ qua các file cấu hình của Git và Github
-.git/
-.github/
-.gitignore
-
-# Bỏ qua các file cấu hình hệ thống
+# Ignore system files
 .DS_Store
-node_modules/
+Thumbs.db
 
-# Bỏ qua chính các file cấu hình của Clasp (để bảo mật)
-.clasp.json
-.clasprc.json
-clasp.json
+# Ignore Git & GitHub
+.git/
+.gitignore
+.github/
+
+# Ignore misc
 *.txt
-creds.json
-credentials.json
-token.json
-secret.json
-clasprc.b64
