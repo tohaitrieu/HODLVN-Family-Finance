@@ -21,3 +21,5 @@ node_modules/
 .clasprc.json
 clasp.json
 *.txt
+creds.json
+*.json
