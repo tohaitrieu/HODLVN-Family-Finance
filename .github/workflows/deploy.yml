@@ -26,9 +26,25 @@ jobs:
         run: |
           echo '${{ secrets.SERVICE_ACCOUNT_KEY }}' > service-account.json
       
+      # DEBUG - Kiểm tra Script ID
+      - name: Verify Script ID
+        run: |
+          if [ -z "${{ secrets.SCRIPT_ID }}" ]; then
+            echo "❌ ERROR: SCRIPT_ID is empty or not set!"
+            echo "Please add SCRIPT_ID to GitHub Secrets"
+            exit 1
+          else
+            echo "✅ SCRIPT_ID is set"
+            echo "Script ID length: ${#SCRIPT_ID}"
+          fi
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+      
       - name: Create .clasp.json
         run: |
           echo '{"scriptId":"${{ secrets.SCRIPT_ID }}","rootDir":"./"}' > .clasp.json
+          echo "=== .clasp.json content ==="
+          cat .clasp.json
       
       - name: Generate token from Service Account
         run: |
@@ -64,7 +80,6 @@ jobs:
               fs.writeFileSync(clasprcPath, JSON.stringify(clasprc, null, 2));
               
               console.log('✅ Token generated successfully');
-              console.log('📍 Token saved to:', clasprcPath);
             } catch (error) {
               console.error('❌ Error generating token:', error.message);
               process.exit(1);
@@ -76,15 +91,10 @@ jobs:
           
           node generate-token.js
       
-      - name: Verify setup
-        run: |
-          echo "=== Checking .clasprc.json ==="
-          ls -la ~/.clasprc.json
-          echo "=== Checking .clasp.json ==="
-          cat .clasp.json
-      
       - name: Push to Apps Script
-        run: clasp push -f
+        run: |
+          echo "=== Attempting to push to Apps Script ==="
+          clasp push -f
       
       - name: Cleanup
         if: always()
