@@ -179,11 +179,11 @@ function getLendingList() {
     const lastRow = sheet.getLastRow();
     if (lastRow < 2) return ['Chưa có khoản cho vay'];
     
-    // Col B (Index 1): Name, Col K (Index 10): Status
-    const data = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+    // Col B (Index 1): Name, Col L (Index 11): Status
+    const data = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
     
     const list = data
-      .filter(row => row[10] === 'Đang vay' && row[1] !== '')
+      .filter(row => row[11] === 'Đang vay' && row[1] !== '')
       .map(row => row[1]); // Name
       
     return [...new Set(list)]; // Unique names
@@ -223,16 +223,17 @@ function addLendingPayment(data) {
     // Or we just update the "Gốc đã thu" and "Lãi đã thu" columns.
     
     const lastRow = lendingSheet.getLastRow();
-    const lendingData = lendingSheet.getRange(2, 1, lastRow - 1, 11).getValues();
+    const lendingData = lendingSheet.getRange(2, 1, lastRow - 1, 12).getValues();
     let foundRow = -1;
     let currentPrincipalPaid = 0;
     let currentInterestPaid = 0;
     
     for (let i = 0; i < lendingData.length; i++) {
-      if (lendingData[i][1] === borrowerName && lendingData[i][10] === 'Đang vay') {
+      // Col B (1): Name, Col L (11): Status
+      if (lendingData[i][1] === borrowerName && lendingData[i][11] === 'Đang vay') {
         foundRow = i + 2;
-        currentPrincipalPaid = parseFloat(lendingData[i][7]) || 0;
-        currentInterestPaid = parseFloat(lendingData[i][8]) || 0;
+        currentPrincipalPaid = parseFloat(lendingData[i][8]) || 0; // Col I (Index 8)
+        currentInterestPaid = parseFloat(lendingData[i][9]) || 0;  // Col J (Index 9)
         break;
       }
     }
@@ -242,15 +243,15 @@ function addLendingPayment(data) {
     }
     
     // Update values
-    lendingSheet.getRange(foundRow, 8).setValue(currentPrincipalPaid + principal); // H: Gốc đã thu
-    lendingSheet.getRange(foundRow, 9).setValue(currentInterestPaid + interest);   // I: Lãi đã thu
+    lendingSheet.getRange(foundRow, 9).setValue(currentPrincipalPaid + principal); // I: Gốc đã thu
+    lendingSheet.getRange(foundRow, 10).setValue(currentInterestPaid + interest);  // J: Lãi đã thu
     
     // Check if fully paid (Remaining <= 0)
-    // Remaining is calculated by formula in Col J (C - H).
+    // Remaining is calculated by formula in Col K (D - I).
     // We can check if Principal Paid >= Principal
-    const originalPrincipal = parseFloat(lendingData[foundRow - 2][2]);
+    const originalPrincipal = parseFloat(lendingData[foundRow - 2][3]); // Col D (Index 3)
     if (currentPrincipalPaid + principal >= originalPrincipal) {
-      lendingSheet.getRange(foundRow, 11).setValue('Đã tất toán'); // K: Status
+      lendingSheet.getRange(foundRow, 12).setValue('Đã tất toán'); // L: Status
     }
     
     // 2. Add to Income Sheet

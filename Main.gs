@@ -164,7 +164,9 @@ function onOpen() {
       .addItem('💼 Khởi tạo Sheet ĐẦU TƯ KHÁC', 'initializeOtherInvestmentSheet')
       .addSeparator()
       .addItem('💰 Khởi tạo Sheet BUDGET', 'initializeBudgetSheet')
-      .addItem('📊 Khởi tạo Sheet TỔNG QUAN', 'initializeDashboardSheet'))
+      .addItem('📊 Khởi tạo Sheet TỔNG QUAN', 'initializeDashboardSheet')
+      .addSeparator()
+      .addItem('Sửa lỗi lệch cột (Nợ/Cho vay)', 'fixColumnAlignment'))
     
     .addSeparator()
     

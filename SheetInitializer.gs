@@ -248,10 +248,11 @@ const SheetInitializer = {
     sheet.getRange('H2:J').setNumberFormat('#,##0');
     
     // Formula
-    sheet.getRange('J2:J1000').setFormula('=IFERROR(C2-H2, 0)');
+    // K: Còn nợ = Gốc (D) - Đã trả gốc (I)
+    sheet.getRange('K2:K1000').setFormula('=IFERROR(D2-I2, 0)');
     
     // Validation
-    const statusRange = sheet.getRange('K2:K1000');
+    const statusRange = sheet.getRange('L2:L1000');
     const statusRule = SpreadsheetApp.newDataValidation()
       .requireValueInList(['Chưa trả', 'Đang trả', 'Đã thanh toán', 'Quá hạn'])
       .setAllowInvalid(false)
@@ -308,10 +309,11 @@ const SheetInitializer = {
     sheet.getRange('H2:J').setNumberFormat('#,##0');
     
     // Formula
-    sheet.getRange('J2:J1000').setFormula('=IFERROR(C2-H2, 0)');
+    // K: Còn lại = Gốc (D) - Gốc đã thu (I)
+    sheet.getRange('K2:K1000').setFormula('=IFERROR(D2-I2, 0)');
     
     // Validation
-    const statusRange = sheet.getRange('K2:K1000');
+    const statusRange = sheet.getRange('L2:L1000');
     const statusRule = SpreadsheetApp.newDataValidation()
       .requireValueInList(['Đang vay', 'Đã tất toán', 'Quá hạn', 'Khó đòi'])
       .setAllowInvalid(false)
@@ -830,5 +832,50 @@ const SheetInitializer = {
     }
     
     return sheet;
+  }
+  /**
+   * Sửa lỗi lệch cột do thêm cột "Loại hình"
+   */
+  fixDebtLendingAlignment() {
+    const ss = getSpreadsheet();
+    const sheets = [APP_CONFIG.SHEETS.DEBT_MANAGEMENT, APP_CONFIG.SHEETS.LENDING];
+    
+    sheets.forEach(sheetName => {
+      const sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return;
+      
+      const lastRow = sheet.getLastRow();
+      if (lastRow < 2) return;
+      
+      // Check C2 (Should be Type - String) and D2 (Should be Principal - Number)
+      // If C2 is Number (Principal) and D2 is Number (Rate < 1), it's likely misaligned
+      const c2 = sheet.getRange('C2').getValue();
+      const d2 = sheet.getRange('D2').getValue();
+      
+      // Logic: Old C was Principal (Large Number), Old D was Rate (Small Number < 1)
+      // New C is Type (String), New D is Principal (Large Number)
+      // If C2 is Large Number (> 1000), it's likely Principal -> Misaligned
+      if (typeof c2 === 'number' && c2 > 1000) {
+        Logger.log(`Phát hiện lệch cột tại sheet ${sheetName}. Đang sửa...`);
+        
+        // Insert cells at C2:C (Shift Right)
+        sheet.getRange(2, 3, lastRow - 1, 1).insertCells(SpreadsheetApp.Dimension.COLUMNS);
+        
+        // Set default value "Khác" for new C column
+        sheet.getRange(2, 3, lastRow - 1, 1).setValue('Khác');
+        
+        // Re-apply Formula for K (Remaining)
+        // K = D - I
+        sheet.getRange(2, 11, lastRow - 1, 1).setFormula('=IFERROR(D2-I2, 0)');
+        
+        Logger.log(`Đã sửa xong sheet ${sheetName}`);
+      } else {
+        Logger.log(`Sheet ${sheetName} có vẻ đã đúng cấu trúc.`);
+        // Ensure formula is correct anyway
+        sheet.getRange(2, 11, lastRow - 1, 1).setFormula('=IFERROR(D2-I2, 0)');
+      }
+    });
+    
+    SpreadsheetApp.getUi().alert('✅ Đã kiểm tra và sửa lỗi lệch cột (nếu có)!');
   }
 };
