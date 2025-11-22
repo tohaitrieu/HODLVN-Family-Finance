@@ -23,7 +23,7 @@ jobs:
       # Khôi phục ~/.clasprc.json từ secret base64
       - name: Restore clasp credentials
         run: |
-          echo "${{ secrets.CLASPRC_BASE64 }}" | base64 -d > ~/.clasprc.json
+          echo "${{ secrets.CLASP_SECRET }}" | base64 -d > ~/.clasprc.json
           # debug nhẹ:
           head -c 80 ~/.clasprc.json || true
 
