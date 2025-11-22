@@ -20,32 +20,28 @@ jobs:
       - name: Install CLASP
         run: npm install -g @google/clasp
 
+      # Ghi thẳng CLASP_SECRET (raw JSON) vào ~/.clasprc.json
       - name: Restore clasp credentials
         run: |
-          cat << 'EOF' > ~/.clasprc.json
-${{ secrets.CLASP_SECRET }}
-EOF
+          printf '%s\n' "${{ secrets.CLASP_SECRET }}" > ~/.clasprc.json
           echo "===== ~/.clasprc.json (first 120 chars) ====="
           head -c 120 ~/.clasprc.json || true
           echo ""
 
+      # Tạo .clasp.json nếu bạn không commit sẵn
       - name: Create .clasp.json
         run: |
-          cat > .clasp.json << 'EOF'
-          {
-            "scriptId": "${{ secrets.SCRIPT_ID }}",
-            "rootDir": "./"
-          }
-          EOF
+          printf '{"scriptId":"%s","rootDir":"./"}\n' "${{ secrets.SCRIPT_ID }}" > .clasp.json
+          echo "===== .clasp.json ====="
+          cat .clasp.json
 
+      # Debug cấu trúc project
       - name: Debug project structure
         run: |
           echo "===== pwd ====="
           pwd
           echo "===== ls ====="
           ls -la
-          echo "===== .clasp.json ====="
-          cat .clasp.json
           echo "===== .claspignore ====="
           if [ -f .claspignore ]; then cat .claspignore; else echo "(no .claspignore)"; fi
           echo "===== appsscript.json exists? ====="
