@@ -22,7 +22,9 @@ jobs:
 
       - name: Restore clasp credentials
         run: |
-          echo "${{ secrets.CLASP_SECRET }}" | base64 -d > ~/.clasprc.json
+          cat << 'EOF' > ~/.clasprc.json
+${{ secrets.CLASP_SECRET }}
+EOF
           echo "===== ~/.clasprc.json (first 120 chars) ====="
           head -c 120 ~/.clasprc.json || true
           echo ""
