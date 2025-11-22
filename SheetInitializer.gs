@@ -832,7 +832,7 @@ const SheetInitializer = {
     }
     
     return sheet;
-  }
+  },
   /**
    * Sửa lỗi lệch cột do thêm cột "Loại hình"
    */
