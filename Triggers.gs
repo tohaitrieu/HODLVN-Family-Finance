@@ -46,10 +46,39 @@ function onEdit(e) {
     
     // 4. Cập nhật Dashboard (nếu cần)
     // Dashboard dùng công thức nên thường tự cập nhật.
-    // Tuy nhiên, nếu muốn chắc chắn, có thể gọi refreshDashboard()
-    // Nhưng cẩn thận hiệu năng.
     
   } catch (error) {
     Logger.log('❌ Lỗi onEdit: ' + error.message);
   }
+}
+
+/**
+ * Trigger chạy khi có thay đổi cấu trúc (Insert/Remove Row, etc.)
+ * Cần cài đặt thủ công hoặc qua hàm createInstallableTriggers()
+ */
+function onChange(e) {
+  SyncManager.handleOnChange(e);
+}
+
+/**
+ * Hàm cài đặt Trigger (Chạy 1 lần)
+ */
+function createInstallableTriggers() {
+  const ss = SpreadsheetApp.getActive();
+  
+  // Xóa trigger cũ để tránh trùng lặp
+  const triggers = ScriptApp.getProjectTriggers();
+  for (let i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'onChange') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+  
+  // Tạo trigger mới
+  ScriptApp.newTrigger('onChange')
+      .forSpreadsheet(ss)
+      .onChange()
+      .create();
+      
+  SpreadsheetApp.getUi().alert('✅ Đã cài đặt Trigger thành công!');
 }
