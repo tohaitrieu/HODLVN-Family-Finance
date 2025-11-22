@@ -697,7 +697,7 @@ const DashboardManager = {
     sheet.setColumnWidth(2, 120); // B: Value
     sheet.setColumnWidth(3, 60);  // C: %
     
-    sheet.setColumnWidth(4, 50);  // D: Spacer
+    sheet.setColumnWidth(4, 120);  // D: Spacer / Nợ (Gốc) in Bottom Table
     
     // E, F, G, H, I: Expense / Assets
     // Expense: E, F, G (Name, Value, %)
@@ -706,9 +706,9 @@ const DashboardManager = {
     sheet.setColumnWidth(6, 120); // F: Value / Capital
     sheet.setColumnWidth(7, 100); // G: % / P/L
     sheet.setColumnWidth(8, 120); // H: Current Val
-    sheet.setColumnWidth(9, 60);  // I: % (Assets)
+    sheet.setColumnWidth(9, 120); // I: % (Assets) / ĐT khác in Bottom Table
     
-    sheet.setColumnWidth(10, 50); // J: Spacer
+    sheet.setColumnWidth(10, 120); // J: Spacer / Dòng tiền in Bottom Table
     
     // K, L, M, N: Calendar / Chart
     sheet.setColumnWidth(11, 100); // K: Date
