@@ -47,6 +47,9 @@ function onEdit(e) {
     // 4. Cập nhật Dashboard (nếu cần)
     // Dashboard dùng công thức nên thường tự cập nhật.
     
+    // 5. Xử lý đồng bộ dữ liệu 2 chiều (Transaction ID)
+    SyncManager.handleOnEdit(e);
+    
   } catch (error) {
     Logger.log('❌ Lỗi onEdit: ' + error.message);
   }

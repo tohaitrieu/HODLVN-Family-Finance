@@ -669,6 +669,34 @@ const SheetInitializer = {
     
     return sheet;
   },
+
+  /**
+   * Khởi tạo Sheet CHANGELOG
+   */
+  initializeChangelogSheet() {
+    const ss = getSpreadsheet();
+    const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.CHANGELOG);
+    
+    // Header
+    const headers = ['Phiên bản / Tính năng', 'Chi tiết thay đổi', 'Hành động khuyến nghị'];
+    sheet.getRange(1, 1, 1, headers.length)
+      .setValues([headers])
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center')
+      .setBackground(APP_CONFIG.COLORS.HEADER_BG)
+      .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
+    
+    // Column widths
+    sheet.setColumnWidth(1, 250); // Phiên bản
+    sheet.setColumnWidth(2, 400); // Chi tiết
+    sheet.setColumnWidth(3, 300); // Hành động
+    
+    // Format
+    sheet.setFrozenRows(1);
+    sheet.getRange('A:C').setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+    
+    return sheet;
+  },
   
   /**
    * Khởi tạo Sheet BUDGET

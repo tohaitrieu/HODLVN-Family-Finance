@@ -88,10 +88,14 @@ function addLending(data) {
       0                       // J: Lãi đã thu
     ];
     
+    const transactionId = Utilities.getUuid();
+    
     // Phần 2: Cột L-M (Trạng thái và Ghi chú) - 2 cột
+    // Col N: TransactionID
     const rowDataPart2 = [
       'Đang vay',             // L: Trạng thái
-      note                    // M: Ghi chú
+      note,                   // M: Ghi chú
+      transactionId           // N: TransactionID
     ];
     
     // Insert Phần 1
@@ -124,14 +128,15 @@ function addLending(data) {
       const expenseEmptyRow = findEmptyRow(expenseSheet, 2);
       const expenseStt = getNextSTT(expenseSheet, 2);
       
-      // Columns: STT | Ngày | Số tiền | Danh mục | Chi tiết | Ghi chú
+      // Columns: STT | Ngày | Số tiền | Danh mục | Chi tiết | Ghi chú | TransactionID
       const expenseRowData = [
         expenseStt,
         date,
         principal,
         'Cho vay',
         `Cho vay: ${borrowerName}`,
-        `Loại: ${lendingType}`
+        `Loại: ${lendingType}`,
+        transactionId // Link ID
       ];
       
       expenseSheet.getRange(expenseEmptyRow, 1, 1, expenseRowData.length).setValues([expenseRowData]);

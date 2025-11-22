@@ -53,7 +53,8 @@ const APP_CONFIG = {
     LENDING: 'CHO VAY',
     LENDING_REPAYMENT: 'THU NỢ',
     BUDGET: 'BUDGET',
-    DASHBOARD: 'TỔNG QUAN'
+    DASHBOARD: 'TỔNG QUAN',
+    CHANGELOG: 'LỊCH SỬ CẬP NHẬT'
   },
   
   // Màu sắc theme
@@ -94,6 +95,9 @@ const APP_CONFIG = {
  * Tạo menu khi mở file
  */
 function onOpen() {
+  // Kiểm tra và cập nhật Changelog nếu có phiên bản mới
+  ChangelogManager.checkVersionAndUpdate();
+
   const ui = SpreadsheetApp.getUi();
   
   ui.createMenu(APP_CONFIG.APP_NAME)
@@ -172,6 +176,7 @@ function onOpen() {
     
     // === NHÓM 6: TRỢ GIÚP ===
     .addItem('ℹ️ Hướng dẫn sử dụng', 'showInstructions')
+    .addItem('📜 Lịch sử cập nhật', 'updateChangelog')
     .addItem('📖 Giới thiệu hệ thống', 'showAbout')
     
     .addToUi();
@@ -707,32 +712,60 @@ function showInstructions() {
  * Hiển thị thông tin hệ thống
  */
 function showAbout() {
-  const ui = SpreadsheetApp.getUi();
-  ui.alert(
-    'Giới thiệu hệ thống',
-    `💰 ${APP_CONFIG.APP_NAME} v${APP_CONFIG.VERSION}\n\n` +
-    '✨ MỚI TRONG v3.4.1:\n' +
-    '   • Fix các menu Budget không hoạt động\n' +
-    '   • Thêm form đặt ngân sách tháng\n' +
-    '   • Báo cáo chi tiêu và đầu tư\n\n' +
-    '✨ MỚI TRONG v3.3:\n' +
-    '   • Fix lỗi Setup Wizard chèn dữ liệu sai vị trí\n' +
-    '   • Tự động thêm khoản thu khi thêm nợ\n' +
-    '   • Cải thiện logic trạng thái nợ\n\n' +
-    '🎯 Tính năng:\n' +
-    '   • Quản lý thu chi hàng ngày\n' +
-    '   • Theo dõi nợ và lãi\n' +
-    '   • Đầu tư đa dạng (CK, Vàng, Crypto)\n' +
-    '   • Ngân sách thông minh\n' +
-    '   • Dashboard trực quan\n\n' +
-    '📊 10 Sheet:\n' +
-    '   THU • CHI • TRẢ NỢ • QUẢN LÝ NỢ\n' +
-    '   CK • VÀNG • CRYPTO • ĐẦU TƯ KHÁC\n' +
-    '   BUDGET • TỔNG QUAN\n\n' +
-    '👨‍💻 Phát triển bởi: Claude & Nika\n' +
-    '📅 Phiên bản: ' + APP_CONFIG.VERSION,
-    ui.ButtonSet.OK
-  );
+  const htmlContent = `
+    <style>
+      body { font-family: sans-serif; padding: 15px; line-height: 1.5; font-size: 14px; }
+      h3 { color: #4472C4; margin: 0 0 15px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+      .group { margin-bottom: 15px; }
+      .label { font-weight: bold; color: #333; }
+      ul { margin: 5px 0; padding-left: 20px; }
+      li { margin-bottom: 2px; }
+      .footer { margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; color: #666; font-size: 13px; }
+      a { color: #4472C4; text-decoration: none; }
+    </style>
+    
+    <h3>💰 ${APP_CONFIG.APP_NAME} v${APP_CONFIG.VERSION}</h3>
+    
+    <div class="group">
+      <div class="label">✨ MỚI TRONG v${APP_CONFIG.VERSION}:</div>
+      <ul>
+        <li>Fix các menu Budget không hoạt động</li>
+        <li>Thêm form đặt ngân sách tháng</li>
+        <li>Báo cáo chi tiêu và đầu tư</li>
+      </ul>
+    </div>
+    
+    <div class="group">
+      <div class="label">🎯 Tính năng:</div>
+      <ul>
+        <li>Quản lý thu chi, nợ & lãi</li>
+        <li>Đầu tư (CK, Vàng, Crypto)</li>
+        <li>Ngân sách & Dashboard</li>
+      </ul>
+    </div>
+
+    <div class="footer">
+      👨‍💻 Phát triển bởi: Tô Triều với ❤️ từ <a href="https://hodl.vn" target="_blank"><b>HODL.VN</b></a><br>
+      📅 Phiên bản: ${APP_CONFIG.VERSION}
+    </div>
+  `;
+  
+  const html = HtmlService.createHtmlOutput(htmlContent)
+    .setWidth(400)
+    .setHeight(450);
+    
+  SpreadsheetApp.getUi().showModalDialog(html, 'Giới thiệu hệ thống');
+}
+
+/**
+ * Cập nhật Changelog thủ công
+ */
+function updateChangelog() {
+  ChangelogManager.updateChangelogSheet();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APP_CONFIG.SHEETS.CHANGELOG);
+  if (sheet) {
+    sheet.activate();
+  }
 }
 
 // ==================== TIỆN ÍCH ====================

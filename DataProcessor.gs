@@ -99,7 +99,8 @@ function addIncome(data) {
       date,
       amount,
       source,
-      note
+      note,
+      data.transactionId || Utilities.getUuid() // Col F: TransactionID
     ];
     
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
@@ -166,7 +167,8 @@ function addExpense(data) {
       amount,
       category,
       subcategory,
-      note
+      note,
+      data.transactionId || Utilities.getUuid() // Col G: TransactionID
     ];
     
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
@@ -248,10 +250,14 @@ function addDebt(data) {
       0                       // J: Đã trả lãi
     ];
     
+    const transactionId = Utilities.getUuid();
+    
     // Phần 2: Cột L-M (Trạng thái và Ghi chú) - 2 cột
+    // Col N: TransactionID
     const rowDataPart2 = [
       'Chưa trả',             // L: Trạng thái
-      note                    // M: Ghi chú
+      note,                   // M: Ghi chú
+      transactionId           // N: TransactionID
     ];
     
     // Insert Phần 1
@@ -284,7 +290,8 @@ function addDebt(data) {
       date: loanDate,
       amount: amount,
       source: incomeSource,
-      note: `Vay ${debtName}. ${note}`
+      note: `Vay ${debtName}. ${note}`,
+      transactionId: transactionId // Link ID
     });
     
     if (!incomeResult.success) {
@@ -343,6 +350,8 @@ function payDebt(data) {
     const totalAmount = principalAmount + interestAmount;
     const note = data.note || '';
     
+    const transactionId = Utilities.getUuid();
+
     const rowData = [
       stt,
       date,
@@ -350,7 +359,8 @@ function payDebt(data) {
       principalAmount,
       interestAmount,
       totalAmount,
-      note
+      note,
+      transactionId // Col H: TransactionID
     ];
     
     paymentSheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
@@ -408,7 +418,8 @@ function payDebt(data) {
       amount: totalAmount,
       category: 'Trả nợ',
       subcategory: `Trả nợ: ${debtName}`,
-      note: note
+      note: note,
+      transactionId: transactionId // Link ID
     });
     
     if (!expenseResult.success) {
