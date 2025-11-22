@@ -19,6 +19,9 @@ jobs:
 
       - name: Install CLASP
         run: npm install -g @google/clasp
+      
+      - name: Check clasp version
+        run: clasp --version
 
       # Ghi thẳng CLASP_SECRET (raw JSON) vào ~/.clasprc.json
       - name: Restore clasp credentials
