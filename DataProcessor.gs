@@ -270,10 +270,20 @@ function addDebt(data) {
       11: '#,##0'           // K: Còn nợ
     });
     
+    let incomeSource = 'Khác';
+    const nameLower = debtName.toLowerCase();
+    const typeLower = (data.debtType || '').toLowerCase();
+    
+    if (nameLower.includes('margin') || typeLower.includes('margin') || typeLower.includes('ngân hàng')) {
+      incomeSource = 'Vay ngân hàng';
+    } else if (typeLower.includes('cá nhân')) {
+      incomeSource = 'Vay cá nhân';
+    }
+
     const incomeResult = addIncome({
       date: loanDate,
       amount: amount,
-      source: 'Vay nợ',
+      source: incomeSource,
       note: `Vay ${debtName}. ${note}`
     });
     
@@ -357,10 +367,10 @@ function payDebt(data) {
     const debtDataRows = debtEmptyRow - 2;
     
     if (debtDataRows > 0) {
-      // Read Col B (Name) to Col K (Remaining)
-      // B(1), C(2), D(3), E(4), F(5), G(6), H(7), I(8), J(9), K(10)
-      // Indices in values: 0=B, ..., 9=K
-      const debtData = debtSheet.getRange(2, 2, debtDataRows, 10).getValues();
+      // Read Col B (Name) to Col L (Status)
+      // B(1), C(2), D(3), E(4), F(5), G(6), H(7), I(8), J(9), K(10), L(11)
+      // Indices in values: 0=B, ..., 10=L
+      const debtData = debtSheet.getRange(2, 2, debtDataRows, 11).getValues();
       
       for (let i = 0; i < debtData.length; i++) {
         const rowDebtName = debtData[i][0]; // Col B
@@ -368,11 +378,7 @@ function payDebt(data) {
         if (rowDebtName === debtName) {
           const row = i + 2;
           
-          // Get current Paid Principal (Col I - Index 9 in sheet, Index 7 in range?)
-          // Wait, getRange(2, 2, ..., 10) -> B, C, D, E, F, G, H, I, J, K
-          // I is index 7. J is index 8. K is index 9.
-          
-          // Better: Get exact cells to update
+          // Get current Paid Principal (Col I) & Interest (Col J)
           const paidPrinCell = debtSheet.getRange(row, 9); // Col I
           const paidIntCell = debtSheet.getRange(row, 10); // Col J
           
@@ -383,15 +389,32 @@ function payDebt(data) {
           paidIntCell.setValue(currentPaidInt + interestAmount);
           
           // Check Remaining (Col K - 11)
-          const remaining = debtSheet.getRange(row, 11).getValue();
+          // Remaining is calculated by formula: D - I
+          // We can check if Paid Principal >= Original Principal (Col D)
+          const originalPrincipal = parseFloat(debtData[i][2]); // Col D (Index 2 in range B-L)
           
-          if (remaining <= 0) {
+          if (currentPaidPrin + principalAmount >= originalPrincipal) {
             debtSheet.getRange(row, 12).setValue('Đã thanh toán'); // Col L
           }
           
           break;
         }
       }
+    }
+    
+    // [NEW] Add to Expense Sheet (Sync)
+    const expenseResult = addExpense({
+      date: date,
+      amount: totalAmount,
+      category: 'Trả nợ',
+      subcategory: `Trả nợ: ${debtName}`,
+      note: note
+    });
+    
+    if (!expenseResult.success) {
+      Logger.log('Cảnh báo: Không thể tự động thêm chi phí cho khoản trả nợ');
+    } else {
+      Logger.log('✅ Đã tự động thêm chi phí: Trả nợ ' + debtName);
     }
     
     BudgetManager.updateDebtBudget();

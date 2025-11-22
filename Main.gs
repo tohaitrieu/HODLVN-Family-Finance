@@ -83,7 +83,7 @@ const APP_CONFIG = {
     ],
     EXPENSE: [
       'Ăn uống', 'Đi lại', 'Nhà ở', 'Y tế', 
-      'Giáo dục', 'Mua sắm', 'Giải trí', 'Cho vay', 'Khác'
+      'Giáo dục', 'Mua sắm', 'Giải trí', 'Cho vay', 'Trả nợ', 'Khác'
     ]
   }
 };

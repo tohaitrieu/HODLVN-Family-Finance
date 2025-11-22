@@ -146,7 +146,18 @@ function addDebtManagement(data) {
       Logger.log('THU - STT: ' + incomeStt);
       
       // Xác định nguồn thu dựa vào loại nợ
-      let incomeSource = 'Vay ' + debtType;
+      let incomeSource = 'Khác';
+      const typeLower = debtType.toLowerCase();
+      
+      if (typeLower.includes('ngân hàng') || typeLower.includes('bank')) {
+        incomeSource = 'Vay ngân hàng';
+      } else if (typeLower.includes('cá nhân') || typeLower.includes('người thân')) {
+        incomeSource = 'Vay cá nhân';
+      } else if (typeLower.includes('margin')) {
+        incomeSource = 'Vay ngân hàng'; // Margin is technically borrowing from broker (similar to bank)
+      } else {
+        incomeSource = 'Khác';
+      }
       
       // Thêm dữ liệu vào sheet THU
       // Columns: STT | Ngày | Số tiền | Nguồn thu | Ghi chú
