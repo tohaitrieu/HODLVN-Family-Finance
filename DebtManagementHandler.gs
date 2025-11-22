@@ -130,41 +130,57 @@ function addDebtManagement(data) {
     });
     
     // ============================================
-      let incomeSource = 'Khác';
-      const typeLower = debtType.toLowerCase();
-      
-      if (typeLower.includes('ngân hàng') || typeLower.includes('bank')) {
-        incomeSource = 'Vay ngân hàng';
-      } else if (typeLower.includes('cá nhân') || typeLower.includes('người thân')) {
-        incomeSource = 'Vay cá nhân';
-      } else if (typeLower.includes('margin')) {
-        incomeSource = 'Vay ngân hàng'; // Margin is technically borrowing from broker (similar to bank)
-      } else {
-        incomeSource = 'Khác';
-      }
-      
-      // Thêm dữ liệu vào sheet THU
-      // Columns: STT | Ngày | Số tiền | Nguồn thu | Ghi chú
-      const incomeRowData = [
-        incomeStt,
-        date,
-        principal,
-        incomeSource,
-        `Vay: ${debtName}`
-      ];
-      
-      incomeSheet.getRange(incomeEmptyRow, 1, 1, incomeRowData.length).setValues([incomeRowData]);
-      
-      // Format
-      formatNewRow(incomeSheet, incomeEmptyRow, {
-        2: 'dd/mm/yyyy',
-        3: '#,##0'
-      });
-      
-      autoIncomeMessage = `\n✅ Đã TỰ ĐỘNG thêm khoản thu "${incomeSource}" vào sheet THU`;
-      Logger.log('SUCCESS: Đã thêm khoản thu vào sheet THU tại dòng ' + incomeEmptyRow);
+    // BƯỚC 2: TỰ ĐỘNG THÊM KHOẢN THU & CHI
+    // ============================================
+    
+    // 1. Auto Income (Tiền vào)
+    let incomeSource = 'Khác';
+    const typeLower = (debtType || '').toLowerCase();
+    
+    if (typeLower.includes('ngân hàng') || typeLower.includes('bank') || typeLower.includes('margin')) {
+      incomeSource = 'Vay ngân hàng';
+    } else if (typeLower.includes('cá nhân') || typeLower.includes('người thân')) {
+      incomeSource = 'Vay cá nhân';
+    }
+
+    const incomeResult = addIncome({
+      date: date,
+      amount: principal,
+      source: incomeSource,
+      note: `Vay: ${debtName}. ${note}`,
+      transactionId: transactionId
+    });
+    
+    let autoIncomeMessage = '';
+    if (incomeResult.success) {
+      autoIncomeMessage = `\n✅ Đã tạo khoản thu: ${incomeSource}`;
+    } else {
+      autoIncomeMessage = `\n⚠️ Lỗi tạo khoản thu: ${incomeResult.message}`;
     }
     
+    // 2. Auto Expense (Tiền ra - Mua sắm/Tiêu dùng)
+    let expenseCategory = 'Mua sắm';
+    const nameLower = debtName.toLowerCase();
+    if (nameLower.includes('nhà')) expenseCategory = 'Nhà ở';
+    if (nameLower.includes('học')) expenseCategory = 'Giáo dục';
+    if (nameLower.includes('chữa bệnh') || nameLower.includes('thuốc')) expenseCategory = 'Y tế';
+    
+    const expenseResult = addExpense({
+      date: date,
+      amount: principal,
+      category: expenseCategory,
+      subcategory: `Mua sắm từ khoản vay: ${debtName}`,
+      note: `Chi tiêu từ khoản vay ${debtName}`,
+      transactionId: transactionId
+    });
+    
+    let autoExpenseMessage = '';
+    if (expenseResult.success) {
+      autoExpenseMessage = `\n➖ Đã tạo khoản chi: ${expenseCategory}`;
+    } else {
+      autoExpenseMessage = `\n⚠️ Lỗi tạo khoản chi: ${expenseResult.message}`;
+    }
+
     // ============================================
     // BƯỚC 3: TRẢ VỀ KẾT QUẢ
     // ============================================
@@ -173,7 +189,8 @@ function addDebtManagement(data) {
                `📅 Kỳ hạn: ${term} tháng\n` +
                `💳 Loại: ${debtType}\n` +
                `📊 Trạng thái: Chưa trả` +
-               autoIncomeMessage;
+               autoIncomeMessage + 
+               autoExpenseMessage;
     
     Logger.log('=== KẾT QUẢ ===');
     Logger.log(resultMessage);

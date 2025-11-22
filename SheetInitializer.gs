@@ -106,7 +106,7 @@ const SheetInitializer = {
     const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.INCOME);
     
     // Header
-    const headers = ['STT', 'Ngày', 'Số tiền', 'Nguồn thu', 'Ghi chú'];
+    const headers = ['STT', 'Ngày', 'Số tiền', 'Nguồn thu', 'Ghi chú', 'TransactionID'];
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])
       .setFontWeight('bold')
@@ -120,6 +120,7 @@ const SheetInitializer = {
     sheet.setColumnWidth(3, 120);  // Số tiền
     sheet.setColumnWidth(4, 150);  // Nguồn thu
     sheet.setColumnWidth(5, 300);  // Ghi chú
+    sheet.hideColumns(6);          // Hide TransactionID
     
     // Format - Apply to whole columns (safe)
     sheet.getRange('A2:A').setNumberFormat('0');
@@ -149,7 +150,7 @@ const SheetInitializer = {
     const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.EXPENSE);
     
     // Header
-    const headers = ['STT', 'Ngày', 'Số tiền', 'Danh mục', 'Chi tiết', 'Ghi chú'];
+    const headers = ['STT', 'Ngày', 'Số tiền', 'Danh mục', 'Chi tiết', 'Ghi chú', 'TransactionID'];
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])
       .setFontWeight('bold')
@@ -164,6 +165,7 @@ const SheetInitializer = {
     sheet.setColumnWidth(4, 120);
     sheet.setColumnWidth(5, 200);
     sheet.setColumnWidth(6, 250);
+    sheet.hideColumns(7);          // Hide TransactionID
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
@@ -193,7 +195,7 @@ const SheetInitializer = {
     const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.DEBT_PAYMENT);
     
     // Header
-    const headers = ['STT', 'Ngày', 'Khoản nợ', 'Trả gốc', 'Trả lãi', 'Tổng trả', 'Ghi chú'];
+    const headers = ['STT', 'Ngày', 'Khoản nợ', 'Trả gốc', 'Trả lãi', 'Tổng trả', 'Ghi chú', 'TransactionID'];
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])
       .setFontWeight('bold')
@@ -209,6 +211,7 @@ const SheetInitializer = {
     sheet.setColumnWidth(5, 120);
     sheet.setColumnWidth(6, 120);
     sheet.setColumnWidth(7, 250);
+    sheet.hideColumns(8);          // Hide TransactionID
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
@@ -234,7 +237,7 @@ const SheetInitializer = {
     const headers = [
       'STT', 'Tên khoản nợ', 'Loại hình', 'Nợ gốc ban đầu', 'Lãi suất (%/năm)', 
       'Kỳ hạn (tháng)', 'Ngày vay', 'Ngày đến hạn', 'Đã trả gốc', 
-      'Đã trả lãi', 'Còn nợ', 'Trạng thái', 'Ghi chú'
+      'Đã trả lãi', 'Còn nợ', 'Trạng thái', 'Ghi chú', 'TransactionID'
     ];
     
     sheet.getRange(1, 1, 1, headers.length)
@@ -257,6 +260,7 @@ const SheetInitializer = {
     sheet.setColumnWidth(10, 120);
     sheet.setColumnWidth(11, 100);
     sheet.setColumnWidth(12, 200);
+    sheet.hideColumns(14);         // Hide TransactionID
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
@@ -295,7 +299,7 @@ const SheetInitializer = {
     const headers = [
       'STT', 'Tên người vay', 'Loại hình', 'Số tiền gốc', 'Lãi suất (%/năm)', 
       'Kỳ hạn (tháng)', 'Ngày vay', 'Ngày đến hạn', 'Gốc đã thu', 'Lãi đã thu', 
-      'Còn lại', 'Trạng thái', 'Ghi chú'
+      'Còn lại', 'Trạng thái', 'Ghi chú', 'TransactionID'
     ];
     
     sheet.getRange(1, 1, 1, headers.length)
@@ -318,6 +322,7 @@ const SheetInitializer = {
     sheet.setColumnWidth(10, 120);
     sheet.setColumnWidth(11, 100);
     sheet.setColumnWidth(12, 200);
+    sheet.hideColumns(14);         // Hide TransactionID
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
@@ -353,7 +358,7 @@ const SheetInitializer = {
     const sheet = this._getOrCreateSheet(ss, APP_CONFIG.SHEETS.LENDING_REPAYMENT);
     
     // Header
-    const headers = ['STT', 'Ngày', 'Người vay', 'Thu gốc', 'Thu lãi', 'Tổng thu', 'Ghi chú'];
+    const headers = ['STT', 'Ngày', 'Người vay', 'Thu gốc', 'Thu lãi', 'Tổng thu', 'Ghi chú', 'TransactionID'];
     sheet.getRange(1, 1, 1, headers.length)
       .setValues([headers])
       .setFontWeight('bold')
@@ -369,6 +374,7 @@ const SheetInitializer = {
     sheet.setColumnWidth(5, 120);
     sheet.setColumnWidth(6, 120);
     sheet.setColumnWidth(7, 250);
+    sheet.hideColumns(8);          // Hide TransactionID
     
     // Format
     sheet.getRange('A2:A').setNumberFormat('0');
