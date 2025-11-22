@@ -78,6 +78,27 @@ const SheetInitializer = {
   },
 
   /**
+   * Cập nhật toàn bộ các Sheet (Non-destructive)
+   * Chạy lại logic khởi tạo để cập nhật header, format, validation
+   * mà không làm mất dữ liệu cũ.
+   */
+  updateAllSheets() {
+    this.initializeIncomeSheet();
+    this.initializeExpenseSheet();
+    this.initializeDebtPaymentSheet();
+    this.initializeDebtManagementSheet();
+    this.initializeLendingSheet();
+    this.initializeLendingRepaymentSheet();
+    this.initializeStockSheet();
+    this.initializeGoldSheet();
+    this.initializeCryptoSheet();
+    this.initializeOtherInvestmentSheet();
+    this.initializeBudgetSheet();
+    this.initializeChangelogSheet();
+    // Dashboard được cập nhật riêng qua DashboardManager
+  },
+
+  /**
    * Khởi tạo Sheet THU
    */
   initializeIncomeSheet() {

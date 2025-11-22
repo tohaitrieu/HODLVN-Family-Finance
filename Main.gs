@@ -153,7 +153,9 @@ function onOpen() {
 
     // === NHÓM 5: KHỞI TẠO SHEET ===
     .addSubMenu(ui.createMenu('⚙️ Khởi tạo Sheet')
-      .addItem('🔄 Khởi tạo TẤT CẢ Sheet', 'initializeAllSheets')
+      .addItem('🔄 Cập nhật toàn bộ các Sheet', 'updateAllSheets')
+      .addSeparator()
+      .addItem('🚀 Khởi tạo TẤT CẢ Sheet (Setup Wizard)', 'initializeAllSheets')
       .addSeparator()
       .addItem('📥 Khởi tạo Sheet THU', 'initializeIncomeSheet')
       .addItem('📤 Khởi tạo Sheet CHI', 'initializeExpenseSheet')
@@ -339,6 +341,37 @@ function setBudgetForMonth(budgetData) {
 function initializeAllSheets() {
   // Hiển thị Setup Wizard thay vì confirm dialog
   showSetupWizard();
+}
+
+/**
+ * Cập nhật toàn bộ các Sheet (Giữ nguyên dữ liệu)
+ */
+function updateAllSheets() {
+  const ui = SpreadsheetApp.getUi();
+  const result = ui.alert(
+    'Cập nhật toàn bộ Sheet',
+    'Bạn có chắc chắn muốn cập nhật lại cấu trúc (header, format, công thức) cho TẤT CẢ các sheet?\n\n' +
+    'Lưu ý:\n' +
+    '- Dữ liệu hiện có sẽ ĐƯỢC GIỮ NGUYÊN.\n' +
+    '- Header, độ rộng cột, format sẽ được reset về mặc định.\n' +
+    '- Công thức cột tính toán sẽ được áp dụng lại.',
+    ui.ButtonSet.YES_NO
+  );
+
+  if (result === ui.Button.YES) {
+    try {
+      const toastId = SpreadsheetApp.getActive().toast('Đang cập nhật...', 'Hệ thống', -1);
+      
+      SheetInitializer.updateAllSheets();
+      DashboardManager.setupDashboard(); // Cập nhật cả Dashboard
+      
+      SpreadsheetApp.getActive().toast('Đã cập nhật xong!', 'Hệ thống', 3);
+      
+      ui.alert('Thành công', '✅ Đã cập nhật toàn bộ các Sheet thành công!', ui.ButtonSet.OK);
+    } catch (error) {
+      showError('Lỗi cập nhật', error.message);
+    }
+  }
 }
 
 /**
