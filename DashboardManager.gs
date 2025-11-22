@@ -359,58 +359,6 @@ const DashboardManager = {
 
   _renderCalendarTable(sheet, startRow, startCol) {
     const events = this._getCalendarEvents();
-    const title = 'Lịch sự kiện (Sắp tới)';
-    const color = this.CONFIG.COLORS.CALENDAR;
-    // New Columns: Date, Action, Event, Remaining, Principal Payment, Interest Payment
-    const numCols = 6; 
-    
-    // Header
-    sheet.getRange(startRow, startCol, 1, numCols).merge()
-      .setValue(title)
-      .setFontWeight('bold')
-      .setBackground(color)
-      .setFontColor('#FFFFFF')
-      .setHorizontalAlignment('left');
-      
-    // Sub-header
-    const headers = ['Ngày', 'Hành động', 'Sự kiện', 'Gốc còn lại', 'Gốc trả kỳ này', 'Lãi trả kỳ này'];
-    headers.forEach((h, i) => {
-      sheet.getRange(startRow + 1, startCol + i).setValue(h).setFontWeight('bold');
-    });
-    
-    // Data
-    if (events.length === 0) {
-        sheet.getRange(startRow + 2, startCol, 1, numCols).merge().setValue('Không có sự kiện sắp tới');
-        sheet.getRange(startRow, startCol, 3, numCols).setBorder(true, true, true, true, true, true);
-        return 3;
-    }
-    
-    let totalPrincipal = 0;
-    let totalInterest = 0;
-    
-    events.forEach((evt, idx) => {
-      const r = startRow + 2 + idx;
-      sheet.getRange(r, startCol).setValue(evt.date).setNumberFormat('dd/MM/yyyy').setFontWeight('bold');
-      sheet.getRange(r, startCol + 1).setValue(evt.action);
-      sheet.getRange(r, startCol + 2).setValue(evt.name);
-      sheet.getRange(r, startCol + 3).setValue(evt.remaining).setNumberFormat('#,##0');
-      sheet.getRange(r, startCol + 4).setValue(evt.principalPayment).setNumberFormat('#,##0');
-      sheet.getRange(r, startCol + 5).setValue(evt.interestPayment).setNumberFormat('#,##0');
-      
-      totalPrincipal += evt.principalPayment;
-      totalInterest += evt.interestPayment;
-    });
-    
-    // Total Row
-    const totalRow = startRow + 2 + events.length;
-    sheet.getRange(totalRow, startCol, 1, 4).merge().setValue('TỔNG CỘNG').setFontWeight('bold').setHorizontalAlignment('right');
-    sheet.getRange(totalRow, startCol + 4).setValue(totalPrincipal).setNumberFormat('#,##0').setFontWeight('bold');
-    sheet.getRange(totalRow, startCol + 5).setValue(totalInterest).setNumberFormat('#,##0').setFontWeight('bold');
-    
-    // Border
-    sheet.getRange(startRow, startCol, events.length + 3, numCols) // +3 for Header, SubHeader, Total
-      .setBorder(true, true, true, true, true, true);
-      
     const colorPayable = this.CONFIG.COLORS.CALENDAR; // Use existing color for Payable
     const colorReceivable = '#70AD47'; // Green for Receivable
     const numCols = 6; // Date, Action, Event, Remaining, Principal, Interest
