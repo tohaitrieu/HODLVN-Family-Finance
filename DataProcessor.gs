@@ -648,7 +648,7 @@ function addGold(data) {
  */
 function addCrypto(data) {
   try {
-    if (!data.date || !data.type || !data.coin || !data.quantity || !data.price) {
+    if (!data.date || !data.type || !data.coin || !data.quantity || !data.priceUSD) {
       return {
         success: false,
         message: '❌ Vui lòng điền đầy đủ thông tin bắt buộc!'

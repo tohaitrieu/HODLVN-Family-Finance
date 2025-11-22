@@ -107,33 +107,21 @@ function CPRICE(input) {
  * @return Giá mua vào.
  * @customfunction
  */
-function GPRICE(product) {
+function GPRICE(product, type) {
   var url = "https://giavang.doji.vn/api/giavang/?api_key=258fbd2a72ce8481089d88c678e9fe4f";
   
+  if (!type) type = "Sell";
+  
   try {
-    var response = UrlFetchApp.fetch(url, {
-      'muteHttpExceptions': true
-    });
-    
+    var response = UrlFetchApp.fetch(url);
     var xml = response.getContentText();
     
-    // Tìm dòng có Key="dojihanoile" và lấy Sell
-    var pattern = /Key="dojihanoile"[^>]*Sell="([^"]*)"/;
+    var pattern = new RegExp("Key='dojihanoile'[^>]*" + type + "='([^']*)'");
     var match = xml.match(pattern);
     
     if (match && match[1]) {
-      var sellPrice = match[1];
-      
-      // Xóa dấu phẩy: "149,800" -> "149800"
-      sellPrice = sellPrice.replace(/,/g, '');
-      
-      // Chuyển thành số
-      var price = Number(sellPrice);
-      
-      // Quy đổi: 149,800 -> 14,980,000 (nhân 100)
-      price = price * 100;
-      
-      return price;
+      var price = match[1].replace(/,/g, '');
+      return Number(price) * 100;
     }
     
     return "Không tìm thấy giá";
