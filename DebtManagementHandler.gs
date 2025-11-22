@@ -98,11 +98,14 @@ function addDebtManagement(data) {
       0,                      // I: Đã trả gốc
       0                       // J: Đã trả lãi
     ];
+    const transactionId = IDGenerator.generate(debtName, date);
     
     // Phần 2: Cột L-M (Trạng thái và Ghi chú) - 2 cột
+    // Col N: TransactionID
     const rowDataPart2 = [
       'Chưa trả',             // L: Trạng thái
-      note                    // M: Ghi chú
+      note,                   // M: Ghi chú
+      transactionId           // N: TransactionID
     ];
     
     // ✅ Insert Phần 1: Cột A-J (10 cột)
@@ -110,7 +113,7 @@ function addDebtManagement(data) {
     
     // ✅ BỎ QUA cột K (cột 11) - GIỮ NGUYÊN CÔNG THỨC =D-I
     
-    // ✅ Insert Phần 2: Cột L-M (2 cột, bắt đầu từ cột 12)
+    // ✅ Insert Phần 2: Cột L-N (3 cột, bắt đầu từ cột 12)
     debtSheet.getRange(emptyRow, 12, 1, rowDataPart2.length).setValues([rowDataPart2]);
     
     Logger.log('✅ ĐÃ INSERT XONG! Công thức cột K được giữ nguyên.');
@@ -127,25 +130,6 @@ function addDebtManagement(data) {
     });
     
     // ============================================
-    // BƯỚC 2: TỰ ĐỘNG THÊM KHOẢN THU
-    // ============================================
-    let autoIncomeMessage = '';
-    
-    const incomeSheet = ss.getSheetByName('THU');
-    
-    if (!incomeSheet) {
-      autoIncomeMessage = '\n⚠️ Không tìm thấy sheet THU. Không thể tự động thêm khoản thu!';
-      Logger.log('ERROR: Không tìm thấy sheet THU');
-    } else {
-      // ✅ FIX: Sử dụng findEmptyRow() thay vì getLastRow()
-      // Cột 2 (B) = Ngày - cột dữ liệu thực
-      const incomeEmptyRow = findEmptyRow(incomeSheet, 2);
-      const incomeStt = getNextSTT(incomeSheet, 2);
-      
-      Logger.log('THU - Dòng trống tìm được: ' + incomeEmptyRow);
-      Logger.log('THU - STT: ' + incomeStt);
-      
-      // Xác định nguồn thu dựa vào loại nợ
       let incomeSource = 'Khác';
       const typeLower = debtType.toLowerCase();
       

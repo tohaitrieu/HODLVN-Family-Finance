@@ -145,6 +145,7 @@ function onOpen() {
     // === NHÓM 4: TIỆN ÍCH ===
     .addSubMenu(ui.createMenu('🛠️ Tiện ích')
       .addItem('✨ Chuẩn hóa dữ liệu', 'normalizeAllData')
+      .addItem('🧹 Dọn dẹp dữ liệu mồ côi', 'cleanOrphans')
       .addItem('🔍 Tìm kiếm giao dịch', 'searchTransaction')
       .addItem('📤 Xuất báo cáo PDF', 'exportToPDF')
       .addItem('🗑️ Xóa dữ liệu test', 'clearTestData'))
@@ -834,6 +835,13 @@ function exportToPDF() {
     '• Báo cáo năm',
     ui.ButtonSet.OK
   );
+}
+
+/**
+ * Dọn dẹp dữ liệu mồ côi
+ */
+function cleanOrphans() {
+  SyncManager.cleanOrphans();
 }
 
 /**

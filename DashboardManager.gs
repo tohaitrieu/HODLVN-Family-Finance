@@ -361,7 +361,8 @@ const DashboardManager = {
     const events = this._getCalendarEvents();
     const title = 'Lịch sự kiện (Sắp tới)';
     const color = this.CONFIG.COLORS.CALENDAR;
-    const numCols = 4; // Date, Event, Principal, Interest
+    // New Columns: Date, Action, Event, Remaining, Principal Payment, Interest Payment
+    const numCols = 6; 
     
     // Header
     sheet.getRange(startRow, startCol, 1, numCols).merge()
@@ -372,10 +373,10 @@ const DashboardManager = {
       .setHorizontalAlignment('left');
       
     // Sub-header
-    sheet.getRange(startRow + 1, startCol).setValue('Ngày').setFontWeight('bold');
-    sheet.getRange(startRow + 1, startCol + 1).setValue('Sự kiện').setFontWeight('bold');
-    sheet.getRange(startRow + 1, startCol + 2).setValue('Gốc').setFontWeight('bold');
-    sheet.getRange(startRow + 1, startCol + 3).setValue('Lãi').setFontWeight('bold');
+    const headers = ['Ngày', 'Hành động', 'Sự kiện', 'Gốc còn lại', 'Gốc trả kỳ này', 'Lãi trả kỳ này'];
+    headers.forEach((h, i) => {
+      sheet.getRange(startRow + 1, startCol + i).setValue(h).setFontWeight('bold');
+    });
     
     // Data
     if (events.length === 0) {
@@ -384,19 +385,33 @@ const DashboardManager = {
         return 3;
     }
     
+    let totalPrincipal = 0;
+    let totalInterest = 0;
+    
     events.forEach((evt, idx) => {
       const r = startRow + 2 + idx;
-      sheet.getRange(r, startCol).setValue(evt.date).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(r, startCol + 1).setValue(evt.name);
-      sheet.getRange(r, startCol + 2).setValue(evt.principal).setNumberFormat('#,##0');
-      sheet.getRange(r, startCol + 3).setValue(evt.interest).setNumberFormat('#,##0');
+      sheet.getRange(r, startCol).setValue(evt.date).setNumberFormat('dd/MM/yyyy').setFontWeight('bold');
+      sheet.getRange(r, startCol + 1).setValue(evt.action);
+      sheet.getRange(r, startCol + 2).setValue(evt.name);
+      sheet.getRange(r, startCol + 3).setValue(evt.remaining).setNumberFormat('#,##0');
+      sheet.getRange(r, startCol + 4).setValue(evt.principalPayment).setNumberFormat('#,##0');
+      sheet.getRange(r, startCol + 5).setValue(evt.interestPayment).setNumberFormat('#,##0');
+      
+      totalPrincipal += evt.principalPayment;
+      totalInterest += evt.interestPayment;
     });
     
+    // Total Row
+    const totalRow = startRow + 2 + events.length;
+    sheet.getRange(totalRow, startCol, 1, 4).merge().setValue('TỔNG CỘNG').setFontWeight('bold').setHorizontalAlignment('right');
+    sheet.getRange(totalRow, startCol + 4).setValue(totalPrincipal).setNumberFormat('#,##0').setFontWeight('bold');
+    sheet.getRange(totalRow, startCol + 5).setValue(totalInterest).setNumberFormat('#,##0').setFontWeight('bold');
+    
     // Border
-    sheet.getRange(startRow, startCol, events.length + 2, numCols)
+    sheet.getRange(startRow, startCol, events.length + 3, numCols) // +3 for Header, SubHeader, Total
       .setBorder(true, true, true, true, true, true);
       
-    return events.length + 2;
+    return events.length + 3;
   },
 
   _getCalendarEvents() {
@@ -405,92 +420,140 @@ const DashboardManager = {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Helper to process installments
-    const processInstallments = (sheetName, isDebt) => {
-      const sheet = ss.getSheetByName(sheetName);
-      if (!sheet) return;
-      
-      const lastRow = sheet.getLastRow();
-      if (lastRow < 2) return;
-      
-      // A(0): STT, B(1): Name, C(2): Type, D(3): Principal, E(4): Rate, F(5): Term, G(6): Date, H(7): Maturity
-      // I(8): PaidPrin, J(9): PaidInt, K(10): Remaining, L(11): Status
-      const data = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
-      
-      data.forEach(row => {
-        const name = row[1];
-        const initialPrincipal = parseFloat(row[3]) || 0;
-        const rate = parseFloat(row[4]) || 0; // Annual Rate (decimal)
-        const term = parseInt(row[5]) || 1;
-        const startDate = row[6];
-        const maturityDate = row[7];
-        const remaining = parseFloat(row[10]) || 0;
-        const status = row[11];
-        
-        // Check active status
-        const isActive = isDebt ? (status !== 'Đã thanh toán') : (status === 'Đang vay');
-        
-        if (isActive && remaining > 0 && startDate instanceof Date) {
-          if (term > 1) {
-            // Installment Logic
-            const monthlyPrincipal = initialPrincipal / term;
-            let simulatedRemaining = remaining;
-            
-            // We need to find the "next" payment index to start correct interest calculation
-            // Logic: The sheet's 'remaining' is the balance *after* the last recorded payment.
-            // So for the *next* payment, Interest = Remaining * Rate / 12.
-            // We iterate through all theoretical payment dates.
-            
-            for (let i = 1; i <= term; i++) {
-              let payDate = new Date(startDate);
-              payDate.setMonth(payDate.getMonth() + i);
-              
-              if (payDate >= today) {
-                // This is a future (or due today) payment
-                
-                let currentPrincipal = monthlyPrincipal;
-                if (simulatedRemaining < currentPrincipal) currentPrincipal = simulatedRemaining;
-                
-                // Interest = Current Remaining Balance * Rate / 12
-                // Note: We use 'simulatedRemaining' which starts at 'remaining' (from sheet)
-                // for the first future payment found.
-                let currentInterest = simulatedRemaining * (rate / 12);
-                
-                events.push({
-                  date: payDate,
-                  name: isDebt ? `Trả nợ: ${name} (Kỳ ${i}/${term})` : `Thu nợ: ${name} (Kỳ ${i}/${term})`,
-                  principal: currentPrincipal,
-                  interest: currentInterest
-                });
-                
-                // Reduce remaining for the NEXT iteration in this loop
-                simulatedRemaining -= currentPrincipal;
-                if (simulatedRemaining <= 0.1) break; // Float tolerance
-              }
-            }
-          } else {
-            // Bullet Logic (Pay all at end)
-            if (maturityDate instanceof Date && maturityDate >= today) {
-              // Interest: Simple 1 month interest on the remaining balance
-              let currentInterest = remaining * (rate / 12);
-              
-              events.push({
-                date: maturityDate,
-                name: isDebt ? `Trả nợ: ${name} (Tất toán)` : `Thu nợ: ${name} (Tất toán)`,
-                principal: remaining,
-                interest: currentInterest
-              });
-            }
-          }
-        }
-      });
+    // Helper to calculate days between dates (360-day basis or actual? User said /360, implying 30/360 or Actual/360)
+    // Let's use Actual days / 360 as per request "Số ngày trong tháng * ... / 360"
+    const getDaysDiff = (d1, d2) => {
+      const diffTime = Math.abs(d2 - d1);
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
     };
     
-    // 1. Debt Payments
-    processInstallments(APP_CONFIG.SHEETS.DEBT_MANAGEMENT, true);
+    // 1. Debt Payments (QUẢN LÝ NỢ)
+    const debtSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
+    if (debtSheet) {
+      const lastRow = debtSheet.getLastRow();
+      if (lastRow >= 2) {
+        // A(0): STT, B(1): Name, C(2): Type, D(3): Principal, E(4): Rate, F(5): Term, G(6): Date, H(7): Maturity
+        // I(8): PaidPrin, J(9): PaidInt, K(10): Remaining, L(11): Status
+        const data = debtSheet.getRange(2, 1, lastRow - 1, 12).getValues();
+        
+        data.forEach(row => {
+          const name = row[1];
+          const initialPrincipal = parseFloat(row[3]) || 0;
+          const rate = parseFloat(row[4]) || 0; // Annual Rate (decimal)
+          const term = parseInt(row[5]) || 1;
+          const startDate = row[6];
+          const remaining = parseFloat(row[10]) || 0;
+          const status = row[11];
+          
+          if (status !== 'Đã thanh toán' && remaining > 0 && startDate instanceof Date) {
+            if (term > 1) {
+              // Installment Logic
+              const monthlyPrincipal = initialPrincipal / term;
+              let simulatedRemaining = remaining;
+              
+              // Find next payment dates
+              for (let i = 1; i <= term; i++) {
+                let payDate = new Date(startDate);
+                payDate.setMonth(payDate.getMonth() + i);
+                
+                if (payDate >= today) {
+                  let currentPrincipal = monthlyPrincipal;
+                  if (simulatedRemaining < currentPrincipal) currentPrincipal = simulatedRemaining;
+                  
+                  // Calculate Interest: Days in month * (Rate * Remaining) / 360
+                  // Days in month: From previous payment date (or start date) to this payment date.
+                  let prevDate = new Date(startDate);
+                  prevDate.setMonth(prevDate.getMonth() + i - 1);
+                  
+                  // If prevDate is before StartDate (impossible in loop), use StartDate.
+                  // Actually logic is: Interest for the period ending at payDate.
+                  const days = getDaysDiff(prevDate, payDate);
+                  
+                  let currentInterest = days * (rate * simulatedRemaining) / 360;
+                  
+                  events.push({
+                    date: payDate,
+                    action: 'Phải trả',
+                    name: `${name} (Kỳ ${i}/${term})`,
+                    remaining: simulatedRemaining,
+                    principalPayment: currentPrincipal,
+                    interestPayment: currentInterest
+                  });
+                  
+                  simulatedRemaining -= currentPrincipal;
+                  if (simulatedRemaining <= 0.1) break;
+                }
+              }
+            } else {
+              // Bullet Logic
+              const maturityDate = row[7];
+              if (maturityDate instanceof Date && maturityDate >= today) {
+                 // Interest for the whole term or remaining period?
+                 // Usually bullet pays all interest at end.
+                 // Let's assume interest is accrued on the remaining balance for the days elapsed?
+                 // Or simple interest: Principal * Rate * Term / 12?
+                 // User formula: "Số ngày trong tháng * ..." suggests monthly calculation.
+                 // But for bullet, it's one shot. Let's use Days from Start to Maturity.
+                 const days = getDaysDiff(startDate, maturityDate);
+                 let currentInterest = days * (rate * remaining) / 360;
+                 
+                 events.push({
+                    date: maturityDate,
+                    action: 'Phải trả',
+                    name: `${name} (Tất toán)`,
+                    remaining: remaining,
+                    principalPayment: remaining,
+                    interestPayment: currentInterest
+                 });
+              }
+            }
+          }
+        });
+      }
+    }
     
-    // 2. Lending Collections
-    processInstallments(APP_CONFIG.SHEETS.LENDING, false);
+    // 2. Lending Collections (CHO VAY)
+    const lendingSheet = ss.getSheetByName(APP_CONFIG.SHEETS.LENDING);
+    if (lendingSheet) {
+      const lastRow = lendingSheet.getLastRow();
+      if (lastRow >= 2) {
+        const data = lendingSheet.getRange(2, 1, lastRow - 1, 12).getValues();
+        data.forEach(row => {
+          const name = row[1];
+          const initialPrincipal = parseFloat(row[3]) || 0;
+          const rate = parseFloat(row[4]) || 0;
+          const term = parseInt(row[5]) || 1;
+          const startDate = row[6];
+          const maturityDate = row[7];
+          const remaining = parseFloat(row[10]) || 0;
+          const status = row[11];
+          
+          if (status === 'Đang vay' && remaining > 0 && maturityDate instanceof Date && maturityDate >= today) {
+            // Lending is treated as Bullet (One time collection at end)
+            // Interest = Total expected interest at end.
+            // Formula: Principal * Rate * Term / 12 (Simple Interest)
+            // Or using the day count formula: Days * Rate * Principal / 360
+            
+            const days = getDaysDiff(startDate, maturityDate);
+            // Use initialPrincipal for interest calculation if it's "Lãi thu cuối kỳ" on total loan?
+            // Or Remaining? If partial payment happened, remaining is smaller.
+            // Usually interest is on outstanding balance.
+            // Let's use Remaining.
+            
+            let currentInterest = days * (rate * remaining) / 360;
+            
+            events.push({
+              date: maturityDate,
+              action: 'Phải thu',
+              name: `${name} (Đáo hạn)`,
+              remaining: remaining,
+              principalPayment: remaining,
+              interestPayment: currentInterest
+            });
+          }
+        });
+      }
+    }
     
     // Sort by Date
     events.sort((a, b) => a.date - b.date);
@@ -713,24 +776,25 @@ const DashboardManager = {
     sheet.setColumnWidth(2, 120); // B: Value
     sheet.setColumnWidth(3, 60);  // C: %
     
-    sheet.setColumnWidth(4, 120);  // D: Spacer / Nợ (Gốc) in Bottom Table
+    sheet.setColumnWidth(4, 50);  // D: Spacer
     
     // E, F, G, H, I: Expense / Assets
-    // Expense: E, F, G (Name, Value, %)
-    // Assets: E, F, G, H, I (Name, Cap, P/L, Cur, %)
     sheet.setColumnWidth(5, 200); // E: Name
     sheet.setColumnWidth(6, 120); // F: Value / Capital
     sheet.setColumnWidth(7, 100); // G: % / P/L
     sheet.setColumnWidth(8, 120); // H: Current Val
-    sheet.setColumnWidth(9, 120); // I: % (Assets) / ĐT khác in Bottom Table
+    sheet.setColumnWidth(9, 120); // I: % (Assets)
     
-    sheet.setColumnWidth(10, 120); // J: Spacer / Dòng tiền in Bottom Table
+    sheet.setColumnWidth(10, 50); // J: Spacer
     
-    // K, L, M, N: Calendar / Chart
+    // K, L, M, N, O, P: Calendar (6 cols)
+    // Date, Action, Event, Remaining, Principal, Interest
     sheet.setColumnWidth(11, 100); // K: Date
-    sheet.setColumnWidth(12, 200); // L: Event
-    sheet.setColumnWidth(13, 100); // M: Principal
-    sheet.setColumnWidth(14, 100); // N: Interest
+    sheet.setColumnWidth(12, 100); // L: Action
+    sheet.setColumnWidth(13, 200); // M: Event
+    sheet.setColumnWidth(14, 120); // N: Remaining
+    sheet.setColumnWidth(15, 120); // O: Principal Payment
+    sheet.setColumnWidth(16, 120); // P: Interest Payment
     
     sheet.setFrozenRows(1);
   },

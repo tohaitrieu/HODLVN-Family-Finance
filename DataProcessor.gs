@@ -350,7 +350,35 @@ function payDebt(data) {
     const totalAmount = principalAmount + interestAmount;
     const note = data.note || '';
     
-    const transactionId = Utilities.getUuid();
+    // 1. Find Parent Debt & ID
+    let parentId = '';
+    const debtData = debtSheet.getRange(2, 1, debtSheet.getLastRow() - 1, 14).getValues(); // Read up to Col N (14)
+    
+    for (let i = 0; i < debtData.length; i++) {
+      if (debtData[i][1] === debtName) { // Col B: Name
+        parentId = debtData[i][13]; // Col N: TransactionID (Index 13)
+        break;
+      }
+    }
+    
+    if (!parentId) {
+      // Fallback if no ID found (old data): Generate one on the fly based on name/date? 
+      // Or just use UUID. Better to use UUID fallback to avoid collision if logic fails.
+      parentId = Utilities.getUuid(); 
+    }
+    
+    // 2. Count existing payments for this Parent ID to generate Suffix
+    // Read Debt Payment sheet to count
+    const paymentData = paymentSheet.getRange(2, 8, paymentSheet.getLastRow() - 1, 1).getValues(); // Col H: TransactionID
+    let count = 0;
+    paymentData.forEach(row => {
+      if (row[0] && row[0].toString().startsWith(parentId)) {
+        count++;
+      }
+    });
+    
+    // 3. Generate New ID
+    const transactionId = IDGenerator.generateSuffix(parentId, count);
 
     const rowData = [
       stt,
@@ -380,10 +408,10 @@ function payDebt(data) {
       // Read Col B (Name) to Col L (Status)
       // B(1), C(2), D(3), E(4), F(5), G(6), H(7), I(8), J(9), K(10), L(11)
       // Indices in values: 0=B, ..., 10=L
-      const debtData = debtSheet.getRange(2, 2, debtDataRows, 11).getValues();
+      // Re-read to be safe or use previous read
       
       for (let i = 0; i < debtData.length; i++) {
-        const rowDebtName = debtData[i][0]; // Col B
+        const rowDebtName = debtData[i][1]; // Col B
         
         if (rowDebtName === debtName) {
           const row = i + 2;
@@ -401,7 +429,7 @@ function payDebt(data) {
           // Check Remaining (Col K - 11)
           // Remaining is calculated by formula: D - I
           // We can check if Paid Principal >= Original Principal (Col D)
-          const originalPrincipal = parseFloat(debtData[i][2]); // Col D (Index 2 in range B-L)
+          const originalPrincipal = parseFloat(debtData[i][3]); // Col D (Index 3 in range A-N)
           
           if (currentPaidPrin + principalAmount >= originalPrincipal) {
             debtSheet.getRange(row, 12).setValue('Đã thanh toán'); // Col L
@@ -430,14 +458,15 @@ function payDebt(data) {
     
     BudgetManager.updateDebtBudget();
     
-    Logger.log(`Đã trả nợ: ${debtName} - Gốc: ${formatCurrency(principalAmount)}, Lãi: ${formatCurrency(interestAmount)}`);
+    Logger.log(`Đã trả nợ: ${debtName} - Gốc: ${formatCurrency(principalAmount)}, Lãi: ${formatCurrency(interestAmount)} (ID: ${transactionId})`);
     
     return {
       success: true,
       message: `✅ Đã ghi nhận trả nợ ${debtName}!\n` +
                `💰 Gốc: ${formatCurrency(principalAmount)}\n` +
                `📊 Lãi: ${formatCurrency(interestAmount)}\n` +
-               `💵 Tổng: ${formatCurrency(totalAmount)}`
+               `💵 Tổng: ${formatCurrency(totalAmount)}\n` +
+               `🆔 ID: ${transactionId}`
     };
     
   } catch (error) {

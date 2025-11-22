@@ -260,5 +260,66 @@ var SyncManager = {
       Logger.log('Lỗi updateSheetSTT: ' + error.message);
     }
   }
+  /**
+   * Quét và xóa các dòng mồ côi (Orphans)
+   * Dùng để sửa lỗi khi đồng bộ thất bại
+   */
+  cleanOrphans: function() {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let log = [];
+    
+    this.SYNC_PAIRS.forEach(pair => {
+      const sheetA = ss.getSheetByName(pair.a);
+      const sheetB = ss.getSheetByName(pair.b);
+      
+      if (!sheetA || !sheetB) return;
+      
+      const idColA = this.ID_COLUMNS[pair.a];
+      const idColB = this.ID_COLUMNS[pair.b];
+      
+      const idsA = this.getAllIds(sheetA, idColA);
+      const idsB = this.getAllIds(sheetB, idColB);
+      
+      const setA = new Set(idsA.filter(id => id !== ''));
+      const setB = new Set(idsB.filter(id => id !== ''));
+      
+      // Check A -> Delete if not in B
+      const rowsToDeleteA = [];
+      idsA.forEach((id, idx) => {
+        if (id && !setB.has(id)) {
+          rowsToDeleteA.push(idx + 2);
+        }
+      });
+      
+      // Check B -> Delete if not in A
+      const rowsToDeleteB = [];
+      idsB.forEach((id, idx) => {
+        if (id && !setA.has(id)) {
+          rowsToDeleteB.push(idx + 2);
+        }
+      });
+      
+      // Execute Delete (Bottom up)
+      if (rowsToDeleteA.length > 0) {
+        for (let i = rowsToDeleteA.length - 1; i >= 0; i--) {
+          sheetA.deleteRow(rowsToDeleteA[i]);
+        }
+        log.push(`🗑️ Đã xóa ${rowsToDeleteA.length} dòng mồ côi ở ${pair.a}`);
+      }
+      
+      if (rowsToDeleteB.length > 0) {
+        for (let i = rowsToDeleteB.length - 1; i >= 0; i--) {
+          sheetB.deleteRow(rowsToDeleteB[i]);
+        }
+        log.push(`🗑️ Đã xóa ${rowsToDeleteB.length} dòng mồ côi ở ${pair.b}`);
+      }
+    });
+    
+    if (log.length > 0) {
+      SpreadsheetApp.getUi().alert('Kết quả dọn dẹp:\n' + log.join('\n'));
+    } else {
+      SpreadsheetApp.getUi().alert('✅ Dữ liệu đã đồng bộ. Không có dòng mồ côi.');
+    }
+  }
 };
 
