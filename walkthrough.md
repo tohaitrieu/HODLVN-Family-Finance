@@ -21,6 +21,8 @@ I have refactored the "Lịch sự kiện" (Event Calendar) in `DashboardManager
         *   Treated as "Bullet" repayment (one-time collection at maturity).
         *   Shows "Phải thu" action.
         *   Interest is calculated for the full duration (Start to Maturity).
+    *   **Robust Date Parsing**:
+        *   Added a `parseDate` helper to correctly handle date strings (e.g., "dd/MM/yyyy") which was previously causing events to be hidden.
 
 3.  **Total Row**:
     *   Added a summary row at the bottom of the calendar table.
