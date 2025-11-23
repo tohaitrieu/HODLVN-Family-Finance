@@ -270,7 +270,8 @@ function addLendingPayment(data) {
         date,
         principal,
         'Thu hồi nợ',
-        `Thu gốc: ${borrowerName}` + (note ? ` - ${note}` : '')
+        `Thu gốc: ${borrowerName}` + (note ? ` - ${note}` : ''),
+        Utilities.getUuid() // TransactionID
       ];
       
       incomeSheet.getRange(incomeEmptyRow, 1, 1, rowData.length).setValues([rowData]);
@@ -287,11 +288,46 @@ function addLendingPayment(data) {
         date,
         interest,
         'Lãi đầu tư',
-        `Thu lãi: ${borrowerName}` + (note ? ` - ${note}` : '')
+        `Thu lãi: ${borrowerName}` + (note ? ` - ${note}` : ''),
+        Utilities.getUuid() // TransactionID
       ];
       
       incomeSheet.getRange(incomeEmptyRow, 1, 1, rowData.length).setValues([rowData]);
       formatNewRow(incomeSheet, incomeEmptyRow, { 2: 'dd/mm/yyyy', 3: '#,##0' });
+    }
+
+    // ============================================
+    // BƯỚC 3: GHI VÀO SHEET THU NỢ (LENDING_REPAYMENT)
+    // ============================================
+    const repaymentSheet = ss.getSheetByName(APP_CONFIG.SHEETS.LENDING_REPAYMENT);
+    if (repaymentSheet) {
+      const emptyRow = findEmptyRow(repaymentSheet, 2);
+      const stt = getNextSTT(repaymentSheet, 2);
+      const total = principal + interest;
+      const transactionId = Utilities.getUuid();
+
+      // ['STT', 'Ngày', 'Người vay', 'Thu gốc', 'Thu lãi', 'Tổng thu', 'Ghi chú', 'TransactionID']
+      const rowData = [
+        stt,
+        date,
+        borrowerName,
+        principal,
+        interest,
+        total,
+        note,
+        transactionId
+      ];
+
+      repaymentSheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+      
+      formatNewRow(repaymentSheet, emptyRow, {
+        2: 'dd/mm/yyyy',
+        4: '#,##0',
+        5: '#,##0',
+        6: '#,##0'
+      });
+    } else {
+      Logger.log('⚠️ Không tìm thấy sheet THU NỢ để ghi nhận giao dịch');
     }
     
     return {

@@ -320,7 +320,7 @@ function addDebt(data) {
  * @param {Object} data - {date, debtName, principalAmount, interestAmount, note}
  * @return {Object} {success, message}
  */
-function payDebt(data) {
+function addDebtPayment(data) {
   try {
     if (!data.date || !data.debtName || !data.principalAmount) {
       return {
