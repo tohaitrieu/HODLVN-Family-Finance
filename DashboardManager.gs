@@ -875,6 +875,21 @@ const DashboardManager = {
   },
   
   _setupTriggers() {
-    // Handled in Triggers.gs
+    // Tự động cài đặt Installable Triggers để hỗ trợ Quick Actions
+    try {
+      createInstallableTriggers(true); // silent = true để không hiển thị alert
+      Logger.log('✅ Triggers đã được cài đặt tự động');
+    } catch (error) {
+      Logger.log('⚠️ Không thể cài đặt triggers tự động: ' + error.message);
+      Logger.log('Người dùng có thể chạy thủ công từ menu hoặc hàm createInstallableTriggers()');
+    }
+  },
+  
+  /**
+   * Wrapper function để refresh Dashboard
+   * Gọi setupDashboard để đảm bảo triggers được cài đặt
+   */
+  refreshDashboard() {
+    return this.setupDashboard();
   }
 };

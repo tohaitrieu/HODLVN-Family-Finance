@@ -7,9 +7,17 @@
  */
 
 /**
- * Trigger chạy khi có thay đổi trong Spreadsheet
+ * Simple Trigger - Tự động chạy khi có edit
+ * Gọi processEdit để xử lý
+ */
+function onEdit(e) {
+  processEdit(e);
+}
+
+/**
+ * Trigger chính xử lý các thay đổi trong Spreadsheet
  * Dùng để cập nhật Budget và Dashboard khi nhập liệu thủ công
- * Đổi tên từ onEdit -> processEdit để dùng với Installable Trigger (cấp quyền UI)
+ * Có thể dùng với Simple Trigger (onEdit) hoặc Installable Trigger (cấp quyền UI)
  */
 function processEdit(e) {
   try {
@@ -125,9 +133,10 @@ function onChange(e) {
 }
 
 /**
- * Hàm cài đặt Trigger (Chạy 1 lần)
+ * Hàm cài đặt Trigger (Chạy 1 lần hoặc khi cập nhật Dashboard)
+ * @param {boolean} silent - Nếu true, không hiển thị alert
  */
-function createInstallableTriggers() {
+function createInstallableTriggers(silent = false) {
   const ss = SpreadsheetApp.getActive();
   
   // Xóa trigger cũ để tránh trùng lặp
@@ -151,6 +160,10 @@ function createInstallableTriggers() {
       .forSpreadsheet(ss)
       .onEdit()
       .create();
-      
-  SpreadsheetApp.getUi().alert('✅ Đã cài đặt Trigger thành công! Các tính năng tự động và Quick Action sẽ hoạt động ngay.');
+  
+  if (!silent) {
+    SpreadsheetApp.getUi().alert('✅ Đã cài đặt Trigger thành công! Các tính năng tự động và Quick Action sẽ hoạt động ngay.');
+  }
+  
+  Logger.log('✅ Triggers installed successfully (onChange, processEdit)');
 }

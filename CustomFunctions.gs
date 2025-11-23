@@ -56,7 +56,21 @@ function _calculateEvents(data, isDebt) {
     type = mapLegacyTypeToId(type);
     
     const initialPrincipal = parseCurrency(row[3]);
-    const rate = parseFloat(row[4]) || 0;
+    let rate = parseFloat(row[4]) || 0;
+    
+    // IMPORTANT: Validate and normalize rate
+    // If rate > 1, it's likely in percentage form (e.g., 10 instead of 0.1)
+    // Google Sheets with format "0.00%" stores 0.1 for 10%
+    // But if user enters "10%" it might be stored as 10
+    if (rate > 1) {
+      rate = rate / 100; // Convert percentage to decimal
+    }
+    
+    // Ensure rate is valid
+    if (isNaN(rate) || rate < 0) {
+      rate = 0;
+    }
+    
     const term = parseInt(row[5]) || 1;
     const rawStartDate = row[6];
     const rawMaturityDate = row[7];
@@ -65,6 +79,11 @@ function _calculateEvents(data, isDebt) {
     
     const startDate = parseDate(rawStartDate);
     const maturityDate = parseDate(rawMaturityDate);
+    
+    // DEBUG: Log để kiểm tra
+    if (name) {
+      Logger.log(`Processing: ${name}, Type: ${type}, Rate: ${rate}, Remaining: ${remaining}, Status: ${status}`);
+    }
     
     // Check active status
     let isActive = false;
@@ -167,15 +186,19 @@ function calculateBulletPayment(params) {
   if (!maturityDate || maturityDate < today) return null;
   
   const days = getDaysDiff(startDate, maturityDate);
-  const interest = days * (rate * remaining) / 365;
+  // Validate values to prevent #NUM!
+  const validRate = (isNaN(rate) || rate < 0) ? 0 : rate;
+  const validRemaining = (isNaN(remaining) || remaining < 0) ? 0 : remaining;
+  
+  const interest = days * (validRate * validRemaining) / 365;
   
   return {
     date: maturityDate,
     action: isDebt ? 'Phải trả' : 'Phải thu',
     name: `${name} (${isDebt ? 'Tất toán' : 'Đáo hạn'})`,
-    remaining: remaining,
-    principalPayment: remaining,
-    interestPayment: interest
+    remaining: validRemaining,
+    principalPayment: validRemaining,
+    interestPayment: isNaN(interest) ? 0 : interest
   };
 }
 
@@ -185,6 +208,10 @@ function calculateBulletPayment(params) {
  */
 function calculateInterestOnlyPayment(params) {
   const { name, isDebt, remaining, rate, term, startDate, today } = params;
+  
+  // Validate values to prevent #NUM!
+  const validRate = (isNaN(rate) || rate < 0) ? 0 : rate;
+  const validRemaining = (isNaN(remaining) || remaining < 0) ? 0 : remaining;
   
   // Loop through each month to find next payment
   for (let i = 1; i <= term; i++) {
@@ -199,18 +226,22 @@ function calculateInterestOnlyPayment(params) {
       const daysInMonth = getDaysInMonth(payDate);
       
       // Monthly interest = Days in Month * (Remaining Principal * Rate) / 365
-      // Ensure rate is treated correctly (e.g. 0.1 for 10%)
-      let monthlyInterest = daysInMonth * (rate * remaining) / 365;
+      let monthlyInterest = daysInMonth * (validRate * validRemaining) / 365;
+      
+      // Validate result
+      if (isNaN(monthlyInterest) || monthlyInterest < 0) {
+        monthlyInterest = 0;
+      }
       
       // Principal payment only on last period
       // Gốc kỳ này = 0. Nếu là kỳ cuối thì = tổng gốc cho vay (remaining)
-      let principalPay = (i === term) ? remaining : 0;
+      let principalPay = (i === term) ? validRemaining : 0;
       
       return {
         date: payDate,
         action: isDebt ? 'Phải trả' : 'Phải thu',
         name: `${name} (Kỳ ${i}/${term})`,
-        remaining: remaining,
+        remaining: validRemaining,
         principalPayment: principalPay,
         interestPayment: monthlyInterest
       };
@@ -228,8 +259,13 @@ function calculateInterestOnlyPayment(params) {
 function calculateEqualPrincipalPayment(params) {
   const { name, isDebt, initialPrincipal, remaining, rate, term, startDate, today } = params;
   
+  // Validate values to prevent #NUM!
+  const validRate = (isNaN(rate) || rate < 0) ? 0 : rate;
+  const validRemaining = (isNaN(remaining) || remaining < 0) ? 0 : remaining;
+  const validInitialPrincipal = (isNaN(initialPrincipal) || initialPrincipal < 0) ? 0 : initialPrincipal;
+  
   // Gốc kỳ này = Tổng gốc / số kỳ phải trả
-  const monthlyPrincipal = initialPrincipal / term;
+  const monthlyPrincipal = validInitialPrincipal / term;
   
   for (let i = 1; i <= term; i++) {
     let payDate = new Date(startDate);
@@ -245,14 +281,19 @@ function calculateEqualPrincipalPayment(params) {
       
       // Interest based on ACTUAL remaining principal from sheet
       // Lãi kỳ này = Số ngày trong tháng cột Ngày * (Gốc còn lại * lãi)/365
-      let monthlyInterest = daysInMonth * (rate * remaining) / 365;
+      let monthlyInterest = daysInMonth * (validRate * validRemaining) / 365;
+      
+      // Validate result
+      if (isNaN(monthlyInterest) || monthlyInterest < 0) {
+        monthlyInterest = 0;
+      }
       
       return {
         date: payDate,
         action: isDebt ? 'Phải trả' : 'Phải thu',
         name: `${name} (Kỳ ${i}/${term})`,
-        remaining: remaining, // Use actual remaining
-        principalPayment: monthlyPrincipal,
+        remaining: validRemaining, // Use actual remaining
+        principalPayment: isNaN(monthlyPrincipal) ? 0 : monthlyPrincipal,
         interestPayment: monthlyInterest
       };
     }
@@ -267,7 +308,11 @@ function calculateEqualPrincipalPayment(params) {
 function calculateInterestFreePayment(params) {
   const { name, isDebt, initialPrincipal, remaining, term, startDate, today } = params;
   
-  const monthlyPrincipal = initialPrincipal / term;
+  // Validate values
+  const validRemaining = (isNaN(remaining) || remaining < 0) ? 0 : remaining;
+  const validInitialPrincipal = (isNaN(initialPrincipal) || initialPrincipal < 0) ? 0 : initialPrincipal;
+  
+  const monthlyPrincipal = validInitialPrincipal / term;
   
   for (let i = 1; i <= term; i++) {
     let payDate = new Date(startDate);
@@ -278,8 +323,8 @@ function calculateInterestFreePayment(params) {
         date: payDate,
         action: isDebt ? 'Phải trả' : 'Phải thu',
         name: `${name} (Kỳ ${i}/${term})`,
-        remaining: remaining, // Use actual remaining
-        principalPayment: monthlyPrincipal,
+        remaining: validRemaining,
+        principalPayment: isNaN(monthlyPrincipal) ? 0 : monthlyPrincipal,
         interestPayment: 0
       };
     }

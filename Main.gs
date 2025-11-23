@@ -313,6 +313,10 @@ function onOpen() {
       .addItem('🧹 Dọn dẹp dữ liệu mồ côi', 'cleanOrphans')
       .addItem('🔍 Tìm kiếm giao dịch', 'searchTransaction')
       .addItem('📤 Xuất báo cáo PDF', 'exportToPDF')
+      .addSeparator()
+      .addItem('🐛 Debug - Kiểm tra sự kiện', 'debugEventCalculation')
+      .addItem('🔧 Sửa lỗi định dạng cột Gốc', 'fixPrincipalColumnFormat')
+      .addSeparator()
       .addItem('🗑️ Xóa dữ liệu test', 'clearTestData'))
     
     .addSeparator()
