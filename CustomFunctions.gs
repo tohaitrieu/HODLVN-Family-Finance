@@ -7,6 +7,68 @@
  */
 
 /**
+ * Map legacy type names to new type IDs (Backward compatibility)
+ * @param {string} typeName - Old type name or new type ID
+ * @return {string} Type ID
+ */
+function mapLegacyTypeToId(typeName) {
+  if (!typeName) return 'OTHER';
+  
+  // Legacy mapping
+  const legacyMapping = {
+    // Legacy lending types
+    'Tất toán gốc - lãi cuối kỳ': 'BULLET',
+    'Trả lãi hàng tháng, gốc cuối kỳ': 'INTEREST_ONLY',
+    'Trả góp gốc - lãi hàng tháng': 'EQUAL_PRINCIPAL',
+    
+    // Legacy debt types
+    'Nợ ngân hàng': 'INTEREST_ONLY',
+    'Vay trả góp': 'EQUAL_PRINCIPAL',
+    'Trả góp qua thẻ (Phí ban đầu)': 'EQUAL_PRINCIPAL_UPFRONT_FEE',
+    'Trả góp qua thẻ (Lãi giảm dần)': 'EQUAL_PRINCIPAL',
+    'Trả góp qua thẻ (Miễn lãi)': 'INTEREST_FREE',
+    'Khác': 'OTHER'
+  };
+  
+  if (legacyMapping[typeName]) {
+    return legacyMapping[typeName];
+  }
+  
+  // Try partial matching
+  const typeNameLower = typeName.toLowerCase();
+  
+  if (typeNameLower.includes('vay trả góp') || typeNameLower.includes('cho vay trả góp')) {
+    if (typeNameLower.includes('miễn lãi')) {
+      return 'INTEREST_FREE';
+    } else if (typeNameLower.includes('phí ban đầu')) {
+      return 'EQUAL_PRINCIPAL_UPFRONT_FEE';
+    } else {
+      return 'EQUAL_PRINCIPAL';
+    }
+  }
+  
+  if (typeNameLower.includes('nợ ngân hàng') || typeNameLower.includes('trả lãi hàng tháng')) {
+    return 'INTEREST_ONLY';
+  }
+  
+  if (typeNameLower.includes('tất toán') || typeNameLower.includes('bullet')) {
+    return 'BULLET';
+  }
+  
+  if (typeNameLower.includes('miễn lãi')) {
+    return 'INTEREST_FREE';
+  }
+  
+  // Default: assume it's already an ID or fallback to OTHER
+  return typeName.toUpperCase() === 'BULLET' || 
+         typeName.toUpperCase() === 'INTEREST_ONLY' ||
+         typeName.toUpperCase() === 'EQUAL_PRINCIPAL' ||
+         typeName.toUpperCase() === 'EQUAL_PRINCIPAL_UPFRONT_FEE' ||
+         typeName.toUpperCase() === 'INTEREST_FREE' ? typeName.toUpperCase() : 'OTHER';
+}
+
+
+/**
  * Tính toán lịch trả nợ sắp tới (Khoản phải trả)
  * @param {Array[]} debtData Dữ liệu từ sheet QUẢN LÝ NỢ (A2:L)
  * @return {Array[]} Bảng lịch sự kiện
@@ -188,18 +250,20 @@ function calculateNextPayment(typeId, params) {
 /**
  * BULLET: Principal and interest at maturity
  * Hiển thị duy nhất một sự kiện cuối kỳ
+ * Lãi = term * (remaining * rate) / 12
  */
 function calculateBulletPayment(params) {
-  const { name, isDebt, remaining, rate, startDate, maturityDate, today } = params;
+  const { name, isDebt, remaining, rate, term, maturityDate, today } = params;
   
   if (!maturityDate || maturityDate < today) return null;
   
-  const days = getDaysDiff(startDate, maturityDate);
   // Validate values to prevent #NUM!
   const validRate = (isNaN(rate) || rate < 0) ? 0 : rate;
   const validRemaining = (isNaN(remaining) || remaining < 0) ? 0 : remaining;
+  const validTerm = (isNaN(term) || term <= 0) ? 1 : term;
   
-  const interest = days * (validRate * validRemaining) / 365;
+  // Lãi = Số kỳ * (Gốc * lãi_năm) / 12
+  const interest = validTerm * (validRemaining * validRate) / 12;
   
   return {
     date: maturityDate,
