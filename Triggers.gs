@@ -9,8 +9,9 @@
 /**
  * Trigger chạy khi có thay đổi trong Spreadsheet
  * Dùng để cập nhật Budget và Dashboard khi nhập liệu thủ công
+ * Đổi tên từ onEdit -> processEdit để dùng với Installable Trigger (cấp quyền UI)
  */
-function onEdit(e) {
+function processEdit(e) {
   try {
     if (!e) return;
     
@@ -56,7 +57,7 @@ function onEdit(e) {
     SyncManager.handleOnEdit(e);
     
   } catch (error) {
-    Logger.log('❌ Lỗi onEdit: ' + error.message);
+    Logger.log('❌ Lỗi processEdit: ' + error.message);
   }
 }
 
@@ -93,18 +94,7 @@ function handleDashboardAction(range) {
     range.setValue(false);
     
     // 2. Gọi hàm hiển thị form
-    // Lưu ý: onEdit simple trigger không thể mở Modal/Sidebar nếu không được cấp quyền.
-    // Nếu user chạy thủ công hoặc qua Installable Trigger thì được.
-    // Chúng ta sẽ thử gọi trực tiếp.
     try {
-      // Dùng this[functionName]() nếu hàm ở global scope, hoặc eval (không khuyến khích).
-      // Cách tốt nhất là switch case hoặc map trực tiếp function.
-      
-      // Tuy nhiên, Main.gs functions are global.
-      // Trong Apps Script, global functions are properties of the global object.
-      // Nhưng 'this' trong onEdit context có thể khác.
-      // Hãy dùng switch case cho an toàn và rõ ràng.
-      
       switch (functionName) {
         case 'showIncomeForm': showIncomeForm(); break;
         case 'showExpenseForm': showExpenseForm(); break;
@@ -143,16 +133,24 @@ function createInstallableTriggers() {
   // Xóa trigger cũ để tránh trùng lặp
   const triggers = ScriptApp.getProjectTriggers();
   for (let i = 0; i < triggers.length; i++) {
-    if (triggers[i].getHandlerFunction() === 'onChange') {
+    const funcName = triggers[i].getHandlerFunction();
+    if (funcName === 'onChange' || funcName === 'processEdit' || funcName === 'onEdit') {
       ScriptApp.deleteTrigger(triggers[i]);
     }
   }
   
-  // Tạo trigger mới
+  // 1. Tạo trigger onChange
   ScriptApp.newTrigger('onChange')
       .forSpreadsheet(ss)
       .onChange()
       .create();
       
-  SpreadsheetApp.getUi().alert('✅ Đã cài đặt Trigger thành công!');
+  // 2. Tạo trigger onEdit (Installable) -> Gọi processEdit
+  // Điều này cho phép script mở Modal/Sidebar
+  ScriptApp.newTrigger('processEdit')
+      .forSpreadsheet(ss)
+      .onEdit()
+      .create();
+      
+  SpreadsheetApp.getUi().alert('✅ Đã cài đặt Trigger thành công! Các tính năng tự động và Quick Action sẽ hoạt động ngay.');
 }

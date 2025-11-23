@@ -191,11 +191,15 @@ function calculateInterestOnlyPayment(params) {
     let payDate = new Date(startDate);
     payDate.setMonth(payDate.getMonth() + i);
     
+    // Check for invalid date
+    if (isNaN(payDate.getTime())) continue;
+    
     if (payDate >= today) {
       // Calculate days in the month of the payment date
       const daysInMonth = getDaysInMonth(payDate);
       
       // Monthly interest = Days in Month * (Remaining Principal * Rate) / 365
+      // Ensure rate is treated correctly (e.g. 0.1 for 10%)
       let monthlyInterest = daysInMonth * (rate * remaining) / 365;
       
       // Principal payment only on last period
@@ -224,11 +228,15 @@ function calculateInterestOnlyPayment(params) {
 function calculateEqualPrincipalPayment(params) {
   const { name, isDebt, initialPrincipal, remaining, rate, term, startDate, today } = params;
   
+  // Gốc kỳ này = Tổng gốc / số kỳ phải trả
   const monthlyPrincipal = initialPrincipal / term;
   
   for (let i = 1; i <= term; i++) {
     let payDate = new Date(startDate);
     payDate.setMonth(payDate.getMonth() + i);
+    
+    // Check for invalid date
+    if (isNaN(payDate.getTime())) continue;
     
     // If payment date >= today, return this event
     if (payDate >= today) {
@@ -236,6 +244,7 @@ function calculateEqualPrincipalPayment(params) {
       const daysInMonth = getDaysInMonth(payDate);
       
       // Interest based on ACTUAL remaining principal from sheet
+      // Lãi kỳ này = Số ngày trong tháng cột Ngày * (Gốc còn lại * lãi)/365
       let monthlyInterest = daysInMonth * (rate * remaining) / 365;
       
       return {
@@ -294,6 +303,7 @@ function getDaysDiff(d1, d2) {
  * Get number of days in the month of a specific date
  */
 function getDaysInMonth(date) {
+  if (!date || isNaN(date.getTime())) return 30; // Fallback
   return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 }
 

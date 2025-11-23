@@ -146,40 +146,16 @@ const DashboardManager = {
       range.setFontColor(btn.color);
       range.setFontWeight('bold');
       
-      // Set Label (in the same cell, but we can't do that easily with checkbox)
-      // The user requested: "D2: + NHẬP THU". 
-      // In Sheets, a cell is either a checkbox OR text. 
-      // To achieve "Checkbox + Text", we usually put text in the NEXT cell or use a Note.
-      // However, the user request specifically says "D2: + NHẬP THU".
-      // Let's try to set the value as FALSE (unchecked) and use Data Validation for checkbox, 
-      // but we can't have visible text AND a checkbox in the same cell easily without custom drawing.
-      // ALTERNATIVE: Put the Label in the cell to the RIGHT (e.g., E2) or ABOVE/BELOW?
-      // Looking at the coordinates: D2, D4, F2, F4... 
-      // D2 is Checkbox. Let's put the Label in D2 itself? No, that overwrites the checkbox.
-      // Let's assume the user wants the Checkbox in D2, and the Label is implied or we put it in the cell next to it?
-      // BUT D2 is a single cell.
-      // Let's use the "Note" feature or simply rely on the user knowing what it is? 
-      // OR: The user might mean "Label in D2, Checkbox in E2"? 
-      // "D2: + NHẬP THU" -> implies the cell D2 CONTAINS the text "+ NHẬP THU".
-      // If we want a checkbox, maybe the checkbox IS the mechanism.
-      // Let's try this: Put the text in the cell, and make it a checkbox? No, Sheets doesn't support that.
-      // Let's interpret: D2 contains the Checkbox. We need a label.
-      // Let's put the label in the cell to the RIGHT (E2) for D2?
-      // D2 (Checkbox) | E2 (Label: + NHẬP THU)
-      // But E2 might be used.
-      // Let's look at the layout. 
-      // D2, D4, F2, F4... these are in the header area (Rows 2-4).
-      // Columns: A(Label), B(Dropdown), C(Empty?), D(Action?), E(Action?)...
-      // Let's check _setupHeader: A2:A4 are labels, B2:B4 are dropdowns.
-      // So C is likely empty. D is available.
-      // Let's put Checkbox in D2, and Label in E2?
-      // Wait, the user said "D2: + NHẬP THU". This might mean "Label is + NHẬP THU, and there is a checkbox there".
-      // Actually, a common trick is to set the cell value to FALSE, add a checkbox data validation, 
-      // and use a Custom Number Format to show text next to the checkbox?
-      // YES! Custom Number Format: "Label";"Label";"Label"
-      // Let's try that.
+      // Set Label in the NEXT cell (Offset 1 column to the right)
+      // e.g., D2 -> E2, D4 -> E4
+      const labelRange = range.offset(0, 1);
+      labelRange.setValue(btn.label);
+      labelRange.setFontColor(btn.color);
+      labelRange.setFontWeight('bold');
+      labelRange.setHorizontalAlignment('left');
       
-      range.setNumberFormat(`"${btn.label}";"${btn.label}";"${btn.label}"`);
+      // Clear any previous number format on the checkbox cell
+      range.setNumberFormat('@'); 
     });
   },
   
@@ -798,207 +774,107 @@ const DashboardManager = {
     const headers = ['Kỳ', 'Thu', 'Chi', 'Nợ (Gốc)', 'Lãi', 'CK', 'Vàng', 'Crypto', 'ĐT khác', 'Dòng tiền'];
     sheet.getRange(headerRow, 1, 1, 10).setValues([headers])
       .setFontWeight('bold')
-      .setHorizontalAlignment('center')
-      .setBackground(APP_CONFIG.COLORS.HEADER_BG)
-      .setFontColor(APP_CONFIG.COLORS.HEADER_TEXT);
+      .setBackground('#EEEEEE')
+      .setHorizontalAlignment('center');
       
-    // Data
-    for (let month = 1; month <= 12; month++) {
-      const row = dataStart + month - 1;
-      sheet.getRange(row, 1).setValue(`Tháng ${month}`);
+    // Rows for 12 months
+    for (let m = 1; m <= 12; m++) {
+      const r = dataStart + m - 1;
+      sheet.getRange(r, 1).setValue(`Tháng ${m}`);
       
-      sheet.getRange(row, 2).setFormula(`=SUMIFS(THU!C:C, THU!B:B, ">="&DATE(${currentYear},${month},1), THU!B:B, "<"&DATE(${currentYear},${month}+1,1))`);
-      sheet.getRange(row, 3).setFormula(`=SUMIFS(CHI!C:C, CHI!B:B, ">="&DATE(${currentYear},${month},1), CHI!B:B, "<"&DATE(${currentYear},${month}+1,1))`);
-      sheet.getRange(row, 4).setFormula(`=SUMIFS('TRẢ NỢ'!D:D, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${month},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${month}+1,1))`);
-      sheet.getRange(row, 5).setFormula(`=SUMIFS('TRẢ NỢ'!E:E, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${month},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${month}+1,1))`);
-      sheet.getRange(row, 6).setFormula(`=SUMIFS('CHỨNG KHOÁN'!H:H, 'CHỨNG KHOÁN'!C:C, "Mua", 'CHỨNG KHOÁN'!B:B, ">="&DATE(${currentYear},${month},1), 'CHỨNG KHOÁN'!B:B, "<"&DATE(${currentYear},${month}+1,1))`);
-      sheet.getRange(row, 7).setFormula(`=SUMIFS(VÀNG!H:H, VÀNG!C:C, "Mua", VÀNG!B:B, ">="&DATE(${currentYear},${month},1), VÀNG!B:B, "<"&DATE(${currentYear},${month}+1,1))`);
-      sheet.getRange(row, 8).setFormula(`=SUMIFS(CRYPTO!I:I, CRYPTO!C:C, "Mua", CRYPTO!B:B, ">="&DATE(${currentYear},${month},1), CRYPTO!B:B, "<"&DATE(${currentYear},${month}+1,1))`);
-      sheet.getRange(row, 9).setFormula(`=SUMIFS('ĐẦU TƯ KHÁC'!D:D, 'ĐẦU TƯ KHÁC'!B:B, ">="&DATE(${currentYear},${month},1), 'ĐẦU TƯ KHÁC'!B:B, "<"&DATE(${currentYear},${month}+1,1))`);
+      // Formulas
+      // Thu
+      sheet.getRange(r, 2).setFormula(`=IFERROR(SUMIFS(THU!C:C, THU!B:B, ">="&DATE(${currentYear},${m},1), THU!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      // Chi
+      sheet.getRange(r, 3).setFormula(`=IFERROR(SUMIFS(CHI!C:C, CHI!B:B, ">="&DATE(${currentYear},${m},1), CHI!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      // Nợ (Gốc)
+      sheet.getRange(r, 4).setFormula(`=IFERROR(SUMIFS('TRẢ NỢ'!D:D, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${m},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      // Lãi
+      sheet.getRange(r, 5).setFormula(`=IFERROR(SUMIFS('TRẢ NỢ'!E:E, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${m},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
       
-      const b = `B${row}`, c = `C${row}`, d = `D${row}`, e = `E${row}`;
-      const f = `F${row}`, g = `G${row}`, h = `H${row}`, i = `I${row}`;
-      sheet.getRange(row, 10).setFormula(`=IFERROR(${b}-(${c}+${d}+${e}+${f}+${g}+${h}+${i}), 0)`);
+      // CK (Profit)
+      sheet.getRange(r, 6).setFormula(`=IFERROR(SUMIFS('CHỨNG KHOÁN'!N:N, 'CHỨNG KHOÁN'!B:B, ">="&DATE(${currentYear},${m},1), 'CHỨNG KHOÁN'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      // Vàng (Profit)
+      sheet.getRange(r, 7).setFormula(`=IFERROR(SUMIFS('VÀNG'!L:L, 'VÀNG'!B:B, ">="&DATE(${currentYear},${m},1), 'VÀNG'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      // Crypto (Profit)
+      sheet.getRange(r, 8).setFormula(`=IFERROR(SUMIFS('CRYPTO'!N:N, 'CRYPTO'!B:B, ">="&DATE(${currentYear},${m},1), 'CRYPTO'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      // ĐT khác (Profit)
+      sheet.getRange(r, 9).setFormula(`=IFERROR(SUMIFS('ĐẦU TƯ KHÁC'!H:H, 'ĐẦU TƯ KHÁC'!B:B, ">="&DATE(${currentYear},${m},1), 'ĐẦU TƯ KHÁC'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      
+      // Dòng tiền = Thu - Chi - Trả nợ (Gốc+Lãi) + Lãi đầu tư (Optional, usually included in Income)
+      // Here: Thu - Chi - (Debt Principal + Interest)
+      sheet.getRange(r, 10).setFormula(`=R[0]C[-8] - R[0]C[-7] - R[0]C[-6] - R[0]C[-5]`);
     }
     
-    // Summary
-    const summaryRow = dataStart + 12;
-    sheet.getRange(summaryRow, 1).setValue('Tổng').setFontWeight('bold');
-    for (let col = 2; col <= 10; col++) {
-      const colLetter = this._getColumnLetter(col);
-      sheet.getRange(summaryRow, col).setFormula(`=SUM(${colLetter}${dataStart}:${colLetter}${dataStart + 11})`).setFontWeight('bold').setBackground('#FFE0B2');
-    }
-    
-    sheet.getRange(dataStart, 2, 13, 9).setNumberFormat('#,##0');
-    sheet.getRange(headerRow, 1, 14, 10).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
+    // Format
+    sheet.getRange(dataStart, 2, 12, 9).setNumberFormat('#,##0');
+    sheet.getRange(headerRow, 1, 13, 10).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
   },
   
   _createChart(sheet) {
-    // Create hidden data range for Chart
-    // Z1:AA5 (Removed AB - Style column as it's not supported natively in Sheets Charts this way)
-    const chartDataRange = sheet.getRange('Z1:AA5');
-    chartDataRange.setValues([
-      ['Danh mục', 'Giá trị'],
-      ['Thu nhập', 0],
-      ['Chi phí', 0],
-      ['Tài sản', 0],
-      ['Nợ', 0]
-    ]);
+    const chartRow = this.CONFIG.LAYOUT.CHART_ROW; // Row 33
+    const chartCol = this.CONFIG.LAYOUT.CHART_COL; // Col K
     
-    // Link formulas to hidden data
-    // Note: We need to find the Total cells dynamically or use named ranges. 
-    // For simplicity, we'll re-calculate totals in the hidden area using the same logic.
+    // Data range: Monthly Table (A35:J46) - Assuming startRow was around 33
+    // Let's find where Table 2 is.
+    // Table 2 starts at lastRow + 3.
+    // We need to be dynamic or fixed?
+    // Let's use fixed range for simplicity if we know where it is.
+    // Table 2 Header is at Row 34 (approx). Data 35-46.
+    // Let's assume Table 2 starts at Row 34.
     
-    // Thu nhập (Total Income) / 1000
-    sheet.getRange('AA2').setFormula('=' + this._createDynamicSumFormula('THU', 'C') + '/1000');
-    
-    // Chi phí (Total Expense) / 1000
-    // Chi phí = Chi tiêu (CHI) + Trả nợ (TRẢ NỢ)
-    const chiFormula = this._createDynamicSumFormula('CHI', 'C');
-    const traNoGoc = this._createDynamicSumFormula('TRẢ NỢ', 'D');
-    const traNoLai = this._createDynamicSumFormula('TRẢ NỢ', 'E');
-    sheet.getRange('AA3').setFormula('=(' + `${chiFormula} + ${traNoGoc} + ${traNoLai}` + ')/1000');
-    
-    // Tài sản (Total Assets)
-    // Tài sản = (Thu - Chi - Đầu tư + Thoái vốn) + Giá trị hiện tại các khoản đầu tư
-    // Tuy nhiên, để đơn giản và chính xác theo bảng Tài sản, ta sẽ lấy tổng các khoản đầu tư hiện tại + Tiền mặt ròng
-    
-    // 1. Tiền mặt ròng = Thu - Chi - Đầu tư + Thoái vốn
-    const totalIncome = this._createDynamicSumFormula('THU', 'C');
-    const totalExpense = `(${chiFormula} + ${traNoGoc} + ${traNoLai})`;
-    
-    // Đầu tư (Flow out)
-    const investCK = this._createDynamicSumFormula('CHỨNG KHOÁN', 'H', 'Mua', 'C');
-    const investGold = this._createDynamicSumFormula('VÀNG', 'H', 'Mua', 'C');
-    const investCrypto = this._createDynamicSumFormula('CRYPTO', 'I', 'Mua', 'C');
-    const investOther = this._createDynamicSumFormula('ĐẦU TƯ KHÁC', 'D');
-    const totalInvest = `(${investCK} + ${investGold} + ${investCrypto} + ${investOther})`;
-    
-    // Thoái vốn (Flow in)
-    const divestCK = this._createDynamicSumFormula('CHỨNG KHOÁN', 'H', 'Bán', 'C');
-    const divestGold = this._createDynamicSumFormula('VÀNG', 'H', 'Bán', 'C');
-    const divestCrypto = this._createDynamicSumFormula('CRYPTO', 'I', 'Bán', 'C');
-    const totalDivest = `(${divestCK} + ${divestGold} + ${divestCrypto})`;
-    
-    const netCash = `(${totalIncome} - ${totalExpense} - ${totalInvest} + ${totalDivest})`;
-    
-    // 2. Giá trị hiện tại (Current Value) - Cái này thường là Stock, không phụ thuộc dòng tiền quá khứ, 
-    // nhưng trong Dashboard lọc theo thời gian, ta có thể chỉ hiển thị dòng tiền ròng tích lũy trong kỳ đó?
-    // KHÔNG, Tài sản là Stock (Tích lũy). Nếu lọc theo năm 2024, ta muốn xem Tài sản tăng thêm trong năm 2024 hay Tổng tài sản tại thời điểm đó?
-    // Thông thường Dashboard Cashflow theo kỳ sẽ hiển thị Dòng tiền (Income/Expense) và Tài sản Tăng thêm (Net Asset Change).
-    // Tuy nhiên, người dùng thường muốn xem Tổng tài sản hiện tại.
-    // Nhưng nếu lọc "Tháng 11", mà hiển thị Tổng tài sản tích lũy cả đời thì không khớp.
-    // Để thống nhất với logic "Dòng tiền", ta sẽ hiển thị "Tài sản ròng tăng thêm trong kỳ".
-    // Hoặc nếu muốn hiển thị Tổng tài sản, ta phải bỏ qua bộ lọc thời gian cho phần Tài sản.
-    // Theo yêu cầu "tương quan khi lọc", ta sẽ tính dòng tiền ròng (Net Worth Change) trong kỳ.
-    
-    // Tuy nhiên, bảng Assets bên dưới lại tính: Tiền mặt ròng (trong kỳ) + Giá trị hiện tại (lấy SUM cột M - Giá trị hiện tại).
-    // Cột M của Chứng khoán là (Số lượng * Giá thị trường). Nó không có ngày tháng.
-    // Vì vậy, bảng Assets đang hiển thị "Giá trị hiện tại" bất kể bộ lọc thời gian cho phần đầu tư.
-    // Chỉ có phần "Tiền mặt ròng" là bị ảnh hưởng bởi bộ lọc.
-    
-    // Chúng ta sẽ giữ nguyên logic của Bảng Assets:
-    // Tiền mặt ròng (theo kỳ) + Giá trị đầu tư (hiện tại - không lọc ngày, hoặc lọc theo ngày mua?)
-    // Nếu lọc theo ngày mua thì không ra giá trị hiện tại.
-    // Quyết định: Phần Đầu tư giữ nguyên (All time), phần Tiền mặt ròng theo bộ lọc.
-    
-    // Fix lại công thức Chart cho khớp với Bảng Assets:
-    
-    // Giá trị hiện tại (All time)
-    const currentValCK = `IFERROR(SUM('CHỨNG KHOÁN'!M:M), 0)`;
-    // Vàng/Crypto tính theo luỹ kế mua - bán (vì không có cột giá trị thị trường tự động cập nhật realtime trong sheet này, trừ khi có API)
-    // Trong sheet VÀNG, không có cột Giá trị hiện tại, chỉ có Mua/Bán. Ta lấy (Mua - Bán) * Giá hiện tại? Không có giá hiện tại.
-    // Ta tạm tính theo giá vốn: Sum(Mua) - Sum(Bán).
-    const currentValGold = `(SUMIF(VÀNG!C:C, "Mua", VÀNG!H:H) - SUMIF(VÀNG!C:C, "Bán", VÀNG!H:H))`;
-    const currentValCrypto = `(SUMIF(CRYPTO!C:C, "Mua", CRYPTO!I:I) - SUMIF(CRYPTO!C:C, "Bán", CRYPTO!I:I))`;
-    const currentValOther = `SUM('ĐẦU TƯ KHÁC'!D:D)`; // Giả sử chưa thu về
-    
-    // Tổng hợp lại cho Chart / 1000
-    sheet.getRange('AA4').setFormula('=' + `IFERROR(${netCash} + ${currentValCK} + ${currentValGold} + ${currentValCrypto} + ${currentValOther}, 0)/1000`);
-    
-    // Nợ (Total Liabilities) / 1000
-    // Nợ cũng là Stock (Tích lũy). Lọc theo thời gian cho Nợ nghĩa là gì? "Nợ phát sinh trong kỳ"?
-    // Bảng Liabilities đang dùng: SUMIFS('QUẢN LÝ NỢ'!J:J, 'QUẢN LÝ NỢ'!B:B, name) -> Cột J là "Còn nợ".
-    // Nó KHÔNG lọc theo ngày tháng trong Bảng Liabilities (xem dòng 164: formula không có date criteria).
-    // Vậy Chart cũng không nên lọc theo ngày tháng cho Nợ.
-    sheet.getRange('AA5').setFormula(`=SUM('QUẢN LÝ NỢ'!J:J)/1000`);
-    
-    // Create Chart
+    // Chart Position: K39
     const chart = sheet.newChart()
-      .setChartType(Charts.ChartType.COLUMN)
-      .addRange(chartDataRange)
-      .setPosition(39, 12, 0, 0) // Row 39, Col L (Index 12)
-      .setOption('title', 'Tổng quan Tài chính (Đơn vị: Nghìn VND)')
+      .setChartType(Charts.ChartType.COMBO)
+      .addRange(sheet.getRange('A35:A46')) // Month
+      .addRange(sheet.getRange('B35:B46')) // Income
+      .addRange(sheet.getRange('C35:C46')) // Expense
+      .addRange(sheet.getRange('D35:D46')) // Debt
+      .setPosition(39, 11, 0, 0) // Row 39, Col 11 (K)
+      .setOption('title', 'Biểu đồ Thu - Chi - Nợ (Năm nay)')
       .setOption('width', 600)
-      .setOption('height', 400)
-      .setOption('legend', { position: 'none' })
-      .setOption('useFirstColumnAsDomain', true)
-      .setOption('colors', ['#4CAF50', '#F44336', '#2196F3', '#D32F2F']) // Income(Green), Expense(Red), Assets(Blue), Debt(Dark Red)
-      .setOption('vAxis.format', '#,##0')
-      .setNumHeaders(1)
+      .setOption('height', 350)
+      .setOption('series', {
+        0: { type: 'bars', color: '#4CAF50', labelInLegend: 'Thu nhập' },
+        1: { type: 'bars', color: '#F44336', labelInLegend: 'Chi tiêu' },
+        2: { type: 'bars', color: '#D32F2F', labelInLegend: 'Trả nợ' } // Red for Debt
+      })
+      .setOption('vAxis', { 
+        title: 'Số tiền (nghìn đồng)',
+        format: '#,##0,, "k"' // Scale by 1000
+      })
       .build();
       
     sheet.insertChart(chart);
-    sheet.hideColumns(26, 2); // Hide Z, AA
   },
   
   _formatSheet(sheet) {
-    // 1. Set columns A-L (1-12) to 120
-    sheet.setColumnWidths(1, 12, 120);
+    // Hide gridlines
+    sheet.setHiddenGridlines(true);
     
-    // 2. Set column M (13) to 200
-    sheet.setColumnWidth(13, 200);
+    // Set column widths
+    sheet.setColumnWidth(1, 200); // A
+    sheet.setColumnWidth(2, 120); // B
+    sheet.setColumnWidth(3, 120); // C
+    sheet.setColumnWidth(4, 20);  // D (Spacer) -> Wait, D is used for Buttons?
+    // D is used for Buttons. So D needs width.
+    sheet.setColumnWidth(4, 50);  // Checkbox
+    sheet.setColumnWidth(5, 150); // Label
     
-    // 3. Set columns N, O, P (14-16) to 120
-    sheet.setColumnWidths(14, 3, 120);
+    sheet.setColumnWidth(6, 50);  // Checkbox
+    sheet.setColumnWidth(7, 150); // Label
     
-    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(8, 50);  // Checkbox
+    sheet.setColumnWidth(9, 150); // Label
+    
+    sheet.setColumnWidth(10, 50); // Checkbox
+    sheet.setColumnWidth(11, 150); // Label
+    
+    // M column (Calendar)
+    sheet.setColumnWidth(13, 200); // M
   },
   
   _setupTriggers() {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const triggers = ScriptApp.getProjectTriggers();
-    triggers.forEach(trigger => {
-      if (trigger.getHandlerFunction() === 'onDashboardEdit') {
-        ScriptApp.deleteTrigger(trigger);
-      }
-    });
-    
-    ScriptApp.newTrigger('onDashboardEdit')
-      .forSpreadsheet(ss)
-      .onEdit()
-      .create();
-  },
-  
-  refreshDashboard() {
-    this.setupDashboard();
-  },
-  
-  _getColumnLetter(colNum) {
-    let letter = '';
-    while (colNum > 0) {
-      const remainder = (colNum - 1) % 26;
-      letter = String.fromCharCode(65 + remainder) + letter;
-      colNum = Math.floor((colNum - 1) / 26);
-    }
-    return letter;
+    // Handled in Triggers.gs
   }
 };
-
-function onDashboardEdit(e) {
-  try {
-    if (!e) return;
-    const range = e.range;
-    const sheet = range.getSheet();
-    if (sheet.getName() === APP_CONFIG.SHEETS.DASHBOARD) {
-      const row = range.getRow();
-      const col = range.getColumn();
-      if (col === 2 && (row === 2 || row === 3 || row === 4)) {
-        Utilities.sleep(100);
-        SpreadsheetApp.flush();
-      }
-    }
-  } catch (error) {
-    Logger.log('❌ Lỗi onDashboardEdit: ' + error.message);
-  }
-}
