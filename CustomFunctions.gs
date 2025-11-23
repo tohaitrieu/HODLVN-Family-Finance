@@ -1,9 +1,14 @@
 /**
  * ===============================================
- * CUSTOM FUNCTIONS v3.5.7 - DEBUG MODE
+ * CUSTOM FUNCTIONS v3.5.8 - DEEP DEBUG MODE
  * ===============================================
- * - Bỏ hiển thị cột Lãi suất (quay về 6 cột).
- * - Thêm Logs chi tiết để kiểm tra tại sao Lãi = 0.
+ * - Thêm debug chi tiết cho getDaysInMonth:
+ *   + Kiểm tra kiểu dữ liệu của date input
+ *   + Kiểm tra instanceof Date
+ *   + Kiểm tra date.getTime() và isNaN
+ * - Thêm debug trước khi gọi getDaysInMonth:
+ *   + Log payDate value, typeof, instanceof
+ *   + Để xác định chính xác lỗi NaN ở đâu
  */
 
 /**
@@ -182,6 +187,14 @@ function calculateEqualPrincipalPayment(params) {
     if (isNaN(payDate.getTime())) continue;
 
     if (payDate >= today) {
+      // --- DEBUG: Kiểm tra payDate trước khi gọi getDaysInMonth ---
+      Logger.log(`[DEBUG TRƯỚC getDaysInMonth - TRẢ GÓP]`);
+      Logger.log(`  - payDate value: ${payDate}`);
+      Logger.log(`  - typeof payDate: ${typeof payDate}`);
+      Logger.log(`  - payDate instanceof Date: ${payDate instanceof Date}`);
+      Logger.log(`  - payDate.getTime(): ${payDate.getTime()}`);
+      Logger.log(`  - isNaN(payDate.getTime()): ${isNaN(payDate.getTime())}`);
+      
       const daysInMonth = getDaysInMonth(payDate);
       
       // --- LOGIC TÍNH LÃI ---
@@ -225,6 +238,14 @@ function calculateInterestOnlyPayment(params) {
     if (isNaN(payDate.getTime())) continue;
 
     if (payDate >= today) {
+      // --- DEBUG: Kiểm tra payDate trước khi gọi getDaysInMonth ---
+      Logger.log(`[DEBUG TRƯỚC getDaysInMonth - TRẢ LÃI]`);
+      Logger.log(`  - payDate value: ${payDate}`);
+      Logger.log(`  - typeof payDate: ${typeof payDate}`);
+      Logger.log(`  - payDate instanceof Date: ${payDate instanceof Date}`);
+      Logger.log(`  - payDate.getTime(): ${payDate.getTime()}`);
+      Logger.log(`  - isNaN(payDate.getTime()): ${isNaN(payDate.getTime())}`);
+      
       const daysInMonth = getDaysInMonth(payDate);
       
       // --- LOGIC TÍNH LÃI ---
@@ -316,11 +337,43 @@ function safeNumber(val) {
 }
 
 function getDaysInMonth(date) {
-  if (!date || isNaN(date.getTime())) return 30;
+  // --- DEBUG chi tiết ---
+  Logger.log(`[getDaysInMonth] Input:`, date);
+  Logger.log(`  typeof: ${typeof date}`);
+  Logger.log(`  instanceof Date: ${date instanceof Date}`);
+  
+  if (!date) {
+    Logger.log(`  → NULL/UNDEFINED, return 30`);
+    return 30;
+  }
+  
+  if (!(date instanceof Date)) {
+    Logger.log(`  → NOT Date instance, return 30`);
+    return 30;
+  }
+  
+  if (isNaN(date.getTime())) {
+    Logger.log(`  → Invalid Date (NaN getTime), return 30`);
+    return 30;
+  }
+  
   const month = date.getMonth();
   const year = date.getFullYear();
+  
+  Logger.log(`  month: ${month} (type: ${typeof month})`);
+  Logger.log(`  year: ${year} (type: ${typeof year})`);
+  
+  // Kiểm tra xem month có phải số hợp lệ không
+  if (typeof month !== 'number' || isNaN(month) || month < 0 || month > 11) {
+    Logger.log(`  → Invalid month value, return 30`);
+    return 30;
+  }
+  
   const daysInMonthMap = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  return daysInMonthMap[month];
+  const result = daysInMonthMap[month];
+  
+  Logger.log(`  → Result: ${result}`);
+  return result;
 }
 
 function isLeapYear(year) {
