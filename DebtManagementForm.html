@@ -147,12 +147,11 @@
       <label for="debtType">Loại nợ <span class="required">*</span></label>
       <select id="debtType" required>
         <option value="">-- Chọn loại nợ --</option>
-        <option value="Nợ ngân hàng">Nợ ngân hàng (Trả lãi hàng tháng, gốc cuối kỳ)</option>
-        <option value="Vay trả góp">Vay trả góp (Gốc đều, lãi giảm dần)</option>
-        <option value="Trả góp qua thẻ (Phí ban đầu)">Trả góp qua thẻ (Phí ban đầu, gốc chia đều)</option>
-        <option value="Trả góp qua thẻ (Lãi giảm dần)">Trả góp qua thẻ (Gốc + Lãi giảm dần)</option>
-        <option value="Trả góp qua thẻ (Miễn lãi)">Trả góp qua thẻ (Miễn lãi, phí ban đầu)</option>
-        <option value="Khác">Khác</option>
+        <option value="INTEREST_ONLY">Nợ ngân hàng (Trả lãi hàng tháng)</option>
+        <option value="EQUAL_PRINCIPAL">Vay trả góp (Gốc đều, lãi giảm dần)</option>
+        <option value="EQUAL_PRINCIPAL_UPFRONT_FEE">Trả góp qua thẻ (Phí ban đầu)</option>
+        <option value="INTEREST_FREE">Trả góp miễn lãi (Chỉ trả gốc)</option>
+        <option value="OTHER">Khác</option>
       </select>
     </div>
 

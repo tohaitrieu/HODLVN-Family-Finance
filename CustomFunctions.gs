@@ -1,7 +1,9 @@
 /**
  * ===============================================
- * CUSTOM FUNCTIONS
+ * CUSTOM FUNCTIONS v2.0 - UNIFIED TYPE SYSTEM
  * ===============================================
+ * Refactored to use shared LOAN_TYPES configuration
+ * from Main.gs for both debt and lending calculations
  */
 
 /**
@@ -40,35 +42,6 @@ function _calculateEvents(data, isDebt) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  // Helper to calculate days between dates
-  const getDaysDiff = (d1, d2) => {
-    if (!d1 || !d2) return 0;
-    const diffTime = Math.abs(d2.getTime() - d1.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-  };
-  
-  // Helper to parse date safely
-  const parseDate = (d) => {
-    if (d instanceof Date) return d;
-    if (typeof d === 'string') {
-      if (d.includes('/')) {
-        const parts = d.split('/');
-        if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]);
-      }
-      return new Date(d);
-    }
-    return null;
-  };
-
-  // Helper to parse currency safely
-  const parseCurrency = (val) => {
-    if (typeof val === 'number') return val;
-    if (typeof val === 'string') {
-      return parseFloat(val.replace(/\D/g, ''));
-    }
-    return 0;
-  };
-  
   // A(0): STT, B(1): Name, C(2): Type, D(3): Principal, E(4): Rate, F(5): Term, G(6): Date, H(7): Maturity
   // I(8): PaidPrin, J(9): PaidInt, K(10): Remaining, L(11): Status
   
@@ -77,9 +50,13 @@ function _calculateEvents(data, isDebt) {
     if (!row[1]) return;
     
     const name = row[1];
-    const type = row[2]; // Lending Type
+    let type = row[2]; // Might be legacy name or new ID
+    
+    // Convert legacy type name to ID using backward compatibility function
+    type = mapLegacyTypeToId(type);
+    
     const initialPrincipal = parseCurrency(row[3]);
-    const rate = parseFloat(row[4]) || 0; // Annual Rate (decimal)
+    const rate = parseFloat(row[4]) || 0;
     const term = parseInt(row[5]) || 1;
     const rawStartDate = row[6];
     const rawMaturityDate = row[7];
@@ -98,112 +75,21 @@ function _calculateEvents(data, isDebt) {
     }
     
     if (isActive && remaining > 0 && startDate) {
+      // Use shared calculation function
+      const nextEvent = calculateNextPayment(type, {
+        name,
+        isDebt,
+        initialPrincipal,
+        remaining,
+        rate,
+        term,
+        startDate,
+        maturityDate,
+        today
+      });
       
-      // LOGIC THEO TỪNG LOẠI HÌNH
-      
-      // 1. Tất toán gốc - lãi cuối kỳ
-      if (type === 'Tất toán gốc - lãi cuối kỳ') {
-        if (maturityDate && maturityDate >= today) {
-           const days = getDaysDiff(startDate, maturityDate);
-           // Lãi = Ngày * Gốc * Tỷ lệ / 365
-           let currentInterest = days * (rate * remaining) / 365;
-           
-           events.push({
-              date: maturityDate,
-              action: isDebt ? 'Phải trả' : 'Phải thu',
-              name: isDebt ? `${name} (Tất toán)` : `${name} (Đáo hạn)`,
-              remaining: remaining,
-              principalPayment: remaining,
-              interestPayment: currentInterest
-           });
-        }
-      }
-      
-      // 2. Trả lãi hàng tháng, gốc cuối kỳ
-      else if (type === 'Trả lãi hàng tháng, gốc cuối kỳ') {
-         // Lặp qua từng tháng để tìm kỳ trả lãi tiếp theo
-         for (let i = 1; i <= term; i++) {
-            let payDate = new Date(startDate);
-            payDate.setMonth(payDate.getMonth() + i);
-            
-            if (payDate >= today) {
-               // Tính số ngày của tháng trước đó
-               let prevDate = new Date(startDate);
-               prevDate.setMonth(prevDate.getMonth() + i - 1);
-               const daysInMonth = getDaysDiff(prevDate, payDate);
-               
-               // Lãi tháng = Số ngày * Gốc * Tỷ lệ / 365
-               let monthlyInterest = daysInMonth * (rate * remaining) / 365;
-               
-               // Nếu là kỳ cuối cùng thì trả cả gốc
-               let principalPay = (i === term) ? remaining : 0;
-               
-               events.push({
-                  date: payDate,
-                  action: isDebt ? 'Phải trả' : 'Phải thu',
-                  name: isDebt ? `${name} (Kỳ ${i}/${term})` : `${name} (Kỳ ${i}/${term})`,
-                  remaining: remaining,
-                  principalPayment: principalPay,
-                  interestPayment: monthlyInterest
-               });
-               
-               // Chỉ hiển thị 1 kỳ tiếp theo cho mỗi khoản vay (One event per loan)
-               break; 
-            }
-         }
-      }
-      
-      // 3. Trả góp gốc - lãi hàng tháng (Gốc đều, lãi giảm dần)
-      else if (type === 'Trả góp gốc - lãi hàng tháng') {
-         const monthlyPrincipal = initialPrincipal / term;
-         let simulatedRemaining = initialPrincipal; // Bắt đầu tính từ đầu để khớp lịch
-         
-         for (let i = 1; i <= term; i++) {
-            let payDate = new Date(startDate);
-            payDate.setMonth(payDate.getMonth() + i);
-            
-            // Tính lãi cho kỳ này dựa trên dư nợ đầu kỳ
-            let prevDate = new Date(startDate);
-            prevDate.setMonth(prevDate.getMonth() + i - 1);
-            const daysInMonth = getDaysDiff(prevDate, payDate);
-            
-            let monthlyInterest = daysInMonth * (rate * simulatedRemaining) / 365;
-            
-            // Nếu ngày trả >= hôm nay thì hiển thị
-            if (payDate >= today) {
-               events.push({
-                  date: payDate,
-                  action: isDebt ? 'Phải trả' : 'Phải thu',
-                  name: isDebt ? `${name} (Kỳ ${i}/${term})` : `${name} (Kỳ ${i}/${term})`,
-                  remaining: simulatedRemaining, // Dư nợ đầu kỳ
-                  principalPayment: monthlyPrincipal,
-                  interestPayment: monthlyInterest
-               });
-               
-               // Chỉ hiển thị 1 kỳ tiếp theo cho mỗi khoản vay (One event per loan)
-               break;
-            }
-            
-            simulatedRemaining -= monthlyPrincipal;
-            if (simulatedRemaining < 0) simulatedRemaining = 0;
-         }
-      }
-      
-      // Default: Fallback to old logic (Bullet) if type is unknown
-      else {
-         if (maturityDate && maturityDate >= today) {
-           const days = getDaysDiff(startDate, maturityDate);
-           let currentInterest = days * (rate * remaining) / 365;
-           
-           events.push({
-              date: maturityDate,
-              action: isDebt ? 'Phải trả' : 'Phải thu',
-              name: isDebt ? `${name} (Tất toán)` : `${name} (Đáo hạn)`,
-              remaining: remaining,
-              principalPayment: remaining,
-              interestPayment: currentInterest
-           });
-        }
+      if (nextEvent) {
+        events.push(nextEvent);
       }
     }
   });
@@ -239,4 +125,199 @@ function _calculateEvents(data, isDebt) {
   result.push(['TỔNG CỘNG', '', '', '', totalPrincipal, totalInterest]);
   
   return result;
+}
+
+// ==================== SHARED CALCULATION FUNCTIONS ====================
+
+/**
+ * Calculate next payment based on loan type ID
+ * @param {string} typeId - Loan type ID (BULLET, INTEREST_ONLY, etc.)
+ * @param {Object} params - Payment parameters
+ * @return {Object|null} Next payment event or null
+ */
+function calculateNextPayment(typeId, params) {
+  switch(typeId) {
+    case 'BULLET':
+      return calculateBulletPayment(params);
+      
+    case 'INTEREST_ONLY':
+      return calculateInterestOnlyPayment(params);
+      
+    case 'EQUAL_PRINCIPAL':
+    case 'EQUAL_PRINCIPAL_UPFRONT_FEE':
+      return calculateEqualPrincipalPayment(params);
+      
+    case 'INTEREST_FREE':
+      return calculateInterestFreePayment(params);
+      
+    case 'OTHER':
+    default:
+      // Fallback to bullet
+      return calculateBulletPayment(params);
+  }
+}
+
+/**
+ * BULLET: Principal and interest at maturity
+ */
+function calculateBulletPayment(params) {
+  const { name, isDebt, remaining, rate, startDate, maturityDate, today } = params;
+  
+  if (!maturityDate || maturityDate < today) return null;
+  
+  const days = getDaysDiff(startDate, maturityDate);
+  const interest = days * (rate * remaining) / 365;
+  
+  return {
+    date: maturityDate,
+    action: isDebt ? 'Phải trả' : 'Phải thu',
+    name: `${name} (${isDebt ? 'Tất toán' : 'Đáo hạn'})`,
+    remaining: remaining,
+    principalPayment: remaining,
+    interestPayment: interest
+  };
+}
+
+/**
+ * INTEREST_ONLY: Monthly interest, principal at maturity
+ */
+function calculateInterestOnlyPayment(params) {
+  const { name, isDebt, remaining, rate, term, startDate, today } = params;
+  
+  // Loop through each month to find next payment
+  for (let i = 1; i <= term; i++) {
+    let payDate = new Date(startDate);
+    payDate.setMonth(payDate.getMonth() + i);
+    
+    if (payDate >= today) {
+      // Calculate days in this month
+      let prevDate = new Date(startDate);
+      prevDate.setMonth(prevDate.getMonth() + i - 1);
+      const daysInMonth = getDaysDiff(prevDate, payDate);
+      
+      // Monthly interest = Days × (Principal × Rate) / 365
+      let monthlyInterest = daysInMonth * (rate * remaining) / 365;
+      
+      // Principal payment only on last period
+      let principalPay = (i === term) ? remaining : 0;
+      
+      return {
+        date: payDate,
+        action: isDebt ? 'Phải trả' : 'Phải thu',
+        name: `${name} (Kỳ ${i}/${term})`,
+        remaining: remaining,
+        principalPayment: principalPay,
+        interestPayment: monthlyInterest
+      };
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * EQUAL_PRINCIPAL: Equal principal installments, decreasing interest
+ */
+function calculateEqualPrincipalPayment(params) {
+  const { name, isDebt, initialPrincipal, rate, term, startDate, today } = params;
+  
+  const monthlyPrincipal = initialPrincipal / term;
+  let simulatedRemaining = initialPrincipal;
+  
+  for (let i = 1; i <= term; i++) {
+    let payDate = new Date(startDate);
+    payDate.setMonth(payDate.getMonth() + i);
+    
+    // Calculate interest for this period based on remaining at start of period
+    let prevDate = new Date(startDate);
+    prevDate.setMonth(prevDate.getMonth() + i - 1);
+    const daysInMonth = getDaysDiff(prevDate, payDate);
+    
+    let monthlyInterest = daysInMonth * (rate * simulatedRemaining) / 365;
+    
+    // If payment date >= today, return this event
+    if (payDate >= today) {
+      return {
+        date: payDate,
+        action: isDebt ? 'Phải trả' : 'Phải thu',
+        name: `${name} (Kỳ ${i}/${term})`,
+        remaining: simulatedRemaining,
+        principalPayment: monthlyPrincipal,
+        interestPayment: monthlyInterest
+      };
+    }
+    
+    simulatedRemaining -= monthlyPrincipal;
+    if (simulatedRemaining < 0) simulatedRemaining = 0;
+  }
+  
+  return null;
+}
+
+/**
+ * INTEREST_FREE: Equal principal installments, zero interest
+ */
+function calculateInterestFreePayment(params) {
+  const { name, isDebt, initialPrincipal, term, startDate, today } = params;
+  
+  const monthlyPrincipal = initialPrincipal / term;
+  let simulatedRemaining = initialPrincipal;
+  
+  for (let i = 1; i <= term; i++) {
+    let payDate = new Date(startDate);
+    payDate.setMonth(payDate.getMonth() + i);
+    
+    if (payDate >= today) {
+      return {
+        date: payDate,
+        action: isDebt ? 'Phải trả' : 'Phải thu',
+        name: `${name} (Kỳ ${i}/${term})`,
+        remaining: simulatedRemaining,
+        principalPayment: monthlyPrincipal,
+        interestPayment: 0
+      };
+    }
+    
+    simulatedRemaining -= monthlyPrincipal;
+    if (simulatedRemaining < 0) simulatedRemaining = 0;
+  }
+  
+  return null;
+}
+
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Calculate days between two dates
+ */
+function getDaysDiff(d1, d2) {
+  if (!d1 || !d2) return 0;
+  const diffTime = Math.abs(d2.getTime() - d1.getTime());
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+}
+
+/**
+ * Parse date safely
+ */
+function parseDate(d) {
+  if (d instanceof Date) return d;
+  if (typeof d === 'string') {
+    if (d.includes('/')) {
+      const parts = d.split('/');
+      if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]);
+    }
+    return new Date(d);
+  }
+  return null;
+}
+
+/**
+ * Parse currency safely
+ */
+function parseCurrency(val) {
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    return parseFloat(val.replace(/\D/g, ''));
+  }
+  return 0;
 }

@@ -368,8 +368,11 @@ const DashboardManager = {
       if (name === 'TỔNG CHI PHÍ') {
          sheet.getRange(r, startCol + 2).setFormula(`=SUM(R[-${rows.length - 1}]C:R[-1]C)`);
       } else {
-         // VLOOKUP từ BUDGET sheet - Tất cả các mục đều VLOOKUP trực tiếp (kể cả "Trả nợ (Gốc + Lãi)")
-         sheet.getRange(r, startCol + 2).setFormula(`=IFERROR(VLOOKUP("${name}", BUDGET!A:C, 3, 0), 0)`);
+         // VLOOKUP từ BUDGET sheet với multiplier động theo bộ lọc thời gian
+         // Nếu chọn Tháng: x1, Quý: x3, Năm: x12
+         const budgetBase = `IFERROR(VLOOKUP("${name}", BUDGET!A:C, 3, 0), 0)`;
+         const multiplier = `IF($B$4<>"Tất cả", 1, IF($B$3<>"Tất cả", 3, 12))`;
+         sheet.getRange(r, startCol + 2).setFormula(`=${budgetBase} * ${multiplier}`);
       }
       
       // 3. Còn lại (Remaining) = Budget - Spent

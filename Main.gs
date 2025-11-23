@@ -96,6 +96,118 @@ const APP_CONFIG = {
   }
 };
 
+// ==================== LOAN TYPES CONFIGURATION ====================
+
+/**
+ * Unified loan type system for both debt and lending
+ * Uses type IDs with context-specific display names
+ */
+const LOAN_TYPES = {
+  BULLET: {
+    id: 'BULLET',
+    debtLabel: 'Vay tất toán (Gốc + lãi cuối kỳ)',
+    lendingLabel: 'Cho vay tất toán (Gốc + lãi cuối kỳ)',
+    description: 'Trả toàn bộ gốc và lãi vào ngày đáo hạn',
+    requiresMaturityDate: true,
+    hasInterest: true
+  },
+  
+  INTEREST_ONLY: {
+    id: 'INTEREST_ONLY',
+    debtLabel: 'Nợ ngân hàng (Trả lãi hàng tháng)',
+    lendingLabel: 'Cho vay trả lãi định kỳ',
+    description: 'Trả lãi hàng tháng, gốc vào cuối kỳ',
+    requiresMaturityDate: true,
+    hasInterest: true
+  },
+  
+  EQUAL_PRINCIPAL: {
+    id: 'EQUAL_PRINCIPAL',
+    debtLabel: 'Vay trả góp (Gốc đều, lãi giảm dần)',
+    lendingLabel: 'Cho vay trả góp (Gốc đều, lãi giảm dần)',
+    description: 'Trả gốc đều hàng tháng, lãi tính trên số dư',
+    requiresMaturityDate: false,
+    hasInterest: true
+  },
+  
+  EQUAL_PRINCIPAL_UPFRONT_FEE: {
+    id: 'EQUAL_PRINCIPAL_UPFRONT_FEE',
+    debtLabel: 'Trả góp qua thẻ (Phí ban đầu)',
+    lendingLabel: 'Cho vay có phí trước (Gốc đều)',
+    description: 'Phí/lãi tính một lần, gốc chia đều',
+    requiresMaturityDate: false,
+    hasInterest: true
+  },
+  
+  INTEREST_FREE: {
+    id: 'INTEREST_FREE',
+    debtLabel: 'Trả góp miễn lãi (Chỉ trả gốc)',
+    lendingLabel: 'Cho vay miễn lãi (Chỉ thu gốc)',
+    description: 'Chỉ trả/thu gốc chia đều, không lãi',
+    requiresMaturityDate: false,
+    hasInterest: false
+  },
+  
+  OTHER: {
+    id: 'OTHER',
+    debtLabel: 'Khác',
+    lendingLabel: 'Khác',
+    description: 'Loại khác (mặc định: tất toán)',
+    requiresMaturityDate: true,
+    hasInterest: true
+  }
+};
+
+/**
+ * Get loan type configuration by ID
+ * @param {string} typeId - Type ID
+ * @return {Object} Type configuration or OTHER if not found
+ */
+function getLoanType(typeId) {
+  return LOAN_TYPES[typeId] || LOAN_TYPES.OTHER;
+}
+
+/**
+ * Get display label for a loan type based on context
+ * @param {string} typeId - Type ID
+ * @param {boolean} isDebt - True for debt context, false for lending
+ * @return {string} Display label
+ */
+function getLoanTypeLabel(typeId, isDebt = true) {
+  const type = getLoanType(typeId);
+  return isDebt ? type.debtLabel : type.lendingLabel;
+}
+
+/**
+ * Map legacy type names to new type IDs (Backward compatibility)
+ * @param {string} typeName - Old type name or new type ID
+ * @return {string} Type ID
+ */
+function mapLegacyTypeToId(typeName) {
+  // If already a valid ID, return as-is
+  if (LOAN_TYPES[typeName]) {
+    return typeName;
+  }
+  
+  // Legacy mapping
+  const legacyMapping = {
+    // Legacy lending types (from LendingForm.html)
+    'Tất toán gốc - lãi cuối kỳ': 'BULLET',
+    'Trả lãi hàng tháng, gốc cuối kỳ': 'INTEREST_ONLY',
+    'Trả góp gốc - lãi hàng tháng': 'EQUAL_PRINCIPAL',
+    
+    // Legacy debt types (from DebtManagementForm.html)
+    'Nợ ngân hàng': 'INTEREST_ONLY',
+    'Vay trả góp': 'EQUAL_PRINCIPAL',
+    'Trả góp qua thẻ (Phí ban đầu)': 'EQUAL_PRINCIPAL_UPFRONT_FEE',
+    'Trả góp qua thẻ (Lãi giảm dần)': 'EQUAL_PRINCIPAL',
+    'Trả góp qua thẻ (Miễn lãi)': 'INTEREST_FREE',
+    'Khác': 'OTHER'
+  };
+  
+  return legacyMapping[typeName] || 'OTHER';
+}
+
 // ==================== MENU CHÍNH ====================
 
 /**
