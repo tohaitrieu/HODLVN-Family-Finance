@@ -113,54 +113,41 @@ function AccReceivable(lendingData) {
 
 /**
  * Helper function to calculate events
+ * ĐÃ SỬA: Thêm hiển thị cột Lãi suất và chuẩn hóa tính toán
  */
 function _calculateEvents(data, isDebt) {
-  Logger.log(`=== _calculateEvents START (isDebt: ${isDebt}) ===`);
-  
   const events = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  Logger.log(`Today: ${today.toDateString()}`);
-  Logger.log(`Processing ${data.length} rows...`);
-  
   // A(0): STT, B(1): Name, C(2): Type, D(3): Principal, E(4): Rate, F(5): Term, G(6): Date, H(7): Maturity
   // I(8): PaidPrin, J(9): PaidInt, K(10): Remaining, L(11): Status
   
-  data.forEach((row, index) => {
+  data.forEach(row => {
     // Skip empty rows
-    if (!row[1]) {
-      Logger.log(`Row ${index}: SKIP (no name)`);
-      return;
-    }
+    if (!row[1]) return;
     
     const name = row[1];
-    let type = row[2]; // Might be legacy name or new ID
+    let type = row[2]; 
     
-    // Convert legacy type name to ID using backward compatibility function
+    // Convert legacy type name to ID
     type = mapLegacyTypeToId(type);
     
     const initialPrincipal = parseCurrency(row[3]);
     let rate = parseFloat(row[4]) || 0;
     
-    // IMPORTANT: Validate and normalize rate
-    // If rate > 1, it's likely in percentage form (e.g., 10 instead of 0.1)
-    // Google Sheets with format "0.00%" stores 0.1 for 10%
-    // But if user enters "10%" it might be stored as 10
+    // --- LOGIC CHUẨN HÓA LÃI SUẤT ---
+    // Google Sheets: 10% = 0.1. Nếu người dùng nhập số thường (10), ta chia 100.
+    // Nếu lãi suất < 0, coi như bằng 0.
     if (rate > 1) {
-      rate = rate / 100; // Convert percentage to decimal
+      rate = rate / 100; 
     }
-    
-    // Ensure rate is valid
     if (isNaN(rate) || rate < 0) {
       rate = 0;
     }
     
-    // CRITICAL: Parse Term - handle case where it was auto-converted to Date
     let term = row[5];
     if (term instanceof Date) {
-      // If it's a Date, extract the serial number
-      // This happens when Google Sheets auto-converts "48" to a date
       term = Math.round((term - new Date(1899, 11, 30)) / 86400000);
     } else {
       term = parseInt(term) || 1;
@@ -173,12 +160,7 @@ function _calculateEvents(data, isDebt) {
     
     const startDate = parseDate(rawStartDate);
     const maturityDate = parseDate(rawMaturityDate);
-    
-    // DEBUG: Log để kiểm tra
-    if (name) {
-      Logger.log(`Processing: ${name}, Type: ${type}, Rate: ${rate}, Remaining: ${remaining}, Status: ${status}`);
-    }
-    
+
     // Check active status
     let isActive = false;
     if (isDebt) {
@@ -188,8 +170,6 @@ function _calculateEvents(data, isDebt) {
     }
     
     if (isActive && remaining > 0 && startDate) {
-      Logger.log(`Row ${index}: ACTIVE - ${name}`);
-      // Use shared calculation function
       const nextEvent = calculateNextPayment(type, {
         name,
         isDebt,
@@ -203,54 +183,46 @@ function _calculateEvents(data, isDebt) {
       });
       
       if (nextEvent) {
-        Logger.log(`  ✅ Event found: ${nextEvent.date.toDateString()}, Principal: ${nextEvent.principalPayment}, Interest: ${nextEvent.interestPayment}`);
+        // --- SỬA 1: Lưu lãi suất vào sự kiện để hiển thị ---
+        nextEvent.rate = rate; 
         events.push(nextEvent);
-      } else {
-        Logger.log(`  ❌ No event returned`);
       }
-    } else {
-      Logger.log(`Row ${index}: SKIP - isActive: ${isActive}, remaining: ${remaining}, hasStartDate: ${!!startDate}`);
     }
   });
-  
-  Logger.log(`Total events found: ${events.length}`);
-  
+
   if (events.length === 0) {
-    Logger.log('⚠️ No events, returning default message');
-    return [['Không có sự kiện sắp tới', '', '', '', '', '']];
+    // --- SỬA 2: Thêm 1 cột trống cho đúng cấu trúc bảng (7 cột) ---
+    return [['Không có sự kiện sắp tới', '', '', '', '', '', '']];
   }
   
   // Sort by date
   events.sort((a, b) => a.date - b.date);
-  
+
   // Limit to 10
   const limitedEvents = events.slice(0, 10);
-  
-  Logger.log(`Returning ${limitedEvents.length} events (limited to 10)`);
-  
+
   // Convert to 2D array
   const result = limitedEvents.map(evt => [
     evt.date,
     evt.action,
     evt.name,
     evt.remaining,
+    evt.rate, // --- SỬA 3: Thêm cột Lãi suất vào đây (Cột thứ 5) ---
     evt.principalPayment,
     evt.interestPayment
   ]);
-  
+
   // Add Total Row
   let totalPrincipal = 0;
   let totalInterest = 0;
+
   limitedEvents.forEach(evt => {
     totalPrincipal += evt.principalPayment;
     totalInterest += evt.interestPayment;
   });
-  
-  result.push(['TỔNG CỘNG', '', '', '', totalPrincipal, totalInterest]);
-  
-  Logger.log(`Final result: ${result.length} rows (including TOTAL)`);
-  Logger.log(`Sample row 0: ${JSON.stringify(result[0])}`);
-  Logger.log('=== _calculateEvents END ===');
+
+  // --- SỬA 4: Thêm ô trống vào dòng Tổng cộng để không bị lệch cột ---
+  result.push(['TỔNG CỘNG', '', '', '', '', totalPrincipal, totalInterest]);
   
   return result;
 }
