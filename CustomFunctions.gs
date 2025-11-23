@@ -267,47 +267,41 @@ function calculateInterestOnlyPayment(params) {
  */
 function calculateEqualPrincipalPayment(params) {
   const { name, isDebt, initialPrincipal, remaining, rate, term, startDate, today } = params;
-  
-  // Validate values to prevent #NUM!
+
+  // Validate values
   const validRate = (isNaN(rate) || rate < 0) ? 0 : rate;
-  const validRemaining = (isNaN(remaining) || remaining < 0) ? 0 : remaining;
   const validInitialPrincipal = (isNaN(initialPrincipal) || initialPrincipal < 0) ? 0 : initialPrincipal;
-  
-  // Gốc kỳ này = Tổng gốc / số kỳ phải trả
-  const monthlyPrincipal = validInitialPrincipal / term;
-  
+  const validRemaining = (isNaN(remaining) || remaining < 0) ? 0 : remaining;
+
+  // Monthly principal payment (constant)
+  const monthlyPrincipal = term ? validInitialPrincipal / term : 0;
+
+  // Use current remaining from column K for interest calculation
+  let currentRemaining = validRemaining;
+
   for (let i = 1; i <= term; i++) {
     let payDate = new Date(startDate);
     payDate.setMonth(payDate.getMonth() + i);
-    
-    // Check for invalid date
+
     if (isNaN(payDate.getTime())) continue;
-    
-    // If payment date >= today, return this event
+
     if (payDate >= today) {
-      // Calculate days in the month of the payment date
       const daysInMonth = getDaysInMonth(payDate);
-      
-      // Interest based on ACTUAL remaining principal from sheet
-      // Lãi kỳ này = Số ngày trong tháng cột Ngày * (Gốc còn lại * lãi)/365
-      let monthlyInterest = daysInMonth * (validRate * validRemaining) / 365;
-      
-      // Validate result
-      if (isNaN(monthlyInterest) || monthlyInterest < 0) {
-        monthlyInterest = 0;
-      }
-      
+      let monthlyInterest = daysInMonth * (validRate * currentRemaining) / 365;
+      if (isNaN(monthlyInterest) || monthlyInterest < 0) monthlyInterest = 0;
+
       return {
         date: payDate,
         action: isDebt ? 'Phải trả' : 'Phải thu',
         name: `${name} (Kỳ ${i}/${term})`,
-        remaining: validRemaining, // Use actual remaining
+        remaining: currentRemaining,
         principalPayment: isNaN(monthlyPrincipal) ? 0 : monthlyPrincipal,
         interestPayment: monthlyInterest
       };
     }
+    // Decrease remaining after this month
+    currentRemaining = Math.max(currentRemaining - monthlyPrincipal, 0);
   }
-  
   return null;
 }
 
