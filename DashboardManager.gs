@@ -870,31 +870,40 @@ const DashboardManager = {
     sheet.getRange('E3:H3').setNumberFormat('#,##0');
     sheet.getRange('E3:H3').setHorizontalAlignment('center');
     
-    // Tạo biểu đồ cột sử dụng E2:H3
-    // Position: K36 (row 36, col 11)
-    // Size: 6 columns (K-P) x 14 rows (36-49)
+    // Tạo biểu đồ với cấu hình đơn giản hơn
+    // E2:H2 là categories (labels cho trục X)
+    // E3:H3 là values (dữ liệu cho trục Y)
     const chart = sheet.newChart()
       .setChartType(Charts.ChartType.COLUMN)
-      .addRange(sheet.getRange('E2:H3')) // Header + Data
+      .addRange(sheet.getRange('E2:H2')) // Categories
+      .addRange(sheet.getRange('E3:H3')) // Values
       .setPosition(chartStartRow, chartStartCol, 0, 0) // K36
       .setOption('title', 'Tổng quan Tài chính')
+      .setOption('titleTextStyle', { fontSize: 14, bold: true })
       .setOption('width', 720) // 6 columns * 120px = 720px
       .setOption('height', 420) // 14 rows height
       .setOption('legend', { position: 'none' }) // Không cần legend
-      .setOption('useFirstColumnAsDomain', false) // Không dùng cột đầu làm domain
-      .setOption('treatLabelsAsText', true) // Treat first row as labels
-      .setOption('colors', ['#4CAF50', '#F44336', '#FF9800', '#2196F3']) // Xanh, Đỏ, Cam, Xanh dương
+      .setOption('series', {
+        0: { color: '#4CAF50', labelInLegend: 'Thu nhập' },
+        1: { color: '#F44336', labelInLegend: 'Chi phí' },
+        2: { color: '#FF9800', labelInLegend: 'Nợ' },
+        3: { color: '#2196F3', labelInLegend: 'Tài sản' }
+      })
       .setOption('vAxis', { 
         title: 'Số tiền (VNĐ)',
+        titleTextStyle: { fontSize: 12 },
         format: '#,##0',
-        minValue: 0
+        minValue: 0,
+        gridlines: { count: 5 }
       })
       .setOption('hAxis', {
-        title: 'Danh mục',
+        title: '',
+        textStyle: { fontSize: 11, bold: true },
         slantedText: false
       })
-      .setOption('bar', { groupWidth: '60%' })
-      .setOption('chartArea', { width: '80%', height: '70%' })
+      .setOption('bar', { groupWidth: '70%' })
+      .setOption('chartArea', { width: '85%', height: '75%', top: 50, left: 80 })
+      .setOption('isStacked', false)
       .build();
       
     sheet.insertChart(chart);
