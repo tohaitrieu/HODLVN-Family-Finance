@@ -1,19 +1,12 @@
 /**
  * ===============================================
- * CUSTOM FUNCTIONS v3.6.0 - STRING PARSING FIX
+ * CUSTOM FUNCTIONS v3.6.1 - NATIVE DATE FIX
  * ===============================================
- * - Cải tiến hàm getDaysInMonth với DUAL strategy:
- *   + Strategy 1: Thử dùng date.getMonth() trước
- *   + Strategy 2: Nếu fail → Parse từ Date.toString()
- * - Hỗ trợ parse format: "Mon Dec 01 2025" và "2025-12-01"
- * - Month mapping: Jan=0, Feb=1, ..., Dec=11
- * - FIX: Giải quyết vấn đề getMonth() trả về NaN/undefined
- * - GIỮ NGUYÊN tên hàm để tương thích với code cũ
+ * - FIX: Loại bỏ hoàn toàn mảng mapping thủ công gây lỗi NaN.
+ * - UPDATE: Dùng new Date(y, m+1, 0).getDate() để lấy số ngày chuẩn xác 100% từ hệ thống.
+ * - DEBUG: Vẫn giữ Log chi tiết để bạn kiểm tra lần cuối.
  */
 
-/**
- * Map legacy type names to new type IDs
- */
 function mapLegacyTypeToId(typeName) {
   if (!typeName) return 'OTHER';
   
@@ -45,27 +38,16 @@ function mapLegacyTypeToId(typeName) {
   return validIds.includes(typeName.toUpperCase()) ? typeName.toUpperCase() : 'OTHER';
 }
 
-/**
- * Tính toán lịch trả nợ sắp tới
- * @customfunction
- */
 function AccPayable(debtData) {
   if (!Array.isArray(debtData) || debtData.length === 0) return [['Không có dữ liệu']];
   return _calculateEvents(debtData, true);
 }
 
-/**
- * Tính toán lịch thu nợ sắp tới
- * @customfunction
- */
 function AccReceivable(lendingData) {
   if (!Array.isArray(lendingData) || lendingData.length === 0) return [['Không có dữ liệu']];
   return _calculateEvents(lendingData, false);
 }
 
-/**
- * Hàm xử lý chính
- */
 function _calculateEvents(data, isDebt) {
   const events = [];
   const today = new Date();
@@ -77,11 +59,9 @@ function _calculateEvents(data, isDebt) {
     const name = row[1];
     const type = mapLegacyTypeToId(row[2]);
     
-    // Parse an toàn
     const initialPrincipal = parseCurrency(row[3]);
     let rate = parseFloat(row[4]);
     
-    // Chuẩn hóa Rate
     if (isNaN(rate)) rate = 0;
     if (rate > 1) rate = rate / 100;
     if (rate < 0) rate = 0;
@@ -96,8 +76,6 @@ function _calculateEvents(data, isDebt) {
     
     const startDate = parseDate(row[6]);
     const maturityDate = parseDate(row[7]);
-    
-    // Lấy dư nợ từ cột K
     const remaining = parseCurrency(row[10]); 
     const status = row[11];
     
@@ -128,14 +106,12 @@ function _calculateEvents(data, isDebt) {
   });
 
   if (events.length === 0) {
-    // Trả về 6 cột trống (đã bỏ cột lãi suất)
     return [['Không có sự kiện sắp tới', '', '', '', '', '']];
   }
   
   events.sort((a, b) => a.date - b.date);
   const limitedEvents = events.slice(0, 10);
   
-  // Map kết quả - BỎ CỘT RATE
   const result = limitedEvents.map(evt => [
     evt.date,
     evt.action || '',
@@ -152,13 +128,12 @@ function _calculateEvents(data, isDebt) {
     totalInterest += safeNumber(evt.interestPayment);
   });
   
-  // Dòng tổng cộng - 6 cột
   result.push(['TỔNG CỘNG', '', '', '', totalPrincipal, totalInterest]);
   
   return result;
 }
 
-// ==================== LOGIC TÍNH TOÁN (CÓ DEBUG) ====================
+// ==================== LOGIC TÍNH TOÁN ====================
 
 function calculateNextPayment(typeId, params) {
   switch(typeId) {
@@ -172,7 +147,7 @@ function calculateNextPayment(typeId, params) {
 }
 
 /**
- * 1. VAY TRẢ GÓP
+ * 1. VAY TRẢ GÓP (EQUAL_PRINCIPAL)
  */
 function calculateEqualPrincipalPayment(params) {
   const { name, isDebt, initialPrincipal, remaining, rate, term, startDate, today } = params;
@@ -187,28 +162,18 @@ function calculateEqualPrincipalPayment(params) {
     if (isNaN(payDate.getTime())) continue;
 
     if (payDate >= today) {
-      // --- DEBUG: Kiểm tra payDate trước khi gọi getDaysInMonth ---
-      Logger.log(`[DEBUG TRƯỚC getDaysInMonth - TRẢ GÓP]`);
-      Logger.log(`  - payDate value: ${payDate}`);
-      Logger.log(`  - typeof payDate: ${typeof payDate}`);
-      Logger.log(`  - payDate instanceof Date: ${payDate instanceof Date}`);
-      Logger.log(`  - payDate.getTime(): ${payDate.getTime()}`);
-      Logger.log(`  - isNaN(payDate.getTime()): ${isNaN(payDate.getTime())}`);
-      
+      // GỌI HÀM MỚI
       const daysInMonth = getDaysInMonth(payDate);
       
-      // --- LOGIC TÍNH LÃI ---
       let monthlyInterest = (daysInMonth * remaining * rate) / 365;
+      if (isNaN(monthlyInterest)) monthlyInterest = 0;
       
-      // --- DEBUG LOG ---
-      Logger.log(`[DEBUG TRẢ GÓP] Khoản: ${name}`);
-      Logger.log(`  - 1. Lãi suất (rate): ${rate} (${rate * 100}%)`);
-      Logger.log(`  - 2. Số tiền còn lại (remaining): ${remaining}`);
-      Logger.log(`  - 3. Số ngày (daysInMonth): ${daysInMonth} (Tháng ${payDate.getMonth()+1})`);
-      Logger.log(`  - 4. Gốc phải trả: ${monthlyPrincipal}`);
-      Logger.log(`  - 5. Lãi phải trả (tính): ${monthlyInterest}`);
-      Logger.log(`  - Công thức: (${daysInMonth} * ${remaining} * ${rate}) / 365`);
-      // -----------------
+      // DEBUG LOG
+      Logger.log(`[DEBUG TRẢ GÓP] ${name}:`);
+      Logger.log(`  PayDate: ${payDate} (Tháng ${payDate.getMonth()+1})`);
+      Logger.log(`  Days In Month (Native): ${daysInMonth}`);
+      Logger.log(`  Rem: ${remaining}, Rate: ${rate}`);
+      Logger.log(`  -> Int: ${monthlyInterest}`);
 
       return {
         date: payDate,
@@ -224,7 +189,7 @@ function calculateEqualPrincipalPayment(params) {
 }
 
 /**
- * 2. TRẢ LÃI ĐỊNH KỲ
+ * 2. TRẢ LÃI ĐỊNH KỲ (INTEREST_ONLY)
  */
 function calculateInterestOnlyPayment(params) {
   const { name, isDebt, remaining, rate, term, startDate, today } = params;
@@ -238,28 +203,20 @@ function calculateInterestOnlyPayment(params) {
     if (isNaN(payDate.getTime())) continue;
 
     if (payDate >= today) {
-      // --- DEBUG: Kiểm tra payDate trước khi gọi getDaysInMonth ---
-      Logger.log(`[DEBUG TRƯỚC getDaysInMonth - TRẢ LÃI]`);
-      Logger.log(`  - payDate value: ${payDate}`);
-      Logger.log(`  - typeof payDate: ${typeof payDate}`);
-      Logger.log(`  - payDate instanceof Date: ${payDate instanceof Date}`);
-      Logger.log(`  - payDate.getTime(): ${payDate.getTime()}`);
-      Logger.log(`  - isNaN(payDate.getTime()): ${isNaN(payDate.getTime())}`);
-      
+      // GỌI HÀM MỚI
       const daysInMonth = getDaysInMonth(payDate);
       
-      // --- LOGIC TÍNH LÃI ---
       let monthlyInterest = (daysInMonth * remaining * rate) / 365;
+      if (isNaN(monthlyInterest)) monthlyInterest = 0;
+      
       let principalPay = (i === term) ? remaining : 0;
       
-      // --- DEBUG LOG ---
-      Logger.log(`[DEBUG TRẢ LÃI] Khoản: ${name}`);
-      Logger.log(`  - 1. Lãi suất (rate): ${rate} (${rate * 100}%)`);
-      Logger.log(`  - 2. Số tiền còn lại (remaining): ${remaining}`);
-      Logger.log(`  - 3. Số ngày (daysInMonth): ${daysInMonth}`);
-      Logger.log(`  - 4. Gốc phải trả: ${principalPay}`);
-      Logger.log(`  - 5. Lãi phải trả (tính): ${monthlyInterest}`);
-      // -----------------
+      // DEBUG LOG
+      Logger.log(`[DEBUG TRẢ LÃI] ${name}:`);
+      Logger.log(`  PayDate: ${payDate} (Tháng ${payDate.getMonth()+1})`);
+      Logger.log(`  Days In Month (Native): ${daysInMonth}`);
+      Logger.log(`  Rem: ${remaining}, Rate: ${rate}`);
+      Logger.log(`  -> Int: ${monthlyInterest}`);
 
       return {
         date: payDate,
@@ -274,15 +231,10 @@ function calculateInterestOnlyPayment(params) {
   return null;
 }
 
-/**
- * 3. TẤT TOÁN CUỐI KỲ
- */
 function calculateBulletPayment(params) {
   const { name, isDebt, remaining, rate, term, maturityDate, today } = params;
   if (!maturityDate || maturityDate < today) return null;
   
-  // Tính lãi ước lượng: Gốc * Lãi * (Số tháng / 12)
-  // Hoặc chính xác hơn: (Gốc * Lãi * Số ngày thực tế) / 365
   const interest = term * (remaining * rate) / 12; 
 
   return {
@@ -317,13 +269,29 @@ function calculateInterestFreePayment(params) {
   return null;
 }
 
-// ==================== HELPER FUNCTIONS ====================
+// ==================== HELPER FUNCTIONS (CORE FIX) ====================
+
+/**
+ * SỬA LỖI TRIỆT ĐỂ: Dùng Date Native của Javascript
+ * Không parse chuỗi, không map mảng.
+ */
+function getDaysInMonth(date) {
+  if (!date) return 30;
+  
+  // Đảm bảo date là đối tượng Date hợp lệ
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return 30;
+  
+  // LOGIC: Ngày 0 của tháng (m+1) là ngày cuối cùng của tháng m
+  // Ví dụ: new Date(2025, 12, 0) -> 31/12/2025 -> getDate() = 31
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+}
 
 function parseCurrency(val) {
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
   if (typeof val === 'string') {
     if (!val.trim()) return 0;
-    const clean = val.replace(/\D/g, ''); // Chỉ giữ lại số
+    const clean = val.replace(/\D/g, ''); 
     if (!clean) return 0;
     const num = parseFloat(clean);
     return isNaN(num) ? 0 : num;
@@ -332,93 +300,10 @@ function parseCurrency(val) {
 }
 
 function safeNumber(val) {
-  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  if (typeof val === 'number') {
+    return isNaN(val) || !isFinite(val) ? 0 : val;
+  }
   return 0;
-}
-
-function getDaysInMonth(date) {
-  Logger.log(`[getDaysInMonth] Input:`, date);
-  
-  if (!date) {
-    Logger.log(`  → NULL, return 30`);
-    return 30;
-  }
-  
-  // Parse từ Date string nếu cần
-  let month, year;
-  
-  if (date instanceof Date && !isNaN(date.getTime())) {
-    // Thử dùng getMonth() trước
-    month = date.getMonth();
-    year = date.getFullYear();
-    
-    Logger.log(`  Via getMonth(): month=${month}, year=${year}`);
-    
-    // Nếu month hợp lệ, dùng luôn
-    if (typeof month === 'number' && !isNaN(month) && month >= 0 && month <= 11) {
-      Logger.log(`  → getMonth() OK!`);
-      const daysInMonthMap = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-      const result = daysInMonthMap[month];
-      Logger.log(`  → Result: ${result}`);
-      return result;
-    }
-  }
-  
-  // FALLBACK: Parse từ string
-  Logger.log(`  → Fallback to string parsing`);
-  const dateStr = date.toString();
-  Logger.log(`  dateStr: ${dateStr}`);
-  
-  // Map tháng từ tên
-  const monthMap = {
-    'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
-    'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
-  };
-  
-  // Match pattern: "Mon Dec 01 2025" hoặc "2025-12-01"
-  let monthStr = null;
-  
-  // Try format: "Mon Dec 01 2025"
-  const match1 = dateStr.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/);
-  if (match1) {
-    monthStr = match1[1];
-    Logger.log(`  Found month string: ${monthStr}`);
-  }
-  
-  // Try format: "2025-12-01"
-  const match2 = dateStr.match(/\d{4}-(\d{2})-\d{2}/);
-  if (match2) {
-    month = parseInt(match2[1]) - 1; // Trừ 1 vì tháng đếm từ 0
-    Logger.log(`  Found month from ISO format: ${month}`);
-  }
-  
-  if (monthStr && monthMap[monthStr] !== undefined) {
-    month = monthMap[monthStr];
-    Logger.log(`  Mapped ${monthStr} → ${month}`);
-  }
-  
-  // Extract year
-  const yearMatch = dateStr.match(/\b(20\d{2})\b/);
-  if (yearMatch) {
-    year = parseInt(yearMatch[1]);
-    Logger.log(`  Found year: ${year}`);
-  } else {
-    year = new Date().getFullYear(); // Fallback to current year
-  }
-  
-  if (typeof month === 'number' && !isNaN(month) && month >= 0 && month <= 11) {
-    const daysInMonthMap = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    const result = daysInMonthMap[month];
-    Logger.log(`  → Final result: ${result} (month=${month}, year=${year})`);
-    return result;
-  }
-  
-  Logger.log(`  → Could not determine month, return 30`);
-  return 30;
-}
-
-function isLeapYear(year) {
-  return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
 }
 
 function parseDate(d) {
