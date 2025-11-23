@@ -845,8 +845,45 @@ const SheetInitializer = {
     const tongChiStatus = `=IF(C${chiEndRow}=0, "⚪ N/A", IF(E${chiEndRow}<0, "🔴 " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%"), IF(D${chiEndRow}/C${chiEndRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%"), IF(D${chiEndRow}/C${chiEndRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%"), "✅ " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%")))))`;
     sheet.getRange(chiEndRow, 6).setFormula(tongChiStatus).setFontWeight('bold');
     
+    // ========== ROW: % NHÓM TRẢ NỢ ==========
+    const debtRow = chiEndRow + 2;
+    sheet.getRange(debtRow, 1).setValue('Nhóm Trả nợ:').setFontWeight('bold').setFontColor('#FF9800');
+    
+    if (sheet.getRange(debtRow, 2).getValue() === '') {
+      sheet.getRange(debtRow, 2).setValue(0.2);
+    }
+    sheet.getRange(debtRow, 2).setNumberFormat('0.00%').setFontWeight('bold').setBackground('#FFE0B2').setHorizontalAlignment('center');
+    
+    // ========== SECTION 2: TRẢ NỢ ==========
+    const debtHeaderRow = debtRow + 1;
+    sheet.getRange(`A${debtHeaderRow}:F${debtHeaderRow}`).merge()
+      .setValue('💸 TRẢ NỢ').setFontWeight('bold').setBackground('#FF9800').setFontColor('#FFFFFF').setHorizontalAlignment('center');
+    
+    const debtColRow = debtHeaderRow + 1;
+    sheet.getRange(`A${debtColRow}:F${debtColRow}`).setValues([chiHeaders])
+      .setFontWeight('bold').setHorizontalAlignment('center').setBackground('#4472C4').setFontColor('#FFFFFF');
+      
+    // Data Row
+    const debtDataRow = debtColRow + 1;
+    sheet.getRange(debtDataRow, 1).setValue('Trả nợ (Gốc + Lãi)');
+    sheet.getRange(debtDataRow, 2).setValue(1).setNumberFormat('0.00%').setHorizontalAlignment('center');
+    
+    // Budget
+    sheet.getRange(debtDataRow, 3).setFormula(`=$B$2*$B$${debtRow}`).setNumberFormat('#,##0');
+    
+    // Actual
+    const formulaTraNo = `=SUMIFS('TRẢ NỢ'!F:F, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${currentMonth},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`;
+    sheet.getRange(debtDataRow, 4).setFormula(formulaTraNo).setNumberFormat('#,##0');
+    
+    // Remaining
+    sheet.getRange(debtDataRow, 5).setFormula(`=C${debtDataRow}-D${debtDataRow}`).setNumberFormat('#,##0');
+    
+    // Status
+    const debtStatusFormula = `=IF(C${debtDataRow}=0, "⚪ N/A", IF(E${debtDataRow}<0, "🔴 " & TEXT(D${debtDataRow}/C${debtDataRow}, "0.0%"), IF(D${debtDataRow}/C${debtDataRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${debtDataRow}/C${debtDataRow}, "0.0%"), IF(D${debtDataRow}/C${debtDataRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${debtDataRow}/C${debtDataRow}, "0.0%"), "✅ " & TEXT(D${debtDataRow}/C${debtDataRow}, "0.0%")))))`;
+    sheet.getRange(debtDataRow, 6).setFormula(debtStatusFormula);
+
     // ========== ROW: % NHÓM ĐẦU TƯ ==========
-    const dautuRow = chiEndRow + 2;
+    const dautuRow = debtDataRow + 2;
     sheet.getRange(dautuRow, 1).setValue('Nhóm Đầu tư:').setFontWeight('bold').setFontColor('#70AD47');
     
     if (sheet.getRange(dautuRow, 2).getValue() === '') {
