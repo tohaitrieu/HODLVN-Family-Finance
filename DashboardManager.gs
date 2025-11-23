@@ -278,7 +278,7 @@ const DashboardManager = {
     sheet.getRange(incStart, cfg.LEFT_COL + 2, incomeCategories.length + 1, 1).setNumberFormat('0.0%');
     // Expense
     sheet.getRange(expStart, cfg.RIGHT_COL + 1, expenseCategories.length + 2, 3).setNumberFormat('#,##0');
-    sheet.getRange(expStart, cfg.RIGHT_COL + 4, expenseCategories.length + 2, 1).setNumberFormat('0.0%');
+    
     // Liabilities
     sheet.getRange(liabStart, cfg.LEFT_COL + 1, debtItems.length + 1, 1).setNumberFormat('#,##0');
     sheet.getRange(liabStart, cfg.LEFT_COL + 2, debtItems.length + 1, 1).setNumberFormat('0.0%');
@@ -390,7 +390,11 @@ const DashboardManager = {
       // Else -> "Trong hạn mức" (Green)
       // Skip for Total row if needed, but useful there too.
       
-      const statusFormula = `=IF(R[0]C[-2]=0, 0, R[0]C[-3] / R[0]C[-2])`;
+      // 4. Trạng thái (Status) - Icon + Percent
+      const statusFormula = `=IF(R[0]C[-2]=0, "⚪ 0%", 
+        IF(R[0]C[-3] / R[0]C[-2] > 1, "🔴 " & TEXT(R[0]C[-3] / R[0]C[-2], "0.0%"), 
+        IF(R[0]C[-3] / R[0]C[-2] >= 0.8, "⚠️ " & TEXT(R[0]C[-3] / R[0]C[-2], "0.0%"), 
+        "✅ " & TEXT(R[0]C[-3] / R[0]C[-2], "0.0%"))))`;
       sheet.getRange(r, startCol + 4).setFormula(statusFormula);
       
       // Last row styling
