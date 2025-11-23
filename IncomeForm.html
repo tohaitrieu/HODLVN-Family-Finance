@@ -101,19 +101,35 @@
     <div class="form-group">
       <label for="source">Nguồn thu <span class="required">*</span></label>
       <select id="source" required>
-        <option value="">-- Chọn nguồn --</option>
-        <option value="Lương">Lương</option>
-        <option value="MMO (Make Money Online)">MMO (Make Money Online)</option>
-        <option value="Thưởng">Thưởng</option>
-        <option value="Bán CK">Bán CK</option>
-        <option value="Bán Vàng">Bán Vàng</option>
-        <option value="Bán Crypto">Bán Crypto</option>
-        <option value="Lãi đầu tư">Lãi đầu tư</option>
-        <option value="Thu hồi nợ">Thu hồi nợ</option>
-        <option value="Vay ngân hàng">Vay ngân hàng</option>
-        <option value="Vay cá nhân">Vay cá nhân</option>
-        <option value="Khác">Khác</option>
+        <option value="">-- Đang tải nguồn thu... --</option>
       </select>
+    </div>
+
+    <script>
+      // Load categories on startup
+      window.onload = function () {
+        google.script.run
+          .withSuccessHandler(function (config) {
+            const select = document.getElementById('source');
+            select.innerHTML = '<option value="">-- Chọn nguồn --</option>';
+
+            if (config && config.CATEGORIES && config.CATEGORIES.INCOME) {
+              config.CATEGORIES.INCOME.forEach(function (cat) {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                select.appendChild(option);
+              });
+            }
+          })
+          .withFailureHandler(function (error) {
+            console.error('Lỗi tải danh mục:', error);
+            const select = document.getElementById('source');
+            select.innerHTML = '<option value="">Lỗi tải danh mục</option>';
+          })
+          .getAppConfig();
+      };
+    </script>
     </div>
 
     <div class="form-group">

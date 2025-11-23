@@ -203,7 +203,8 @@ const DashboardManager = {
     sheet.getRange(incTotalRow, cfg.LEFT_COL + 2).setValue(1).setNumberFormat('0%');
     
     // 2. Expense Table (5 Cols: Name, Spent, Budget, Remaining, Status)
-    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ');
+    // Filter out 'Trả nợ' and 'Cho vay' as they have their own sections/logic
+    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ' && cat !== 'Cho vay');
     const expenseRows = [...expenseCategories, 'Trả nợ (Gốc + Lãi)', 'TỔNG CHI PHÍ'];
     const expenseHeight = this._renderExpenseTable(sheet, currentRow, cfg.RIGHT_COL, '2. Báo cáo Chi phí', this.CONFIG.COLORS.EXPENSE, expenseRows);
 
@@ -394,7 +395,8 @@ const DashboardManager = {
       
     // Rows
     const dataStart = startRow + 2;
-    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ');
+    // Filter out 'Trả nợ' and 'Cho vay'
+    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ' && cat !== 'Cho vay');
     const totalRowIdx = dataStart + rows.length - 1;
     
     rows.forEach((name, idx) => {

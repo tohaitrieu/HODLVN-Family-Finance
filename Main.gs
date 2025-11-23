@@ -101,6 +101,9 @@ const APP_CONFIG = {
     EXPENSE: [
       'Ăn uống', 'Đi lại', 'Nhà ở', 'Y tế', 
       'Giáo dục', 'Mua sắm', 'Giải trí', 'Cho vay', 'Trả nợ', 'Khác'
+    ],
+    INVESTMENT: [
+      'Chứng khoán', 'Vàng', 'Crypto', 'Đầu tư khác'
     ]
   }
 };
@@ -503,6 +506,13 @@ function setBudgetForMonth(budgetData) {
  */
 function getBudgetConfig() {
   return BudgetManager.getBudgetConfig();
+}
+
+/**
+ * ✅ NEW: Lấy cấu hình toàn cục (cho client-side)
+ */
+function getAppConfig() {
+  return APP_CONFIG;
 }
 
 // ==================== SETUP WIZARD - NEW IN v3.2 ====================

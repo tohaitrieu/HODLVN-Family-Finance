@@ -330,10 +330,8 @@ const BudgetManager = {
       budgetSheet.getRange('B3').setValue(pctChi);
       
       // ===== CẬP NHẬT CHI TIÊU =====
-      const expenseCategories = [
-        'Ăn uống', 'Đi lại', 'Nhà ở', 'Điện nước', 'Viễn thông',
-        'Giáo dục', 'Y tế', 'Mua sắm', 'Giải trí', 'Khác'
-      ];
+      // Filter out 'Trả nợ' and 'Cho vay'
+      const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ' && cat !== 'Cho vay');
       
       for (let category of expenseCategories) {
         const row = this._findBudgetRow(budgetSheet, category);
@@ -364,7 +362,7 @@ const BudgetManager = {
         budgetSheet.getRange(dautuGroupRow, 2).setValue(pctDautu);
       }
       
-      const investmentTypes = ['Chứng khoán', 'Vàng', 'Crypto', 'Đầu tư khác'];
+      const investmentTypes = APP_CONFIG.CATEGORIES.INVESTMENT;
       
       for (let type of investmentTypes) {
         const row = this._findBudgetRow(budgetSheet, type);
@@ -379,13 +377,23 @@ const BudgetManager = {
       // ===== CẬP NHẬT TRẢ NỢ =====
       // Trả nợ thường là số tiền cố định, không theo % nhóm
       // Nhưng trong SetupWizard/SetBudgetForm đang dùng % tổng thu nhập
-      const debtRow = this._findBudgetRow(budgetSheet, 'Trả nợ gốc');
+      const debtRow = this._findBudgetRow(budgetSheet, 'Trả nợ');
       if (debtRow) {
-         const totalTrano = income * pctTrano;
          // Trả nợ gốc thường nhập số tiền trực tiếp vào Col C (Ngân sách)
          // Vì không có cột % cho từng khoản nợ trong cấu trúc hiện tại
-         budgetSheet.getRange(debtRow, 3).setValue(totalTrano);
+         // Tuy nhiên, với cấu trúc mới, ta có thể set % ở cột B nếu muốn
+         // Nhưng ở đây ta set giá trị vào cột C như cũ hoặc để user tự nhập
+         // User request: "Trả nợ" row has 100% of Debt Group.
+         // Let's just update the Group % (B5) which we did above via B5 cell update?
+         // Wait, we updated B5 earlier: budgetSheet.getRange('B5').setValue(pctTrano);
+         // So for the specific "Trả nợ" item, it is 100% of that group.
+         // We don't need to do anything else if the formula is correct.
       }
+      
+      // Update Group Percentages directly (B3, B4, B5)
+      budgetSheet.getRange('B3').setValue(pctChi);
+      budgetSheet.getRange('B4').setValue(pctDautu);
+      budgetSheet.getRange('B5').setValue(pctTrano);
       
       Logger.log('✅ Đã thiết lập ngân sách thành công');
       
@@ -529,12 +537,9 @@ const BudgetManager = {
     const pctDautu = (budgetSheet.getRange('B4').getValue() || 0) * 100;
     const pctTrano = (budgetSheet.getRange('B5').getValue() || 0) * 100;
 
-    // 2. Get Expense Categories (Rows 7-16)
+    // 2. Get Expense Categories
     const chi = {};
-    const expenseCategories = [
-      'Ăn uống', 'Đi lại', 'Nhà ở', 'Điện nước', 'Viễn thông',
-      'Giáo dục', 'Y tế', 'Mua sắm', 'Giải trí', 'Khác'
-    ];
+    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ' && cat !== 'Cho vay');
     
     expenseCategories.forEach(cat => {
       const row = this._findBudgetRow(budgetSheet, cat);
@@ -544,9 +549,9 @@ const BudgetManager = {
       }
     });
 
-    // 3. Get Investment Categories (Rows 25-28)
+    // 3. Get Investment Categories
     const dautu = {};
-    const investmentTypes = ['Chứng khoán', 'Vàng', 'Crypto', 'Đầu tư khác'];
+    const investmentTypes = APP_CONFIG.CATEGORIES.INVESTMENT;
     
     investmentTypes.forEach(type => {
       const row = this._findBudgetRow(budgetSheet, type);

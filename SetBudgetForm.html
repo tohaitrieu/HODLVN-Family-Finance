@@ -589,104 +589,66 @@
       dautu: {}
     };
 
+    // Categories (will be loaded from server)
+    let chiCategories = [];
+    let dautuCategories = [];
+
     // Load data on startup
     window.onload = function () {
       document.getElementById('loading').style.display = 'block';
+
+      // First, get APP_CONFIG for categories
       google.script.run
-        .withSuccessHandler(loadData)
+        .withSuccessHandler(function (config) {
+          // Initialize categories from APP_CONFIG
+          if (config && config.CATEGORIES) {
+            // Expense Categories (filter out 'Trả nợ' and 'Cho vay')
+            chiCategories = config.CATEGORIES.EXPENSE
+              .filter(c => c !== 'Trả nợ' && c !== 'Cho vay')
+              .map(name => ({ name: name, pct: 0 })); // Default 0, will be updated by budget config
+
+            // Investment Categories
+            dautuCategories = config.CATEGORIES.INVESTMENT
+              .map(name => ({ name: name, pct: 0 }));
+
+            // Set default percentages if not loaded from budget yet
+            setDefaultPercentages();
+
+            // Generate inputs
+            generateCategoryInputs();
+
+            // Now load saved budget config
+            google.script.run
+              .withSuccessHandler(loadData)
+              .withFailureHandler(showError)
+              .getBudgetConfig();
+          }
+        })
         .withFailureHandler(showError)
-        .getBudgetConfig();
+        .getAppConfig();
     };
 
-    function loadData(config) {
-      document.getElementById('loading').style.display = 'none';
+    function setDefaultPercentages() {
+      // Default distribution logic if needed
+      // For now, we just distribute evenly or leave as 0 until loadData updates them
+      // But we need some defaults for the "Custom" or initial view if no budget exists
 
-      if (config) {
-        // Populate Income
-        document.getElementById('income').value = config.income;
+      // Simple default: First item gets most, others get rest? 
+      // Or just leave them and let the user set them.
+      // The original code had hardcoded defaults.
 
-        // Populate Group Percentages
-        document.getElementById('pctChi').value = config.pctChi;
-        document.getElementById('pctDautu').value = config.pctDautu;
-        document.getElementById('pctTrano').value = config.pctTrano;
+      // Let's try to replicate original defaults if names match, otherwise 0
+      const defaultChi = { 'Ăn uống': 35, 'Đi lại': 10, 'Nhà ở': 30, 'Y tế': 5, 'Giáo dục': 10, 'Mua sắm': 7, 'Giải trí': 2, 'Khác': 1 };
+      const defaultDautu = { 'Chứng khoán': 50, 'Vàng': 20, 'Crypto': 20, 'Đầu tư khác': 10 };
 
-        // Update budgetData object
-        budgetData.income = config.income;
-        budgetData.pctChi = config.pctChi;
-        budgetData.pctDautu = config.pctDautu;
-        budgetData.pctTrano = config.pctTrano;
+      chiCategories.forEach(cat => {
+        cat.pct = defaultChi[cat.name] || 0;
+      });
 
-        // Populate Categories if available
-        if (config.chi) {
-          // Update presets logic if needed, or just set custom
-          document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
-          // Find if it matches a preset
-          let matchPreset = null;
-          for (const [key, preset] of Object.entries(presets)) {
-            if (preset.chi === config.pctChi && preset.dautu === config.pctDautu && preset.trano === config.pctTrano) {
-              matchPreset = key;
-              break;
-            }
-          }
-
-          if (matchPreset) {
-            document.querySelector(`.preset-btn[onclick="selectPreset('${matchPreset}')"]`).classList.add('active');
-          } else {
-            document.querySelector(`.preset-btn[onclick="selectPreset('custom')"]`).classList.add('active');
-          }
-
-          // Update Category Data
-          chiCategories.forEach(cat => {
-            if (config.chi[cat.name] !== undefined) {
-              cat.pct = config.chi[cat.name];
-            }
-          });
-
-          dautuCategories.forEach(cat => {
-            if (config.dautu[cat.name] !== undefined) {
-              cat.pct = config.dautu[cat.name];
-            }
-          });
-        }
-
-        // Refresh UI
-        updateTotal();
-      }
+      dautuCategories.forEach(cat => {
+        cat.pct = defaultDautu[cat.name] || 0;
+      });
     }
-
-    function showError(error) {
-      document.getElementById('loading').style.display = 'none';
-      // alert('Lỗi tải dữ liệu: ' + error.message);
-      console.log('Lỗi tải dữ liệu: ' + error.message);
-    }
-
-    // Preset data
-    const presets = {
-      balanced: { chi: 50, dautu: 30, trano: 20 },
-      aggressive: { chi: 40, dautu: 45, trano: 15 },
-      debt: { chi: 40, dautu: 10, trano: 50 },
-      custom: { chi: 50, dautu: 30, trano: 20 }
-    };
-
-    // Chi tiêu categories
-    const chiCategories = [
-      { name: 'Ăn uống', pct: 35 },
-      { name: 'Đi lại', pct: 10 },
-      { name: 'Nhà ở', pct: 30 },
-      { name: 'Y tế', pct: 5 },
-      { name: 'Giáo dục', pct: 10 },
-      { name: 'Mua sắm', pct: 7 },
-      { name: 'Giải trí', pct: 2 },
-      { name: 'Khác', pct: 1 }
-    ];
-
-    // Đầu tư categories
-    const dautuCategories = [
-      { name: 'Chứng khoán', pct: 50 },
-      { name: 'Vàng', pct: 20 },
-      { name: 'Crypto', pct: 20 },
-      { name: 'Đầu tư khác', pct: 10 }
-    ];
 
     // Format currency
     function formatCurrency(amount) {
