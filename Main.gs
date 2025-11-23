@@ -11,7 +11,14 @@
  * - BudgetManager.gs: Quản lý ngân sách
  * - DashboardManager.gs: Quản lý dashboard & thống kê
  * 
- * VERSION: 3.5.0 - Lending Refactor & Dynamic Dashboard
+ * VERSION: 3.5.2 - Expense Report Upgrade
+ * CHANGELOG v3.5.2:
+ * ✅ NEW: Báo cáo chi phí chi tiết (Ngân sách, Còn lại, Trạng thái)
+ * ✅ UPDATE: Tự động lấy dữ liệu từ Sheet BUDGET
+ * 
+ * CHANGELOG v3.5.1:
+ * ✅ FIX: Dashboard Payables Logic (Installment Loans)
+ * 
  * CHANGELOG v3.5.0:
  * ✅ NEW: Refactored Lending System with 3 specific types
  * ✅ NEW: Dynamic Event Calendar using Custom Functions
@@ -37,7 +44,7 @@
 // ==================== CẤU HÌNH TOÀN CỤC ====================
 
 const APP_CONFIG = {
-  VERSION: '3.5.0',
+  VERSION: '3.5.2',
   APP_NAME: '💰 Quản lý Tài chính',
   
   // Danh sách các sheet

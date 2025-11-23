@@ -8,6 +8,20 @@
 
 const CHANGELOG_HISTORY = [
   {
+    version: '3.5.2',
+    date: '2025-11-23',
+    title: 'Expense Report Upgrade',
+    changes: [
+      '✅ NEW: Báo cáo chi phí chi tiết (Ngân sách, Còn lại, Trạng thái)',
+      '✅ UPDATE: Tự động lấy dữ liệu từ Sheet BUDGET',
+      '✅ FIX: Dashboard Payables Logic (Installment Loans)'
+    ],
+    actions: [
+      'Chạy "Cập nhật Dashboard" để áp dụng giao diện mới',
+      'Kiểm tra lại Sheet BUDGET để đảm bảo ngân sách đã được thiết lập'
+    ]
+  },
+  {
     version: '3.5.1',
     date: '2025-11-23',
     title: 'Budget Refinement & Sync',

@@ -153,31 +153,12 @@ const DashboardManager = {
     sheet.getRange(incTotalRow, cfg.LEFT_COL + 1).setFormula(`=SUM(R[-${incomeCategories.length}]C:R[-1]C)`);
     sheet.getRange(incTotalRow, cfg.LEFT_COL + 2).setValue(1).setNumberFormat('0%');
     
-    // 2. Expense Table (3 Cols: Name, Value, %)
+    // 2. Expense Table (5 Cols: Name, Spent, Budget, Remaining, Status)
     const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE;
     const expenseRows = [...expenseCategories, 'Trả nợ (Gốc + Lãi)', 'TỔNG CHI PHÍ'];
-    const expenseHeight = this._renderTable(sheet, currentRow, cfg.RIGHT_COL, '2. Báo cáo Chi phí', this.CONFIG.COLORS.EXPENSE, expenseRows, 3, true);
+    const expenseHeight = this._renderExpenseTable(sheet, currentRow, cfg.RIGHT_COL, '2. Báo cáo Chi phí', this.CONFIG.COLORS.EXPENSE, expenseRows);
     
-    // Formulas for Expense
-    const expStart = currentRow + 2;
-    const expTotalRow = expStart + expenseCategories.length + 1; // +1 for Debt row
-    
-    expenseCategories.forEach((cat, idx) => {
-      const r = expStart + idx;
-      // Value
-      sheet.getRange(r, cfg.RIGHT_COL + 1).setFormula('=' + this._createDynamicSumFormula('CHI', 'C', cat, 'D'));
-      // %
-      sheet.getRange(r, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(R[0]C[-1] / R${expTotalRow}C[-1], 0)`);
-    });
-    
-    // Formula for 'Trả nợ'
-    const debtRowIdx = expStart + expenseCategories.length;
-    sheet.getRange(debtRowIdx, cfg.RIGHT_COL + 1).setFormula('=' + `${this._createDynamicSumFormula('TRẢ NỢ', 'D')} + ${this._createDynamicSumFormula('TRẢ NỢ', 'E')}`);
-    sheet.getRange(debtRowIdx, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(R[0]C[-1] / R${expTotalRow}C[-1], 0)`);
-    
-    // Total Expense
-    sheet.getRange(expTotalRow, cfg.RIGHT_COL + 1).setFormula(`=SUM(R[-${expenseCategories.length + 1}]C:R[-1]C)`);
-    sheet.getRange(expTotalRow, cfg.RIGHT_COL + 2).setValue(1).setNumberFormat('0%');
+    // Formulas for Expense are handled inside _renderExpenseTable now
     
     // 3. Payables Table (Right - Col K)
     const payablesHeight = this._renderPayables(sheet, currentRow, cfg.CALENDAR_COL);
@@ -345,6 +326,122 @@ const DashboardManager = {
     return rows.length + 2; // Header + SubHeader + Data rows
   },
 
+  _renderExpenseTable(sheet, startRow, startCol, title, color, rows) {
+    const numCols = 5; // Name, Spent, Budget, Remaining, Status
+    
+    // Header
+    sheet.getRange(startRow, startCol, 1, numCols).merge()
+      .setValue(title)
+      .setFontWeight('bold')
+      .setBackground(color)
+      .setFontColor('#FFFFFF')
+      .setHorizontalAlignment('left');
+      
+    // Sub-headers (Row 2)
+    const subHeaderRow = startRow + 1;
+    const headers = ['Danh mục', 'Đã chi', 'Ngân sách', 'Còn lại', 'Trạng thái'];
+    sheet.getRange(subHeaderRow, startCol, 1, numCols).setValues([headers]).setFontWeight('bold');
+      
+    // Rows
+    const dataStart = startRow + 2;
+    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE;
+    const totalRowIdx = dataStart + rows.length - 1;
+    
+    rows.forEach((name, idx) => {
+      const r = dataStart + idx;
+      sheet.getRange(r, startCol).setValue(name);
+      
+      // 1. Đã chi (Spent)
+      if (idx < expenseCategories.length) {
+        // Normal categories
+        sheet.getRange(r, startCol + 1).setFormula('=' + this._createDynamicSumFormula('CHI', 'C', name, 'D'));
+      } else if (name === 'Trả nợ (Gốc + Lãi)') {
+        // Debt
+        sheet.getRange(r, startCol + 1).setFormula('=' + `${this._createDynamicSumFormula('TRẢ NỢ', 'D')} + ${this._createDynamicSumFormula('TRẢ NỢ', 'E')}`);
+      } else {
+        // Total
+        sheet.getRange(r, startCol + 1).setFormula(`=SUM(R[-${rows.length - 1}]C:R[-1]C)`);
+      }
+      
+      // 2. Ngân sách (Budget)
+      if (name === 'TỔNG CHI PHÍ') {
+         sheet.getRange(r, startCol + 2).setFormula(`=SUM(R[-${rows.length - 1}]C:R[-1]C)`);
+      } else {
+         // VLOOKUP from BUDGET sheet. Range A:C. Col 3 is Budget.
+         // IF name is "Trả nợ (Gốc + Lãi)", map to "Trả nợ gốc" + "Trả lãi" in Budget?
+         // Budget sheet has "Trả nợ gốc" and "Trả lãi" separate.
+         // For simplicity, we will try to VLOOKUP the name directly.
+         // Note: "Trả nợ (Gốc + Lãi)" won't match directly. We need to handle it.
+         
+         if (name === 'Trả nợ (Gốc + Lãi)') {
+           // Sum Budget of "Trả nợ gốc" and "Trả lãi"
+           sheet.getRange(r, startCol + 2).setFormula(`=IFERROR(VLOOKUP("Trả nợ gốc", BUDGET!A:C, 3, 0), 0) + IFERROR(VLOOKUP("Trả lãi", BUDGET!A:C, 3, 0), 0)`);
+         } else {
+           sheet.getRange(r, startCol + 2).setFormula(`=IFERROR(VLOOKUP("${name}", BUDGET!A:C, 3, 0), 0)`);
+         }
+      }
+      
+      // 3. Còn lại (Remaining) = Budget - Spent
+      sheet.getRange(r, startCol + 3).setFormula(`=R[0]C[-1] - R[0]C[-2]`);
+      
+      // 4. Trạng thái (Status)
+      // If Spent > Budget -> "Vượt" (Red)
+      // If Spent > 80% Budget -> "Sắp hết" (Yellow)
+      // Else -> "Trong hạn mức" (Green)
+      // Skip for Total row if needed, but useful there too.
+      
+      const statusFormula = `=IF(R[0]C[-2]=0, "Chưa có NS", IF(R[0]C[-3] > R[0]C[-2], "Vượt ngân sách", IF(R[0]C[-3] > 0.8 * R[0]C[-2], "Sắp hết", "Trong hạn mức")))`;
+      sheet.getRange(r, startCol + 4).setFormula(statusFormula);
+      
+      // Last row styling
+      if (idx === rows.length - 1) {
+        sheet.getRange(r, startCol).setFontWeight('bold');
+        sheet.getRange(r, startCol, 1, numCols).setBackground('#EEEEEE');
+      }
+    });
+    
+    // Formatting
+    // Number format for Spent, Budget, Remaining
+    sheet.getRange(dataStart, startCol + 1, rows.length, 3).setNumberFormat('#,##0');
+    
+    // Conditional Formatting for Status
+    const statusRange = sheet.getRange(dataStart, startCol + 4, rows.length, 1);
+    
+    // Red - Vượt
+    const ruleRed = SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo('Vượt ngân sách')
+      .setBackground('#FFEBEE')
+      .setFontColor('#C62828')
+      .setRanges([statusRange])
+      .build();
+      
+    // Yellow - Sắp hết
+    const ruleYellow = SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo('Sắp hết')
+      .setBackground('#FFF3E0')
+      .setFontColor('#EF6C00')
+      .setRanges([statusRange])
+      .build();
+      
+    // Green - Trong hạn mức
+    const ruleGreen = SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo('Trong hạn mức')
+      .setBackground('#E8F5E9')
+      .setFontColor('#2E7D32')
+      .setRanges([statusRange])
+      .build();
+      
+    // Add rules to sheet
+    const rules = sheet.getConditionalFormatRules();
+    rules.push(ruleRed, ruleYellow, ruleGreen);
+    sheet.setConditionalFormatRules(rules);
+    
+    // Border
+    sheet.getRange(startRow, startCol, rows.length + 2, numCols)
+      .setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
+      
+    return rows.length + 2;
+
   _renderPayables(sheet, startRow, startCol) {
     return this._renderEventTable(sheet, startRow, startCol, '📅 Lịch sự kiện: KHOẢN PHẢI TRẢ (Sắp tới)', this.CONFIG.COLORS.CALENDAR, 'AccPayable', 'QUẢN LÝ NỢ');
   },
@@ -477,8 +574,8 @@ const DashboardManager = {
             }
           }
           
-          // 2. Trả lãi hàng tháng, gốc cuối kỳ
-          else if (type === 'Trả lãi hàng tháng, gốc cuối kỳ') {
+          // 2. Trả lãi hàng tháng, gốc cuối kỳ (Bao gồm "Nợ ngân hàng")
+          else if (type === 'Trả lãi hàng tháng, gốc cuối kỳ' || type === 'Nợ ngân hàng') {
              // Lặp qua từng tháng để tìm kỳ trả lãi tiếp theo
              for (let i = 1; i <= term; i++) {
                 let payDate = new Date(startDate);
@@ -512,7 +609,11 @@ const DashboardManager = {
           }
           
           // 3. Trả góp gốc - lãi hàng tháng (Gốc đều, lãi giảm dần)
-          else if (type === 'Trả góp gốc - lãi hàng tháng') {
+          // Bao gồm: Vay trả góp, Trả góp qua thẻ...
+          else if (type === 'Trả góp gốc - lãi hàng tháng' || 
+                   type === 'Vay trả góp' || 
+                   (typeof type === 'string' && type.includes('Trả góp qua thẻ'))) {
+             
              const monthlyPrincipal = initialPrincipal / term;
              let simulatedRemaining = initialPrincipal; // Bắt đầu tính từ đầu để khớp lịch
              
@@ -529,12 +630,6 @@ const DashboardManager = {
                 
                 // Nếu ngày trả >= hôm nay thì hiển thị
                 if (payDate >= today) {
-                   // Điều chỉnh gốc trả nếu dư nợ thực tế nhỏ hơn (trường hợp trả trước hạn)
-                   // Tuy nhiên ở đây ta tính theo lịch lý thuyết. 
-                   // Nếu muốn chính xác theo thực tế thì phải check 'remaining' hiện tại.
-                   // Logic đơn giản: Nếu remaining hiện tại < simulatedRemaining, nghĩa là đã trả bớt.
-                   // Nhưng để hiển thị lịch tương lai, ta cứ hiển thị theo kế hoạch.
-                   
                    targetList.push({
                       date: payDate,
                       action: isDebt ? 'Phải trả' : 'Phải thu',
