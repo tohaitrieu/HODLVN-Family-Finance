@@ -910,7 +910,7 @@ const DashboardManager = {
         .build();
 
     sheet.insertChart(chart);
-}
+  },
   
   _formatSheet(sheet) {
     // Hide gridlines
