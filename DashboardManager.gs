@@ -157,7 +157,7 @@ const DashboardManager = {
     const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE;
     const expenseRows = [...expenseCategories, 'Trả nợ (Gốc + Lãi)', 'TỔNG CHI PHÍ'];
     const expenseHeight = this._renderExpenseTable(sheet, currentRow, cfg.RIGHT_COL, '2. Báo cáo Chi phí', this.CONFIG.COLORS.EXPENSE, expenseRows);
-    
+    const expStart = currentRow + 2;
     // Formulas for Expense are handled inside _renderExpenseTable now
     
     // 3. Payables Table (Right - Col K)
@@ -402,7 +402,7 @@ const DashboardManager = {
     
     // Formatting
     // Number format for Spent, Budget, Remaining
-    sheet.getRange(dataStart, startCol + 1, rows.length, 3).setNumberFormat('#,##0');
+    //sheet.getRange(dataStart, startCol + 1, rows.length, 3).setNumberFormat('#,##0');
     
     // Conditional Formatting for Status
     const statusRange = sheet.getRange(dataStart, startCol + 4, rows.length, 1);
