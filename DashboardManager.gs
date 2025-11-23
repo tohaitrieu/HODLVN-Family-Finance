@@ -19,8 +19,8 @@ const DashboardManager = {
       LEFT_COL: 1,      // A
       RIGHT_COL: 5,     // E
       CALENDAR_COL: 11, // K
-      CHART_COL: 11,    // K
-      CHART_ROW: 33,    // Row 33
+      CHART_COL: 12,    // K
+      CHART_ROW: 39,    // Row 33
       START_ROW: 6,     // Start data after header/dropdowns
       COL_WIDTH: 3      // Width of each table (A-B-C)
     },
@@ -821,34 +821,74 @@ const DashboardManager = {
     const chartRow = this.CONFIG.LAYOUT.CHART_ROW; // Row 33
     const chartCol = this.CONFIG.LAYOUT.CHART_COL; // Col K
     
-    // Data range: Monthly Table (A35:J46) - Assuming startRow was around 33
-    // Let's find where Table 2 is.
-    // Table 2 starts at lastRow + 3.
-    // We need to be dynamic or fixed?
-    // Let's use fixed range for simplicity if we know where it is.
-    // Table 2 Header is at Row 34 (approx). Data 35-46.
-    // Let's assume Table 2 starts at Row 34.
+    // Tìm vị trí các dòng TỔNG trong Dashboard
+    // Sử dụng vị trí động dựa trên cấu trúc layout
+    const cfg = this.CONFIG.LAYOUT;
+    const startRow = cfg.START_ROW;
     
-    // Chart Position: K39
+    // Income categories + TỔNG THU NHẬP
+    const incomeCategories = APP_CONFIG.CATEGORIES.INCOME;
+    const incomeTotalRow = startRow + 2 + incomeCategories.length; // Dòng TỔNG THU NHẬP
+    
+    // Expense categories + Trả nợ + TỔNG CHI PHÍ  
+    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ');
+    const expenseTotalRow = startRow + 2 + expenseCategories.length + 1; // +1 cho dòng "Trả nợ"
+    
+    // Tính row1Height để tìm vị trí Row 2 (Nợ và Tài sản)
+    const incomeHeight = incomeCategories.length + 3; // +3 cho header, sub-header, total
+    const expenseHeight = expenseCategories.length + 4; // +4 cho header, sub-header, Trả nợ, total
+    const row1Height = Math.max(incomeHeight, expenseHeight);
+    const row2StartRow = startRow + row1Height + 2;
+    
+    // Debt items + TỔNG NỢ
+    const debtItems = this._getDebtItems();
+    const debtTotalRow = row2StartRow + 2 + debtItems.length; // Dòng TỔNG NỢ
+    
+    // Assets: 6 items + TỔNG TÀI SẢN
+    const assetTotalRow = row2StartRow + 2 + 6; // Dòng TỔNG TÀI SẢN
+    
+    // Tạo hidden helper table cho biểu đồ (4 hàng x 2 cột: Category, Value)
+    const chartDataRow = chartRow;
+    
+    // Header
+    sheet.getRange(chartDataRow, chartCol).setValue('Danh mục');
+    sheet.getRange(chartDataRow, chartCol + 1).setValue('Số tiền');
+    
+    // Data rows
+    sheet.getRange(chartDataRow + 1, chartCol).setValue('Thu nhập');
+    sheet.getRange(chartDataRow + 1, chartCol + 1).setFormula(`=B${incomeTotalRow}`); // TỔNG THU NHẬP
+    
+    sheet.getRange(chartDataRow + 2, chartCol).setValue('Chi phí');
+    sheet.getRange(chartDataRow + 2, chartCol + 1).setFormula(`=F${expenseTotalRow}`); // TỔNG CHI PHÍ
+    
+    sheet.getRange(chartDataRow + 3, chartCol).setValue('Nợ');
+    sheet.getRange(chartDataRow + 3, chartCol + 1).setFormula(`=B${debtTotalRow}`); // TỔNG NỢ
+    
+    sheet.getRange(chartDataRow + 4, chartCol).setValue('Tài sản');
+    sheet.getRange(chartDataRow + 4, chartCol + 1).setFormula(`=H${assetTotalRow}`); // TỔNG TÀI SẢN (Giá trị HT)
+    
+    // Format helper table
+    sheet.getRange(chartDataRow, chartCol, 5, 2).setNumberFormat('#,##0');
+    sheet.getRange(chartDataRow, chartCol, 5, 2).setFontSize(9);
+    
+    // Tạo biểu đồ cột
     const chart = sheet.newChart()
-      .setChartType(Charts.ChartType.COMBO)
-      .addRange(sheet.getRange('A35:A46')) // Month
-      .addRange(sheet.getRange('B35:B46')) // Income
-      .addRange(sheet.getRange('C35:C46')) // Expense
-      .addRange(sheet.getRange('D35:D46')) // Debt
-      .setPosition(39, 11, 0, 0) // Row 39, Col 11 (K)
-      .setOption('title', 'Biểu đồ Thu - Chi - Nợ (Năm nay)')
+      .setChartType(Charts.ChartType.COLUMN)
+      .addRange(sheet.getRange(chartDataRow, chartCol, 5, 2)) // K33:L37 (header + 4 rows)
+      .setPosition(chartDataRow + 6, chartCol, 0, 0) // Vẽ dưới helper table
+      .setOption('title', 'Tổng quan Tài chính')
       .setOption('width', 600)
       .setOption('height', 350)
-      .setOption('series', {
-        0: { type: 'bars', color: '#4CAF50', labelInLegend: 'Thu nhập' },
-        1: { type: 'bars', color: '#F44336', labelInLegend: 'Chi tiêu' },
-        2: { type: 'bars', color: '#D32F2F', labelInLegend: 'Trả nợ' } // Red for Debt
-      })
+      .setOption('legend', { position: 'none' }) // Không cần legend
+      .setOption('colors', ['#4CAF50', '#F44336', '#FF9800', '#2196F3']) // Xanh, Đỏ, Cam, Xanh dương
       .setOption('vAxis', { 
-        title: 'Số tiền (nghìn đồng)',
-        format: '#,##0,, "k"' // Scale by 1000
+        title: 'Số tiền (VNĐ)',
+        format: '#,##0'
       })
+      .setOption('hAxis', {
+        title: 'Danh mục'
+      })
+      .setOption('bar', { groupWidth: '60%' })
       .build();
       
     sheet.insertChart(chart);
@@ -862,18 +902,16 @@ const DashboardManager = {
     sheet.setColumnWidth(1, 200); // A
     sheet.setColumnWidth(2, 120); // B
     sheet.setColumnWidth(3, 120); // C
-    sheet.setColumnWidth(4, 20);  // D (Spacer) -> Wait, D is used for Buttons?
-    // D is used for Buttons. So D needs width.
-    sheet.setColumnWidth(4, 50);  // Checkbox
+    sheet.setColumnWidth(4, 120);  // Checkbox
     sheet.setColumnWidth(5, 150); // Label
     
-    sheet.setColumnWidth(6, 50);  // Checkbox
+    sheet.setColumnWidth(6, 120);  // Checkbox
     sheet.setColumnWidth(7, 150); // Label
     
-    sheet.setColumnWidth(8, 50);  // Checkbox
+    sheet.setColumnWidth(8, 120);  // Checkbox
     sheet.setColumnWidth(9, 150); // Label
     
-    sheet.setColumnWidth(10, 50); // Checkbox
+    sheet.setColumnWidth(10, 120); // Checkbox
     sheet.setColumnWidth(11, 150); // Label
     
     // M column (Calendar)
