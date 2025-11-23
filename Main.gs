@@ -11,13 +11,13 @@
  * - BudgetManager.gs: Quản lý ngân sách
  * - DashboardManager.gs: Quản lý dashboard & thống kê
  * 
- * VERSION: 3.4.1 - FIX Budget Menu Functions
- * CHANGELOG v3.4.1:
- * ✅ FIX: Thêm hàm showSetBudgetForm() để hiển thị form đặt ngân sách
- * ✅ FIX: Thêm wrapper functions cho checkBudgetWarnings()
- * ✅ FIX: Thêm wrapper functions cho showExpenseReport()
- * ✅ FIX: Thêm wrapper functions cho showInvestmentReport()
- * ✅ FIX: Thêm hàm setBudgetForMonth() để xử lý dữ liệu từ form
+ * VERSION: 3.5.0 - Lending Refactor & Dynamic Dashboard
+ * CHANGELOG v3.5.0:
+ * ✅ NEW: Refactored Lending System with 3 specific types
+ * ✅ NEW: Dynamic Event Calendar using Custom Functions
+ * ✅ FIX: Debt Payment & Collection forms support precise amounts
+ * ✅ FIX: Dashboard tables row offset issues
+ * ✅ UPDATE: Event Calendar shows only nearest event per loan
  * 
  * CHANGELOG v3.4:
  * - THỐNG NHẤT cấu trúc Sheet BUDGET cho cả Setup Wizard và Menu khởi tạo
@@ -37,7 +37,7 @@
 // ==================== CẤU HÌNH TOÀN CỤC ====================
 
 const APP_CONFIG = {
-  VERSION: '3.4.1',
+  VERSION: '3.5.0',
   APP_NAME: '💰 Quản lý Tài chính',
   
   // Danh sách các sheet

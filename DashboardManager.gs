@@ -127,8 +127,8 @@ const DashboardManager = {
     const cfg = this.CONFIG.LAYOUT;
     let currentRow = startRow;
     
-    // Fetch events once
-    const events = this._getCalendarEvents();
+    // Fetch events once - REMOVED (Using Custom Functions)
+    // const events = this._getCalendarEvents();
     
     // === ROW 1: INCOME (Left) & EXPENSE (Middle) & PAYABLES (Right) ===
     
@@ -138,7 +138,7 @@ const DashboardManager = {
     const incomeHeight = this._renderTable(sheet, currentRow, cfg.LEFT_COL, '1. Báo cáo Thu nhập', this.CONFIG.COLORS.INCOME, incomeRows, 3, true);
     
     // Formulas for Income
-    const incStart = currentRow + 1;
+    const incStart = currentRow + 2;
     const incTotalRow = incStart + incomeCategories.length;
     
     incomeCategories.forEach((cat, idx) => {
@@ -159,7 +159,7 @@ const DashboardManager = {
     const expenseHeight = this._renderTable(sheet, currentRow, cfg.RIGHT_COL, '2. Báo cáo Chi phí', this.CONFIG.COLORS.EXPENSE, expenseRows, 3, true);
     
     // Formulas for Expense
-    const expStart = currentRow + 1;
+    const expStart = currentRow + 2;
     const expTotalRow = expStart + expenseCategories.length + 1; // +1 for Debt row
     
     expenseCategories.forEach((cat, idx) => {
@@ -180,7 +180,7 @@ const DashboardManager = {
     sheet.getRange(expTotalRow, cfg.RIGHT_COL + 2).setValue(1).setNumberFormat('0%');
     
     // 3. Payables Table (Right - Col K)
-    const payablesHeight = this._renderPayables(sheet, currentRow, cfg.CALENDAR_COL, events);
+    const payablesHeight = this._renderPayables(sheet, currentRow, cfg.CALENDAR_COL);
 
     // Calculate max height for Row 1
     const row1Height = Math.max(incomeHeight, expenseHeight, payablesHeight);
@@ -194,7 +194,7 @@ const DashboardManager = {
     const liabilityHeight = this._renderTable(sheet, currentRow, cfg.LEFT_COL, '3. Báo cáo Nợ phải trả', this.CONFIG.COLORS.LIABILITIES, liabilityRows, 3, true);
     
     // Formulas for Liabilities
-    const liabStart = currentRow + 1;
+    const liabStart = currentRow + 2;
     const liabTotalRow = liabStart + debtItems.length;
     
     debtItems.forEach((item, idx) => {
@@ -286,7 +286,7 @@ const DashboardManager = {
     const assetHeight = 9; // Fixed height for Assets table
     
     // 6. Receivables Table (Right - Col K, Row 2)
-    const receivablesHeight = this._renderReceivables(sheet, currentRow, cfg.CALENDAR_COL, events);
+    const receivablesHeight = this._renderReceivables(sheet, currentRow, cfg.CALENDAR_COL);
 
     // Calculate max height for Row 2
     const row2Height = Math.max(liabilityHeight, assetHeight, receivablesHeight);
@@ -344,15 +344,15 @@ const DashboardManager = {
     return rows.length + 2; // Header + SubHeader + Data rows
   },
 
-  _renderPayables(sheet, startRow, startCol, events) {
-    return this._renderEventTable(sheet, startRow, startCol, '📅 Lịch sự kiện: KHOẢN PHẢI TRẢ (Sắp tới)', events.payables, this.CONFIG.COLORS.CALENDAR);
+  _renderPayables(sheet, startRow, startCol) {
+    return this._renderEventTable(sheet, startRow, startCol, '📅 Lịch sự kiện: KHOẢN PHẢI TRẢ (Sắp tới)', this.CONFIG.COLORS.CALENDAR, 'AccPayable', 'QUẢN LÝ NỢ');
   },
 
-  _renderReceivables(sheet, startRow, startCol, events) {
-    return this._renderEventTable(sheet, startRow, startCol, '📅 Lịch sự kiện: KHOẢN PHẢI THU (Sắp tới)', events.receivables, '#70AD47');
+  _renderReceivables(sheet, startRow, startCol) {
+    return this._renderEventTable(sheet, startRow, startCol, '📅 Lịch sự kiện: KHOẢN PHẢI THU (Sắp tới)', '#70AD47', 'AccReceivable', 'CHO VAY');
   },
 
-  _renderEventTable(sheet, startRow, startCol, title, data, color) {
+  _renderEventTable(sheet, startRow, startCol, title, color, functionName, sourceSheet) {
     const numCols = 6; // Date, Action, Event, Remaining, Principal, Interest
     
     // Header
@@ -367,40 +367,20 @@ const DashboardManager = {
     const headers = ['Ngày', 'Hành động', 'Sự kiện', 'Gốc còn lại', 'Gốc trả kỳ này', 'Lãi trả kỳ này'];
     sheet.getRange(startRow + 1, startCol, 1, numCols).setValues([headers]).setFontWeight('bold');
     
-    // Data
-    if (data.length === 0) {
-        sheet.getRange(startRow + 2, startCol, 1, numCols).merge().setValue('Không có sự kiện sắp tới');
-        sheet.getRange(startRow, startCol, 3, numCols).setBorder(true, true, true, true, true, true);
-        return 3;
-    }
+    // Formula
+    const formulaRow = startRow + 2;
+    sheet.getRange(formulaRow, startCol).setFormula(`=${functionName}('${sourceSheet}'!A2:L)`);
     
-    let totalPrincipal = 0;
-    let totalInterest = 0;
+    // Format columns (Assuming max 12 rows returned)
+    const dataRange = sheet.getRange(formulaRow, startCol, 12, numCols);
+    dataRange.setBorder(true, true, true, true, true, true);
     
-    data.forEach((evt, idx) => {
-      const r = startRow + 2 + idx;
-      sheet.getRange(r, startCol).setValue(evt.date).setNumberFormat('dd/MM/yyyy').setFontWeight('bold');
-      sheet.getRange(r, startCol + 1).setValue(evt.action);
-      sheet.getRange(r, startCol + 2).setValue(evt.name);
-      sheet.getRange(r, startCol + 3).setValue(evt.remaining).setNumberFormat('#,##0');
-      sheet.getRange(r, startCol + 4).setValue(evt.principalPayment).setNumberFormat('#,##0');
-      sheet.getRange(r, startCol + 5).setValue(evt.interestPayment).setNumberFormat('#,##0');
-      
-      totalPrincipal += evt.principalPayment;
-      totalInterest += evt.interestPayment;
-    });
+    // Format Date Column
+    sheet.getRange(formulaRow, startCol, 12, 1).setNumberFormat('dd/MM/yyyy');
+    // Format Numbers
+    sheet.getRange(formulaRow, startCol + 3, 12, 3).setNumberFormat('#,##0');
     
-    // Total Row
-    const totalRow = startRow + 2 + data.length;
-    sheet.getRange(totalRow, startCol, 1, 4).merge().setValue('TỔNG CỘNG').setFontWeight('bold').setHorizontalAlignment('right');
-    sheet.getRange(totalRow, startCol + 4).setValue(totalPrincipal).setNumberFormat('#,##0').setFontWeight('bold');
-    sheet.getRange(totalRow, startCol + 5).setValue(totalInterest).setNumberFormat('#,##0').setFontWeight('bold');
-    
-    // Border
-    sheet.getRange(startRow, startCol, data.length + 3, numCols)
-      .setBorder(true, true, true, true, true, true);
-      
-    return data.length + 3;
+    return 14; // Header + SubHeader + 12 Data Rows
   },
 
   _getCalendarEvents() {

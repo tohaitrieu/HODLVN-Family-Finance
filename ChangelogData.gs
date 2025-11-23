@@ -8,6 +8,22 @@
 
 const CHANGELOG_HISTORY = [
   {
+    version: '3.5.0',
+    date: '2025-11-23',
+    title: 'Lending Refactor & Dynamic Dashboard',
+    changes: [
+      '✅ NEW: Refactored Lending System with 3 specific types (Maturity, Interest Only, Installment)',
+      '✅ NEW: Dynamic Event Calendar using Custom Functions (AccPayable, AccReceivable)',
+      '✅ FIX: Debt Payment & Collection forms now support precise amounts',
+      '✅ FIX: Dashboard tables row offset issues',
+      '✅ UPDATE: Event Calendar now shows only the nearest upcoming event per loan'
+    ],
+    actions: [
+      'Chạy "Cập nhật Dashboard" để áp dụng công thức lịch sự kiện mới',
+      'Kiểm tra lại loại hình cho vay trong sheet CHO VAY nếu cần'
+    ]
+  },
+  {
     version: '3.4.1',
     date: '2025-05-22',
     title: 'Fix Budget Menu & Reports',
