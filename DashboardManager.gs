@@ -441,7 +441,7 @@ const DashboardManager = {
       .setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
       
     return rows.length + 2;
-  }
+  },
   _renderPayables(sheet, startRow, startCol) {
     return this._renderEventTable(sheet, startRow, startCol, '📅 Lịch sự kiện: KHOẢN PHẢI TRẢ (Sắp tới)', this.CONFIG.COLORS.CALENDAR, 'AccPayable', 'QUẢN LÝ NỢ');
   },
