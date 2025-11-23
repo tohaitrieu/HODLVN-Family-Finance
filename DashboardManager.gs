@@ -453,6 +453,7 @@ const DashboardManager = {
       
       data.forEach(row => {
         const name = row[1];
+        const type = row[2]; // Lending Type
         const initialPrincipal = parseCurrency(row[3]);
         const rate = parseFloat(row[4]) || 0; // Annual Rate (decimal)
         const term = parseInt(row[5]) || 1;
@@ -465,8 +466,6 @@ const DashboardManager = {
         const maturityDate = parseDate(rawMaturityDate);
         
         // Check active status
-        // Debt: Track 'Chưa trả' and 'Đang trả'. Exclude 'Đã thanh toán'.
-        // Lending: Track 'Đang vay'.
         let isActive = false;
         if (isDebt) {
           isActive = (status === 'Chưa trả' || status === 'Đang trả');
@@ -477,45 +476,106 @@ const DashboardManager = {
         if (isActive && remaining > 0 && startDate) {
           const targetList = isDebt ? payables : receivables;
           
-          if (term > 1) {
-            // Installment Logic
-            const monthlyPrincipal = initialPrincipal / term;
-            let simulatedRemaining = remaining;
-            
-            // Find next payment dates
-            for (let i = 1; i <= term; i++) {
-              let payDate = new Date(startDate);
-              payDate.setMonth(payDate.getMonth() + i);
-              
-              if (payDate >= today) {
-                let currentPrincipal = monthlyPrincipal;
-                if (simulatedRemaining < currentPrincipal) currentPrincipal = simulatedRemaining;
-                
-                // Calculate Interest
-                let prevDate = new Date(startDate);
-                prevDate.setMonth(prevDate.getMonth() + i - 1);
-                
-                const days = getDaysDiff(prevDate, payDate);
-                let currentInterest = days * (rate * simulatedRemaining) / 360;
-                
-                targetList.push({
-                  date: payDate,
-                  action: isDebt ? 'Phải trả' : 'Phải thu',
-                  name: isDebt ? `${name} (Kỳ ${i}/${term})` : `${name} (Kỳ ${i}/${term})`,
-                  remaining: simulatedRemaining,
-                  principalPayment: currentPrincipal,
-                  interestPayment: currentInterest
-                });
-                
-                simulatedRemaining -= currentPrincipal;
-                if (simulatedRemaining <= 1000) break; // Float tolerance (1000 VND)
-              }
-            }
-          } else {
-            // Bullet Logic
+          // LOGIC THEO TỪNG LOẠI HÌNH
+          
+          // 1. Tất toán gốc - lãi cuối kỳ
+          if (type === 'Tất toán gốc - lãi cuối kỳ') {
             if (maturityDate && maturityDate >= today) {
                const days = getDaysDiff(startDate, maturityDate);
-               let currentInterest = days * (rate * remaining) / 360;
+               // Lãi = Ngày * Gốc * Tỷ lệ / 365
+               let currentInterest = days * (rate * remaining) / 365;
+               
+               targetList.push({
+                  date: maturityDate,
+                  action: isDebt ? 'Phải trả' : 'Phải thu',
+                  name: isDebt ? `${name} (Tất toán)` : `${name} (Đáo hạn)`,
+                  remaining: remaining,
+                  principalPayment: remaining,
+                  interestPayment: currentInterest
+               });
+            }
+          }
+          
+          // 2. Trả lãi hàng tháng, gốc cuối kỳ
+          else if (type === 'Trả lãi hàng tháng, gốc cuối kỳ') {
+             // Lặp qua từng tháng để tìm kỳ trả lãi tiếp theo
+             for (let i = 1; i <= term; i++) {
+                let payDate = new Date(startDate);
+                payDate.setMonth(payDate.getMonth() + i);
+                
+                if (payDate >= today) {
+                   // Tính số ngày của tháng trước đó
+                   let prevDate = new Date(startDate);
+                   prevDate.setMonth(prevDate.getMonth() + i - 1);
+                   const daysInMonth = getDaysDiff(prevDate, payDate);
+                   
+                   // Lãi tháng = Số ngày * Gốc * Tỷ lệ / 365
+                   let monthlyInterest = daysInMonth * (rate * remaining) / 365;
+                   
+                   // Nếu là kỳ cuối cùng thì trả cả gốc
+                   let principalPay = (i === term) ? remaining : 0;
+                   
+                   targetList.push({
+                      date: payDate,
+                      action: isDebt ? 'Phải trả' : 'Phải thu',
+                      name: isDebt ? `${name} (Kỳ ${i}/${term})` : `${name} (Kỳ ${i}/${term})`,
+                      remaining: remaining,
+                      principalPayment: principalPay,
+                      interestPayment: monthlyInterest
+                   });
+                   
+                   // Chỉ hiển thị 1 kỳ tiếp theo cho mỗi khoản vay để tránh spam lịch
+                   break; 
+                }
+             }
+          }
+          
+          // 3. Trả góp gốc - lãi hàng tháng (Gốc đều, lãi giảm dần)
+          else if (type === 'Trả góp gốc - lãi hàng tháng') {
+             const monthlyPrincipal = initialPrincipal / term;
+             let simulatedRemaining = initialPrincipal; // Bắt đầu tính từ đầu để khớp lịch
+             
+             for (let i = 1; i <= term; i++) {
+                let payDate = new Date(startDate);
+                payDate.setMonth(payDate.getMonth() + i);
+                
+                // Tính lãi cho kỳ này dựa trên dư nợ đầu kỳ
+                let prevDate = new Date(startDate);
+                prevDate.setMonth(prevDate.getMonth() + i - 1);
+                const daysInMonth = getDaysDiff(prevDate, payDate);
+                
+                let monthlyInterest = daysInMonth * (rate * simulatedRemaining) / 365;
+                
+                // Nếu ngày trả >= hôm nay thì hiển thị
+                if (payDate >= today) {
+                   // Điều chỉnh gốc trả nếu dư nợ thực tế nhỏ hơn (trường hợp trả trước hạn)
+                   // Tuy nhiên ở đây ta tính theo lịch lý thuyết. 
+                   // Nếu muốn chính xác theo thực tế thì phải check 'remaining' hiện tại.
+                   // Logic đơn giản: Nếu remaining hiện tại < simulatedRemaining, nghĩa là đã trả bớt.
+                   // Nhưng để hiển thị lịch tương lai, ta cứ hiển thị theo kế hoạch.
+                   
+                   targetList.push({
+                      date: payDate,
+                      action: isDebt ? 'Phải trả' : 'Phải thu',
+                      name: isDebt ? `${name} (Kỳ ${i}/${term})` : `${name} (Kỳ ${i}/${term})`,
+                      remaining: simulatedRemaining, // Dư nợ đầu kỳ
+                      principalPayment: monthlyPrincipal,
+                      interestPayment: monthlyInterest
+                   });
+                   
+                   break; // Chỉ lấy 1 kỳ tiếp theo
+                }
+                
+                simulatedRemaining -= monthlyPrincipal;
+                if (simulatedRemaining < 0) simulatedRemaining = 0;
+             }
+          }
+          
+          // Default: Fallback to old logic (Bullet) if type is unknown
+          else {
+             if (maturityDate && maturityDate >= today) {
+               const days = getDaysDiff(startDate, maturityDate);
+               let currentInterest = days * (rate * remaining) / 365;
                
                targetList.push({
                   date: maturityDate,
