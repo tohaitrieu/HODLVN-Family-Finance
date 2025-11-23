@@ -75,11 +75,19 @@ function mapLegacyTypeToId(typeName) {
  * @customfunction
  */
 function AccPayable(debtData) {
+  Logger.log('=== AccPayable CALLED ===');
+  Logger.log(`Input data length: ${Array.isArray(debtData) ? debtData.length : 'NOT ARRAY'}`);
+  
   if (!Array.isArray(debtData) || debtData.length === 0) {
-    return [['Không có dữ liệu']];
+    Logger.log('⚠️ No data or invalid input');
+    return [['Không có dữ liệu', '', '', '', '', '']];
   }
   
-  return _calculateEvents(debtData, true);
+  const result = _calculateEvents(debtData, true);
+  Logger.log(`AccPayable result rows: ${result.length}`);
+  Logger.log(`First row: ${JSON.stringify(result[0])}`);
+  
+  return result;
 }
 
 /**
@@ -89,27 +97,42 @@ function AccPayable(debtData) {
  * @customfunction
  */
 function AccReceivable(lendingData) {
+  Logger.log('=== AccReceivable CALLED ===');
+  Logger.log(`Input data length: ${Array.isArray(lendingData) ? lendingData.length : 'NOT ARRAY'}`);
+  
   if (!Array.isArray(lendingData) || lendingData.length === 0) {
-    return [['Không có dữ liệu']];
+    Logger.log('⚠️ No data or invalid input');
+    return [['Không có dữ liệu', '', '', '', '', '']];
   }
   
-  return _calculateEvents(lendingData, false);
+  const result = _calculateEvents(lendingData, false);
+  Logger.log(`AccReceivable result rows: ${result.length}`);
+  
+  return result;
 }
 
 /**
  * Helper function to calculate events
  */
 function _calculateEvents(data, isDebt) {
+  Logger.log(`=== _calculateEvents START (isDebt: ${isDebt}) ===`);
+  
   const events = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
+  Logger.log(`Today: ${today.toDateString()}`);
+  Logger.log(`Processing ${data.length} rows...`);
+  
   // A(0): STT, B(1): Name, C(2): Type, D(3): Principal, E(4): Rate, F(5): Term, G(6): Date, H(7): Maturity
   // I(8): PaidPrin, J(9): PaidInt, K(10): Remaining, L(11): Status
   
-  data.forEach(row => {
+  data.forEach((row, index) => {
     // Skip empty rows
-    if (!row[1]) return;
+    if (!row[1]) {
+      Logger.log(`Row ${index}: SKIP (no name)`);
+      return;
+    }
     
     const name = row[1];
     let type = row[2]; // Might be legacy name or new ID
@@ -165,6 +188,7 @@ function _calculateEvents(data, isDebt) {
     }
     
     if (isActive && remaining > 0 && startDate) {
+      Logger.log(`Row ${index}: ACTIVE - ${name}`);
       // Use shared calculation function
       const nextEvent = calculateNextPayment(type, {
         name,
@@ -179,12 +203,20 @@ function _calculateEvents(data, isDebt) {
       });
       
       if (nextEvent) {
+        Logger.log(`  ✅ Event found: ${nextEvent.date.toDateString()}, Principal: ${nextEvent.principalPayment}, Interest: ${nextEvent.interestPayment}`);
         events.push(nextEvent);
+      } else {
+        Logger.log(`  ❌ No event returned`);
       }
+    } else {
+      Logger.log(`Row ${index}: SKIP - isActive: ${isActive}, remaining: ${remaining}, hasStartDate: ${!!startDate}`);
     }
   });
   
+  Logger.log(`Total events found: ${events.length}`);
+  
   if (events.length === 0) {
+    Logger.log('⚠️ No events, returning default message');
     return [['Không có sự kiện sắp tới', '', '', '', '', '']];
   }
   
@@ -193,6 +225,8 @@ function _calculateEvents(data, isDebt) {
   
   // Limit to 10
   const limitedEvents = events.slice(0, 10);
+  
+  Logger.log(`Returning ${limitedEvents.length} events (limited to 10)`);
   
   // Convert to 2D array
   const result = limitedEvents.map(evt => [
@@ -213,6 +247,10 @@ function _calculateEvents(data, isDebt) {
   });
   
   result.push(['TỔNG CỘNG', '', '', '', totalPrincipal, totalInterest]);
+  
+  Logger.log(`Final result: ${result.length} rows (including TOTAL)`);
+  Logger.log(`Sample row 0: ${JSON.stringify(result[0])}`);
+  Logger.log('=== _calculateEvents END ===');
   
   return result;
 }
