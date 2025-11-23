@@ -133,10 +133,10 @@ const DashboardManager = {
     sheet.getRange('B4').setValue('Tất cả');
     
     // Chart Data Headers (E2:H2)
-    sheet.getRange('E2').setValue('Thu nhập').setFontWeight('bold').setHorizontalAlignment('center');
-    sheet.getRange('F2').setValue('Chi phí').setFontWeight('bold').setHorizontalAlignment('center');
-    sheet.getRange('G2').setValue('Nợ').setFontWeight('bold').setHorizontalAlignment('center');
-    sheet.getRange('H2').setValue('Tài sản').setFontWeight('bold').setHorizontalAlignment('center');
+    sheet.getRange('F2').setValue('Thu nhập').setFontWeight('bold').setHorizontalAlignment('center');
+    sheet.getRange('G2').setValue('Chi phí').setFontWeight('bold').setHorizontalAlignment('center');
+    sheet.getRange('H2').setValue('Nợ').setFontWeight('bold').setHorizontalAlignment('center');
+    sheet.getRange('I2').setValue('Tài sản').setFontWeight('bold').setHorizontalAlignment('center');
   },
 
   _setupActionButtons(sheet) {
@@ -269,31 +269,31 @@ const DashboardManager = {
     sheet.getRange(assetStart, cfg.RIGHT_COL).setValue('Tiền mặt (Ròng)');
     sheet.getRange(assetStart, cfg.RIGHT_COL + 1).setValue('-'); // Capital N/A
     sheet.getRange(assetStart, cfg.RIGHT_COL + 2).setValue('-'); // P/L N/A
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 3).setFormula('=' + `${this._createDynamicSumFormula('THU', 'C')} - ${this._createDynamicSumFormula('CHI', 'C')}`);
+    sheet.getRange(assetStart, cfg.RIGHT_COL + 3).setFormula('=' + `IFERROR(SUM(THU!C:C) - SUM(CHI!C:C), 0)`);
     
     // 2. Stock
     sheet.getRange(assetStart + 1, cfg.RIGHT_COL).setValue('Chứng khoán');
-    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!J:J), 0)`); // Total Cost
+    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!H:H), 0)`); // Total Cost (Col H)
     sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(R[0]C[1] - R[0]C[-1], 0)`); // Current - Cost
-    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!M:M), 0)`); // Market Value
+    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!M:M), 0)`); // Market Value (Col M)
     
     // 3. Gold
     sheet.getRange(assetStart + 2, cfg.RIGHT_COL).setValue('Vàng');
-    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('VÀNG'!J:J), 0)`); // Total Cost
+    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('VÀNG'!I:I), 0)`); // Total Cost (Col I)
     sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(R[0]C[1] - R[0]C[-1], 0)`);
-    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('VÀNG'!M:M), 0)`); // Market Value
+    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('VÀNG'!K:K), 0)`); // Market Value (Col K)
     
     // 4. Crypto
     sheet.getRange(assetStart + 3, cfg.RIGHT_COL).setValue('Crypto');
-    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CRYPTO'!L:L), 0)`); // Total Cost VND
+    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CRYPTO'!I:I), 0)`); // Total Cost (Col I)
     sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(R[0]C[1] - R[0]C[-1], 0)`);
-    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CRYPTO'!N:N), 0)`); // Market Value VND
+    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CRYPTO'!M:M), 0)`); // Market Value VND (Col M)
     
     // 5. Other Investment
     sheet.getRange(assetStart + 4, cfg.RIGHT_COL).setValue('Đầu tư khác');
-    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('ĐẦU TƯ KHÁC'!D:D), 0)`); // Capital
-    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(SUM('ĐẦU TƯ KHÁC'!H:H), 0)`); // Profit
-    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(R[0]C[-2] + R[0]C[-1], 0)`); // Capital + Profit
+    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('ĐẦU TƯ KHÁC'!D:D), 0)`); // Capital (Col D)
+    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(R[0]C[1] - R[0]C[-1], 0)`); // Profit = Current - Capital
+    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('ĐẦU TƯ KHÁC'!G:G), 0)`); // Current Value (Expected Return - Col G)
     
     // 6. Lending (Receivables)
     sheet.getRange(assetStart + 5, cfg.RIGHT_COL).setValue('Cho vay');
@@ -821,11 +821,11 @@ const DashboardManager = {
   },
   
   _createChart(sheet) {
-    // Chart vẽ từ K36 đến P49
+    // 1. Cấu hình vị trí Chart
     const chartStartRow = 36;
-    const chartStartCol = 11;
+    const chartStartCol = 11; // Column K
 
-    // --- PHẦN TÍNH TOÁN VỊ TRÍ (Giữ nguyên logic của bạn vì đã tốt) ---
+    // 2. Tính toán vị trí dòng dữ liệu nguồn
     const cfg = this.CONFIG.LAYOUT;
     const startRow = cfg.START_ROW;
 
@@ -835,7 +835,7 @@ const DashboardManager = {
     const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ');
     const expenseTotalRow = startRow + 2 + expenseCategories.length + 1;
 
-    // Tính row1Height
+    // Tính row height để xác định vị trí block dưới
     const incomeHeight = incomeCategories.length + 3;
     const expenseHeight = expenseCategories.length + 4;
     const row1Height = Math.max(incomeHeight, expenseHeight);
@@ -845,70 +845,56 @@ const DashboardManager = {
     const debtTotalRow = row2StartRow + 2 + debtItems.length;
     const assetTotalRow = row2StartRow + 2 + 6;
 
-    // --- ĐIỀN DỮ LIỆU ---
-    // Header trục X (Nếu chưa có thì nên set luôn cho chắc chắn)
-    sheet.getRange('E2:H2').setValues([['Thu nhập', 'Chi phí', 'Nợ', 'Tài sản']]);
-    sheet.getRange('E2:H2').setFontWeight('bold').setHorizontalAlignment('center');
-
-    // Dữ liệu trục Y (Formulas)
-    sheet.getRange('E3').setFormula(`=B${incomeTotalRow}`);
-    sheet.getRange('F3').setFormula(`=F${expenseTotalRow}`);
-    sheet.getRange('G3').setFormula(`=B${debtTotalRow}`);
-    sheet.getRange('H3').setFormula(`=H${assetTotalRow}`);
-
-    // Format số liệu
-    sheet.getRange('E3:H3').setNumberFormat('#,##0').setHorizontalAlignment('center');
-
-    // --- TẠO BIỂU ĐỒ (Đã sửa đổi) ---
+    // 3. ĐIỀN DỮ LIỆU GIÁ TRỊ (TRỤC Y) VÀO E3:H3
+    // Lưu ý: Không cần điền E2:H2 nữa theo yêu cầu của bạn.
     
-    /* LƯU Ý QUAN TRỌNG VỀ MÀU SẮC:
-       Với dữ liệu E2:H3, đây là 1 Series. Để hiển thị 4 màu khác nhau tương ứng với 4 nhóm,
-       ta dùng .setTransposeRowsAndColumns(true).
-       Khi đó: Header (E2:H2) sẽ biến thành tên Series (hiện trong Legend).
-    */
+    // Giả định vị trí cột Tiền là C và G (hoặc H tùy cấu hình của bạn).
+    // Bạn hãy kiểm tra kỹ cột chứa số liệu thực tế trong sheet Dashboard để sửa C/G/H cho đúng.
+    sheet.getRange('F3').setFormula(`=B${incomeTotalRow}`); // Thu nhập
+    sheet.getRange('G3').setFormula(`=G${expenseTotalRow}`); // Chi phí
+    sheet.getRange('H3').setFormula(`=B${debtTotalRow}`); // Nợ
+    sheet.getRange('I3').setFormula(`=H${assetTotalRow}`); // Tài sản
 
+    // Format số liệu F3:I3
+    sheet.getRange('F3:I3').setNumberFormat('#,##0');
+    
+    // 4. TẠO BIỂU ĐỒ
     const chart = sheet.newChart()
         .setChartType(Charts.ChartType.COLUMN)
-        // Gộp thành 1 range duy nhất để đảm bảo tính liên kết
-        .addRange(sheet.getRange('E2:H3')) 
-        .setPosition(chartStartRow, chartStartCol, 0, 0)
         
-        // --- Cấu hình hiển thị ---
+        // --- FIX: Sử dụng range F2:I3 (Headers + Data) ---
+        .addRange(sheet.getRange('F2:I3')) 
+        
+        .setPosition(chartStartRow, chartStartCol, 0, 0)
         .setOption('title', 'TỔNG QUAN TÀI CHÍNH')
-        .setOption('titleTextStyle', { 
-            fontSize: 14, 
-            bold: true,
-            color: '#333333'
-        })
+        .setOption('titleTextStyle', { fontSize: 14, bold: true, color: '#333333' })
         .setOption('width', 720)
         .setOption('height', 420)
         
-        // Mẹo: Đảo hàng/cột để biến mỗi Cột dữ liệu thành 1 Series riêng biệt
-        // Nhờ đó mới áp dụng được 4 màu khác nhau
-        .setTransposeRowsAndColumns(true) 
+        // --- FIX: Transpose = false (Mỗi cột là 1 series) ---
+        // F2:I2 là Header, F3:I3 là Data
+        .setTransposeRowsAndColumns(false) 
         
-        .setOption('legend', { position: 'bottom' }) // Đưa chú thích xuống dưới
+        .setOption('legend', { position: 'bottom', textStyle: { fontSize: 11 } })
+        
+        // --- FIX: Màu sắc cho từng Series ---
         .setOption('series', {
-            0: { color: '#4CAF50', labelInLegend: 'Thu nhập' }, // Xanh lá
-            1: { color: '#F44336', labelInLegend: 'Chi phí' },  // Đỏ
-            2: { color: '#FF9800', labelInLegend: 'Nợ' },      // Cam
-            3: { color: '#2196F3', labelInLegend: 'Tài sản' }  // Xanh dương
+            0: { color: '#4CAF50' }, // Thu nhập
+            1: { color: '#F44336' }, // Chi phí
+            2: { color: '#FF9800' }, // Nợ
+            3: { color: '#2196F3' }  // Tài sản
         })
         
         .setOption('vAxis', { 
-            title: 'Số tiền (VNĐ)',
-            format: 'short', // Hiển thị rút gọn (ví dụ: 10tr, 10k) cho gọn
+            format: 'short',
             gridlines: { count: 5 }
         })
-        // Khi transpose, hAxis (trục ngang) sẽ mất nhãn text E2:H2 (vì nó biến thành Legend),
-        // nên ta ẩn text trục ngang đi cho đỡ rối.
-        .setOption('hAxis', {
-            textPosition: 'none' 
-        })
+        // Ẩn trục ngang (vì chỉ có 1 nhóm dữ liệu, không cần nhãn trục X)
+        .setOption('hAxis', { textPosition: 'none' }) 
         
         .setOption('chartArea', { width: '85%', height: '70%' })
         .build();
-
+      
     sheet.insertChart(chart);
   },
   

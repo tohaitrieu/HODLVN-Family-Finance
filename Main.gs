@@ -497,6 +497,14 @@ function setBudgetForMonth(budgetData) {
   return BudgetManager.setBudgetForMonth(budgetData);
 }
 
+/**
+ * ✅ NEW v3.5.5: Lấy cấu hình ngân sách hiện tại
+ * Hàm này được gọi từ SetBudgetForm.html khi mở form
+ */
+function getBudgetConfig() {
+  return BudgetManager.getBudgetConfig();
+}
+
 // ==================== SETUP WIZARD - NEW IN v3.2 ====================
 
 /**

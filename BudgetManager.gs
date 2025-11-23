@@ -511,5 +511,58 @@ const BudgetManager = {
     }
     
     return {principal, interest};
+  },
+
+  /**
+   * Lấy cấu hình ngân sách hiện tại từ sheet BUDGET
+   * Để hiển thị lên SetBudgetForm
+   */
+  getBudgetConfig() {
+    const budgetSheet = getSheet(APP_CONFIG.SHEETS.BUDGET);
+    if (!budgetSheet) return null;
+
+    const data = budgetSheet.getDataRange().getValues();
+    
+    // 1. Get General Info
+    const income = budgetSheet.getRange('B2').getValue() || 0;
+    const pctChi = (budgetSheet.getRange('B3').getValue() || 0) * 100;
+    const pctDautu = (budgetSheet.getRange('B4').getValue() || 0) * 100;
+    const pctTrano = (budgetSheet.getRange('B5').getValue() || 0) * 100;
+
+    // 2. Get Expense Categories (Rows 7-16)
+    const chi = {};
+    const expenseCategories = [
+      'Ăn uống', 'Đi lại', 'Nhà ở', 'Điện nước', 'Viễn thông',
+      'Giáo dục', 'Y tế', 'Mua sắm', 'Giải trí', 'Khác'
+    ];
+    
+    expenseCategories.forEach(cat => {
+      const row = this._findBudgetRow(budgetSheet, cat);
+      if (row) {
+        const pct = (budgetSheet.getRange(row, 2).getValue() || 0) * 100;
+        chi[cat] = Math.round(pct);
+      }
+    });
+
+    // 3. Get Investment Categories (Rows 25-28)
+    const dautu = {};
+    const investmentTypes = ['Chứng khoán', 'Vàng', 'Crypto', 'Đầu tư khác'];
+    
+    investmentTypes.forEach(type => {
+      const row = this._findBudgetRow(budgetSheet, type);
+      if (row) {
+        const pct = (budgetSheet.getRange(row, 2).getValue() || 0) * 100;
+        dautu[type] = Math.round(pct);
+      }
+    });
+
+    return {
+      income,
+      pctChi: Math.round(pctChi),
+      pctDautu: Math.round(pctDautu),
+      pctTrano: Math.round(pctTrano),
+      chi,
+      dautu
+    };
   }
 };
