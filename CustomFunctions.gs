@@ -466,10 +466,17 @@ function getDaysDiff(d1, d2) {
  * Uses hardcoded map for accuracy
  */
 function getDaysInMonth(date) {
-  if (!date || isNaN(date.getTime())) return 30; // Fallback
+  Logger.log(`[getDaysInMonth] Input: ${date}`);
+  
+  if (!date || isNaN(date.getTime())) {
+    Logger.log(`[getDaysInMonth] Invalid date, returning 30`);
+    return 30; // Fallback
+  }
   
   const month = date.getMonth(); // 0-11
   const year = date.getFullYear();
+  
+  Logger.log(`[getDaysInMonth] Month: ${month}, Year: ${year}`);
   
   // Map số ngày cho từng tháng (index 0-11)
   const daysInMonthMap = [
@@ -487,7 +494,10 @@ function getDaysInMonth(date) {
     31  // Dec (11)
   ];
   
-  return daysInMonthMap[month];
+  const result = daysInMonthMap[month];
+  Logger.log(`[getDaysInMonth] Result: ${result} days`);
+  
+  return result;
 }
 
 /**
