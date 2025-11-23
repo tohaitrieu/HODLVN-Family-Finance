@@ -851,10 +851,20 @@ const DashboardManager = {
     const assetTotalRow = row2StartRow + 2 + 6; // Dòng TỔNG TÀI SẢN
     
     // Điền dữ liệu vào E3:H3 (Giá trị tổng cho biểu đồ)
+    Logger.log('Income Total Row: ' + incomeTotalRow);
+    Logger.log('Expense Total Row: ' + expenseTotalRow);
+    Logger.log('Debt Total Row: ' + debtTotalRow);
+    Logger.log('Asset Total Row: ' + assetTotalRow);
+    
     sheet.getRange('E3').setFormula(`=B${incomeTotalRow}`); // TỔNG THU NHẬP
     sheet.getRange('F3').setFormula(`=F${expenseTotalRow}`); // TỔNG CHI PHÍ
     sheet.getRange('G3').setFormula(`=B${debtTotalRow}`); // TỔNG NỢ
     sheet.getRange('H3').setFormula(`=H${assetTotalRow}`); // TỔNG TÀI SẢN
+    
+    Logger.log('E3 Formula: ' + sheet.getRange('E3').getFormula());
+    Logger.log('F3 Formula: ' + sheet.getRange('F3').getFormula());
+    Logger.log('G3 Formula: ' + sheet.getRange('G3').getFormula());
+    Logger.log('H3 Formula: ' + sheet.getRange('H3').getFormula());
     
     // Format E3:H3
     sheet.getRange('E3:H3').setNumberFormat('#,##0');
@@ -871,15 +881,20 @@ const DashboardManager = {
       .setOption('width', 720) // 6 columns * 120px = 720px
       .setOption('height', 420) // 14 rows height
       .setOption('legend', { position: 'none' }) // Không cần legend
+      .setOption('useFirstColumnAsDomain', false) // Không dùng cột đầu làm domain
+      .setOption('treatLabelsAsText', true) // Treat first row as labels
       .setOption('colors', ['#4CAF50', '#F44336', '#FF9800', '#2196F3']) // Xanh, Đỏ, Cam, Xanh dương
       .setOption('vAxis', { 
         title: 'Số tiền (VNĐ)',
-        format: '#,##0'
+        format: '#,##0',
+        minValue: 0
       })
       .setOption('hAxis', {
-        title: 'Danh mục'
+        title: 'Danh mục',
+        slantedText: false
       })
       .setOption('bar', { groupWidth: '60%' })
+      .setOption('chartArea', { width: '80%', height: '70%' })
       .build();
       
     sheet.insertChart(chart);
