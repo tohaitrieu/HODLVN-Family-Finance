@@ -8,9 +8,20 @@
 
 /**
  * Simple Trigger - Tự động chạy khi có edit
- * Gọi processEdit để xử lý
+ * ĐÃ SỬA: Bỏ qua sheet Dashboard để tránh xung đột với Trigger cài đặt
  */
 function onEdit(e) {
+  // Kiểm tra nếu biến e không tồn tại (khi chạy thủ công)
+  if (!e || !e.range) return;
+
+  const sheet = e.range.getSheet();
+  
+  // QUAN TRỌNG: Nếu đang ở Dashboard, dừng ngay lập tức!
+  // Để nhường quyền cho Installable Trigger (processEdit) xử lý việc mở Form.
+  if (sheet.getName() === APP_CONFIG.SHEETS.DASHBOARD) {
+    return;
+  }
+
   processEdit(e);
 }
 
