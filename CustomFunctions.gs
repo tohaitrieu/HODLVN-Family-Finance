@@ -286,6 +286,11 @@ function calculateInterestOnlyPayment(params) {
   const validRate = (isNaN(rate) || rate < 0) ? 0 : rate;
   const validRemaining = (isNaN(remaining) || remaining < 0) ? 0 : remaining;
   
+  // DEBUG LOG
+  Logger.log(`[calculateInterestOnlyPayment] ${name}`);
+  Logger.log(`  rate (input): ${rate}, validRate: ${validRate}`);
+  Logger.log(`  remaining (input): ${remaining}, validRemaining: ${validRemaining}`);
+  
   // Loop through each month to find next payment
   for (let i = 1; i <= term; i++) {
     // Create new date object for each iteration
@@ -297,7 +302,10 @@ function calculateInterestOnlyPayment(params) {
     }
     
     // Check for invalid date
-    if (isNaN(payDate.getTime())) continue;
+    if (isNaN(payDate.getTime())) {
+      Logger.log(`⚠️ Invalid payDate at iteration ${i}`);
+      continue;
+    }
     
     if (payDate >= today) {
       // Calculate days in the month of the payment date
@@ -305,6 +313,10 @@ function calculateInterestOnlyPayment(params) {
       
       // Monthly interest = (Days in Month × Remaining Principal × Rate) / 365
       let monthlyInterest = (daysInMonth * validRemaining * validRate) / 365;
+      
+      // DEBUG LOG
+      Logger.log(`  [Kỳ ${i}] daysInMonth: ${daysInMonth}, validRemaining: ${validRemaining}, validRate: ${validRate}`);
+      Logger.log(`  [Kỳ ${i}] Calculation: (${daysInMonth} * ${validRemaining} * ${validRate}) / 365 = ${monthlyInterest}`);
       
       // Validate result
       if (isNaN(monthlyInterest) || monthlyInterest < 0) {
@@ -342,6 +354,12 @@ function calculateEqualPrincipalPayment(params) {
   const validInitialPrincipal = (isNaN(initialPrincipal) || initialPrincipal < 0) ? 0 : initialPrincipal;
   const validRemaining = (isNaN(remaining) || remaining < 0) ? 0 : remaining;
 
+  // DEBUG LOG
+  Logger.log(`[calculateEqualPrincipalPayment] ${name}`);
+  Logger.log(`  rate (input): ${rate}, validRate: ${validRate}`);
+  Logger.log(`  remaining (input): ${remaining}, validRemaining: ${validRemaining}`);
+  Logger.log(`  initialPrincipal: ${initialPrincipal}, term: ${term}`);
+
   // Monthly principal payment (constant)
   const monthlyPrincipal = term ? validInitialPrincipal / term : 0;
 
@@ -358,12 +376,20 @@ function calculateEqualPrincipalPayment(params) {
       payDate = new Date(startDate.getFullYear(), startDate.getMonth() + i + 1, 0);
     }
 
-    if (isNaN(payDate.getTime())) continue;
+    if (isNaN(payDate.getTime())) {
+      Logger.log(`⚠️ Invalid payDate at iteration ${i}`);
+      continue;
+    }
 
     if (payDate >= today) {
       const daysInMonth = getDaysInMonth(payDate);
       // Lãi = (Số ngày trong tháng × Gốc còn lại × Lãi suất) / 365
       let monthlyInterest = (daysInMonth * currentRemaining * validRate) / 365;
+      
+      // DEBUG LOG
+      Logger.log(`  [Kỳ ${i}] daysInMonth: ${daysInMonth}, currentRemaining: ${currentRemaining}, validRate: ${validRate}`);
+      Logger.log(`  [Kỳ ${i}] Calculation: (${daysInMonth} * ${currentRemaining} * ${validRate}) / 365 = ${monthlyInterest}`);
+      
       if (isNaN(monthlyInterest) || monthlyInterest < 0) monthlyInterest = 0;
 
       return {
