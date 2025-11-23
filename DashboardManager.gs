@@ -277,8 +277,8 @@ const DashboardManager = {
     sheet.getRange(incStart, cfg.LEFT_COL + 1, incomeCategories.length + 1, 1).setNumberFormat('#,##0');
     sheet.getRange(incStart, cfg.LEFT_COL + 2, incomeCategories.length + 1, 1).setNumberFormat('0.0%');
     // Expense
-    sheet.getRange(expStart, cfg.RIGHT_COL + 1, expenseCategories.length + 2, 1).setNumberFormat('#,##0');
-    sheet.getRange(expStart, cfg.RIGHT_COL + 2, expenseCategories.length + 2, 1).setNumberFormat('0.0%');
+    sheet.getRange(expStart, cfg.RIGHT_COL + 1, expenseCategories.length + 2, 3).setNumberFormat('#,##0');
+    sheet.getRange(expStart, cfg.RIGHT_COL + 4, expenseCategories.length + 2, 1).setNumberFormat('0.0%');
     // Liabilities
     sheet.getRange(liabStart, cfg.LEFT_COL + 1, debtItems.length + 1, 1).setNumberFormat('#,##0');
     sheet.getRange(liabStart, cfg.LEFT_COL + 2, debtItems.length + 1, 1).setNumberFormat('0.0%');
@@ -390,7 +390,7 @@ const DashboardManager = {
       // Else -> "Trong hạn mức" (Green)
       // Skip for Total row if needed, but useful there too.
       
-      const statusFormula = `=IF(R[0]C[-2]=0, "Chưa có NS", IF(R[0]C[-3] > R[0]C[-2], "Vượt ngân sách", IF(R[0]C[-3] > 0.8 * R[0]C[-2], "Sắp hết", "Trong hạn mức")))`;
+      const statusFormula = `=IF(R[0]C[-2]=0, 0, R[0]C[-3] / R[0]C[-2])`;
       sheet.getRange(r, startCol + 4).setFormula(statusFormula);
       
       // Last row styling
@@ -407,25 +407,25 @@ const DashboardManager = {
     // Conditional Formatting for Status
     const statusRange = sheet.getRange(dataStart, startCol + 4, rows.length, 1);
     
-    // Red - Vượt
+    // Red - Vượt (> 100%)
     const ruleRed = SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo('Vượt ngân sách')
+      .whenNumberGreaterThan(1)
       .setBackground('#FFEBEE')
       .setFontColor('#C62828')
       .setRanges([statusRange])
       .build();
       
-    // Yellow - Sắp hết
+    // Yellow - Sắp hết (80% - 100%)
     const ruleYellow = SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo('Sắp hết')
+      .whenNumberBetween(0.8, 1)
       .setBackground('#FFF3E0')
       .setFontColor('#EF6C00')
       .setRanges([statusRange])
       .build();
       
-    // Green - Trong hạn mức
+    // Green - Trong hạn mức (< 80%)
     const ruleGreen = SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo('Trong hạn mức')
+      .whenNumberLessThan(0.8)
       .setBackground('#E8F5E9')
       .setFontColor('#2E7D32')
       .setRanges([statusRange])
