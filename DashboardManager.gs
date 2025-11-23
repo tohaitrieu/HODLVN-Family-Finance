@@ -823,91 +823,94 @@ const DashboardManager = {
   _createChart(sheet) {
     // Chart vẽ từ K36 đến P49
     const chartStartRow = 36;
-    const chartStartCol = 11; // Column K
-    
-    // Tìm vị trí các dòng TỔNG trong Dashboard
+    const chartStartCol = 11;
+
+    // --- PHẦN TÍNH TOÁN VỊ TRÍ (Giữ nguyên logic của bạn vì đã tốt) ---
     const cfg = this.CONFIG.LAYOUT;
     const startRow = cfg.START_ROW;
-    
-    // Income categories + TỔNG THU NHẬP
+
     const incomeCategories = APP_CONFIG.CATEGORIES.INCOME;
-    const incomeTotalRow = startRow + 2 + incomeCategories.length; // Dòng TỔNG THU NHẬP
-    
-    // Expense categories + Trả nợ + TỔNG CHI PHÍ  
+    const incomeTotalRow = startRow + 2 + incomeCategories.length;
+
     const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ');
-    const expenseTotalRow = startRow + 2 + expenseCategories.length + 1; // +1 cho dòng "Trả nợ"
-    
-    // Tính row1Height để tìm vị trí Row 2 (Nợ và Tài sản)
-    const incomeHeight = incomeCategories.length + 3; // +3 cho header, sub-header, total
-    const expenseHeight = expenseCategories.length + 4; // +4 cho header, sub-header, Trả nợ, total
+    const expenseTotalRow = startRow + 2 + expenseCategories.length + 1;
+
+    // Tính row1Height
+    const incomeHeight = incomeCategories.length + 3;
+    const expenseHeight = expenseCategories.length + 4;
     const row1Height = Math.max(incomeHeight, expenseHeight);
     const row2StartRow = startRow + row1Height + 2;
-    
-    // Debt items + TỔNG NỢ
+
     const debtItems = this._getDebtItems();
-    const debtTotalRow = row2StartRow + 2 + debtItems.length; // Dòng TỔNG NỢ
+    const debtTotalRow = row2StartRow + 2 + debtItems.length;
+    const assetTotalRow = row2StartRow + 2 + 6;
+
+    // --- ĐIỀN DỮ LIỆU ---
+    // Header trục X (Nếu chưa có thì nên set luôn cho chắc chắn)
+    sheet.getRange('E2:H2').setValues([['Thu nhập', 'Chi phí', 'Nợ', 'Tài sản']]);
+    sheet.getRange('E2:H2').setFontWeight('bold').setHorizontalAlignment('center');
+
+    // Dữ liệu trục Y (Formulas)
+    sheet.getRange('E3').setFormula(`=B${incomeTotalRow}`);
+    sheet.getRange('F3').setFormula(`=F${expenseTotalRow}`);
+    sheet.getRange('G3').setFormula(`=B${debtTotalRow}`);
+    sheet.getRange('H3').setFormula(`=H${assetTotalRow}`);
+
+    // Format số liệu
+    sheet.getRange('E3:H3').setNumberFormat('#,##0').setHorizontalAlignment('center');
+
+    // --- TẠO BIỂU ĐỒ (Đã sửa đổi) ---
     
-    // Assets: 6 items + TỔNG TÀI SẢN
-    const assetTotalRow = row2StartRow + 2 + 6; // Dòng TỔNG TÀI SẢN
-    
-    // Điền dữ liệu vào E3:H3 (Giá trị tổng cho biểu đồ)
-    Logger.log('Income Total Row: ' + incomeTotalRow);
-    Logger.log('Expense Total Row: ' + expenseTotalRow);
-    Logger.log('Debt Total Row: ' + debtTotalRow);
-    Logger.log('Asset Total Row: ' + assetTotalRow);
-    
-    sheet.getRange('E3').setFormula(`=B${incomeTotalRow}`); // TỔNG THU NHẬP
-    sheet.getRange('F3').setFormula(`=F${expenseTotalRow}`); // TỔNG CHI PHÍ
-    sheet.getRange('G3').setFormula(`=B${debtTotalRow}`); // TỔNG NỢ
-    sheet.getRange('H3').setFormula(`=H${assetTotalRow}`); // TỔNG TÀI SẢN
-    
-    Logger.log('E3 Formula: ' + sheet.getRange('E3').getFormula());
-    Logger.log('F3 Formula: ' + sheet.getRange('F3').getFormula());
-    Logger.log('G3 Formula: ' + sheet.getRange('G3').getFormula());
-    Logger.log('H3 Formula: ' + sheet.getRange('H3').getFormula());
-    
-    // Format E3:H3
-    sheet.getRange('E3:H3').setNumberFormat('#,##0');
-    sheet.getRange('E3:H3').setHorizontalAlignment('center');
-    
-    // Tạo biểu đồ với cấu hình đơn giản hơn
-    // E2:H2 là categories (labels cho trục X)
-    // E3:H3 là values (dữ liệu cho trục Y)
+    /* LƯU Ý QUAN TRỌNG VỀ MÀU SẮC:
+       Với dữ liệu E2:H3, đây là 1 Series. Để hiển thị 4 màu khác nhau tương ứng với 4 nhóm,
+       ta dùng .setTransposeRowsAndColumns(true).
+       Khi đó: Header (E2:H2) sẽ biến thành tên Series (hiện trong Legend).
+    */
+
     const chart = sheet.newChart()
-      .setChartType(Charts.ChartType.COLUMN)
-      .addRange(sheet.getRange('E2:H2')) // Categories
-      .addRange(sheet.getRange('E3:H3')) // Values
-      .setPosition(chartStartRow, chartStartCol, 0, 0) // K36
-      .setOption('title', 'Tổng quan Tài chính')
-      .setOption('titleTextStyle', { fontSize: 14, bold: true })
-      .setOption('width', 720) // 6 columns * 120px = 720px
-      .setOption('height', 420) // 14 rows height
-      .setOption('legend', { position: 'none' }) // Không cần legend
-      .setOption('series', {
-        0: { color: '#4CAF50', labelInLegend: 'Thu nhập' },
-        1: { color: '#F44336', labelInLegend: 'Chi phí' },
-        2: { color: '#FF9800', labelInLegend: 'Nợ' },
-        3: { color: '#2196F3', labelInLegend: 'Tài sản' }
-      })
-      .setOption('vAxis', { 
-        title: 'Số tiền (VNĐ)',
-        titleTextStyle: { fontSize: 12 },
-        format: '#,##0',
-        minValue: 0,
-        gridlines: { count: 5 }
-      })
-      .setOption('hAxis', {
-        title: '',
-        textStyle: { fontSize: 11, bold: true },
-        slantedText: false
-      })
-      .setOption('bar', { groupWidth: '70%' })
-      .setOption('chartArea', { width: '85%', height: '75%', top: 50, left: 80 })
-      .setOption('isStacked', false)
-      .build();
-      
+        .setChartType(Charts.ChartType.COLUMN)
+        // Gộp thành 1 range duy nhất để đảm bảo tính liên kết
+        .addRange(sheet.getRange('E2:H3')) 
+        .setPosition(chartStartRow, chartStartCol, 0, 0)
+        
+        // --- Cấu hình hiển thị ---
+        .setOption('title', 'TỔNG QUAN TÀI CHÍNH')
+        .setOption('titleTextStyle', { 
+            fontSize: 14, 
+            bold: true,
+            color: '#333333'
+        })
+        .setOption('width', 720)
+        .setOption('height', 420)
+        
+        // Mẹo: Đảo hàng/cột để biến mỗi Cột dữ liệu thành 1 Series riêng biệt
+        // Nhờ đó mới áp dụng được 4 màu khác nhau
+        .setTransposeRowsAndColumns(true) 
+        
+        .setOption('legend', { position: 'bottom' }) // Đưa chú thích xuống dưới
+        .setOption('series', {
+            0: { color: '#4CAF50', labelInLegend: 'Thu nhập' }, // Xanh lá
+            1: { color: '#F44336', labelInLegend: 'Chi phí' },  // Đỏ
+            2: { color: '#FF9800', labelInLegend: 'Nợ' },      // Cam
+            3: { color: '#2196F3', labelInLegend: 'Tài sản' }  // Xanh dương
+        })
+        
+        .setOption('vAxis', { 
+            title: 'Số tiền (VNĐ)',
+            format: 'short', // Hiển thị rút gọn (ví dụ: 10tr, 10k) cho gọn
+            gridlines: { count: 5 }
+        })
+        // Khi transpose, hAxis (trục ngang) sẽ mất nhãn text E2:H2 (vì nó biến thành Legend),
+        // nên ta ẩn text trục ngang đi cho đỡ rối.
+        .setOption('hAxis', {
+            textPosition: 'none' 
+        })
+        
+        .setOption('chartArea', { width: '85%', height: '70%' })
+        .build();
+
     sheet.insertChart(chart);
-  },
+}
   
   _formatSheet(sheet) {
     // Hide gridlines
