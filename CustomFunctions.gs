@@ -1,14 +1,14 @@
 /**
  * ===============================================
- * CUSTOM FUNCTIONS v3.5.8 - DEEP DEBUG MODE
+ * CUSTOM FUNCTIONS v3.6.0 - STRING PARSING FIX
  * ===============================================
- * - Thêm debug chi tiết cho getDaysInMonth:
- *   + Kiểm tra kiểu dữ liệu của date input
- *   + Kiểm tra instanceof Date
- *   + Kiểm tra date.getTime() và isNaN
- * - Thêm debug trước khi gọi getDaysInMonth:
- *   + Log payDate value, typeof, instanceof
- *   + Để xác định chính xác lỗi NaN ở đâu
+ * - Cải tiến hàm getDaysInMonth với DUAL strategy:
+ *   + Strategy 1: Thử dùng date.getMonth() trước
+ *   + Strategy 2: Nếu fail → Parse từ Date.toString()
+ * - Hỗ trợ parse format: "Mon Dec 01 2025" và "2025-12-01"
+ * - Month mapping: Jan=0, Feb=1, ..., Dec=11
+ * - FIX: Giải quyết vấn đề getMonth() trả về NaN/undefined
+ * - GIỮ NGUYÊN tên hàm để tương thích với code cũ
  */
 
 /**
@@ -337,43 +337,84 @@ function safeNumber(val) {
 }
 
 function getDaysInMonth(date) {
-  // --- DEBUG chi tiết ---
   Logger.log(`[getDaysInMonth] Input:`, date);
-  Logger.log(`  typeof: ${typeof date}`);
-  Logger.log(`  instanceof Date: ${date instanceof Date}`);
   
   if (!date) {
-    Logger.log(`  → NULL/UNDEFINED, return 30`);
+    Logger.log(`  → NULL, return 30`);
     return 30;
   }
   
-  if (!(date instanceof Date)) {
-    Logger.log(`  → NOT Date instance, return 30`);
-    return 30;
+  // Parse từ Date string nếu cần
+  let month, year;
+  
+  if (date instanceof Date && !isNaN(date.getTime())) {
+    // Thử dùng getMonth() trước
+    month = date.getMonth();
+    year = date.getFullYear();
+    
+    Logger.log(`  Via getMonth(): month=${month}, year=${year}`);
+    
+    // Nếu month hợp lệ, dùng luôn
+    if (typeof month === 'number' && !isNaN(month) && month >= 0 && month <= 11) {
+      Logger.log(`  → getMonth() OK!`);
+      const daysInMonthMap = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+      const result = daysInMonthMap[month];
+      Logger.log(`  → Result: ${result}`);
+      return result;
+    }
   }
   
-  if (isNaN(date.getTime())) {
-    Logger.log(`  → Invalid Date (NaN getTime), return 30`);
-    return 30;
+  // FALLBACK: Parse từ string
+  Logger.log(`  → Fallback to string parsing`);
+  const dateStr = date.toString();
+  Logger.log(`  dateStr: ${dateStr}`);
+  
+  // Map tháng từ tên
+  const monthMap = {
+    'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+    'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+  };
+  
+  // Match pattern: "Mon Dec 01 2025" hoặc "2025-12-01"
+  let monthStr = null;
+  
+  // Try format: "Mon Dec 01 2025"
+  const match1 = dateStr.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/);
+  if (match1) {
+    monthStr = match1[1];
+    Logger.log(`  Found month string: ${monthStr}`);
   }
   
-  const month = date.getMonth();
-  const year = date.getFullYear();
-  
-  Logger.log(`  month: ${month} (type: ${typeof month})`);
-  Logger.log(`  year: ${year} (type: ${typeof year})`);
-  
-  // Kiểm tra xem month có phải số hợp lệ không
-  if (typeof month !== 'number' || isNaN(month) || month < 0 || month > 11) {
-    Logger.log(`  → Invalid month value, return 30`);
-    return 30;
+  // Try format: "2025-12-01"
+  const match2 = dateStr.match(/\d{4}-(\d{2})-\d{2}/);
+  if (match2) {
+    month = parseInt(match2[1]) - 1; // Trừ 1 vì tháng đếm từ 0
+    Logger.log(`  Found month from ISO format: ${month}`);
   }
   
-  const daysInMonthMap = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  const result = daysInMonthMap[month];
+  if (monthStr && monthMap[monthStr] !== undefined) {
+    month = monthMap[monthStr];
+    Logger.log(`  Mapped ${monthStr} → ${month}`);
+  }
   
-  Logger.log(`  → Result: ${result}`);
-  return result;
+  // Extract year
+  const yearMatch = dateStr.match(/\b(20\d{2})\b/);
+  if (yearMatch) {
+    year = parseInt(yearMatch[1]);
+    Logger.log(`  Found year: ${year}`);
+  } else {
+    year = new Date().getFullYear(); // Fallback to current year
+  }
+  
+  if (typeof month === 'number' && !isNaN(month) && month >= 0 && month <= 11) {
+    const daysInMonthMap = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    const result = daysInMonthMap[month];
+    Logger.log(`  → Final result: ${result} (month=${month}, year=${year})`);
+    return result;
+  }
+  
+  Logger.log(`  → Could not determine month, return 30`);
+  return 30;
 }
 
 function isLeapYear(year) {
