@@ -102,25 +102,33 @@ const DashboardManager = {
       .setFontColor(this.CONFIG.COLORS.TEXT);
     sheet.setRowHeight(1, 40);
     
-    // Dropdowns
+    // Dropdowns Labels
     sheet.getRange('A2').setValue('Năm').setFontWeight('bold');
     sheet.getRange('A3').setValue('Quý').setFontWeight('bold');
     sheet.getRange('A4').setValue('Tháng').setFontWeight('bold');
     
     const currentYear = new Date().getFullYear();
-    sheet.getRange('B2:B4').setNumberFormat('@');
     
+    // FIX 1: Apply Text format ONLY to B3:B4. Leave B2 (Year) as Automatic/Number.
+    sheet.getRange('B3:B4').setNumberFormat('@');
+    sheet.getRange('B2').setNumberFormat('0'); // Format Year as number (no decimals)
+
+    // Setup Year List (Use Numbers)
     const yearList = ['Tất cả'];
-    for (let y = currentYear - 5; y <= currentYear + 2; y++) yearList.push(y.toString());
-    
+    for (let y = currentYear - 5; y <= currentYear + 2; y++) {
+      yearList.push(y); // Push NUMBER, not string
+    }
+
     const monthList = ['Tất cả'];
     for (let m = 1; m <= 12; m++) monthList.push(`Tháng ${m}`);
     
+    // Set Validation
     sheet.getRange('B2').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(yearList).build());
     sheet.getRange('B3').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Tất cả', 'Quý 1', 'Quý 2', 'Quý 3', 'Quý 4']).build());
     sheet.getRange('B4').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(monthList).build());
     
-    sheet.getRange('B2').setValue(currentYear.toString());
+    // Set Values
+    sheet.getRange('B2').setValue(currentYear); // Set NUMBER
     sheet.getRange('B3').setValue('Tất cả');
     sheet.getRange('B4').setValue('Tất cả');
   },
@@ -137,25 +145,23 @@ const DashboardManager = {
       { cell: 'J2', label: 'GD CRYPTO', color: '#607D8B' },
       { cell: 'J4', label: 'ĐẦU TƯ KHÁC', color: '#795548' }
     ];
-
+    
     buttons.forEach(btn => {
       // Set Checkbox
       const range = sheet.getRange(btn.cell);
-      range.insertCheckboxes();
-      range.setValue(false); // Default unchecked
+      range.insertCheckboxes(); 
+      // FIX 2: Removed range.setValue(false); to avoid validation conflict.
+      // Checkboxes are FALSE (unchecked) by default anyway.
+      
       range.setFontColor(btn.color);
       range.setFontWeight('bold');
       
-      // Set Label in the NEXT cell (Offset 1 column to the right)
-      // e.g., D2 -> E2, D4 -> E4
+      // Set Label in the NEXT cell
       const labelRange = range.offset(0, 1);
       labelRange.setValue(btn.label);
       labelRange.setFontColor(btn.color);
       labelRange.setFontWeight('bold');
       labelRange.setHorizontalAlignment('left');
-      
-      // Clear any previous number format on the checkbox cell
-      // Removed number format to avoid validation error 
     });
   },
   
