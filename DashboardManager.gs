@@ -154,9 +154,11 @@ const DashboardManager = {
     sheet.getRange(incTotalRow, cfg.LEFT_COL + 2).setValue(1).setNumberFormat('0%');
     
     // 2. Expense Table (5 Cols: Name, Spent, Budget, Remaining, Status)
-    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE;
+    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ gốc' && cat !== 'Trả lãi');
     const expenseRows = [...expenseCategories, 'Trả nợ (Gốc + Lãi)', 'TỔNG CHI PHÍ'];
     const expenseHeight = this._renderExpenseTable(sheet, currentRow, cfg.RIGHT_COL, '2. Báo cáo Chi phí', this.CONFIG.COLORS.EXPENSE, expenseRows);
+
+    // Define expStart for formatting section below
     const expStart = currentRow + 2;
     // Formulas for Expense are handled inside _renderExpenseTable now
     
@@ -278,7 +280,6 @@ const DashboardManager = {
     sheet.getRange(incStart, cfg.LEFT_COL + 2, incomeCategories.length + 1, 1).setNumberFormat('0.0%');
     // Expense
     sheet.getRange(expStart, cfg.RIGHT_COL + 1, expenseCategories.length + 2, 3).setNumberFormat('#,##0');
-    
     // Liabilities
     sheet.getRange(liabStart, cfg.LEFT_COL + 1, debtItems.length + 1, 1).setNumberFormat('#,##0');
     sheet.getRange(liabStart, cfg.LEFT_COL + 2, debtItems.length + 1, 1).setNumberFormat('0.0%');
