@@ -189,16 +189,19 @@ function getLoanTypeLabel(typeId, isDebt = true) {
 
 /**
  * Map legacy type names to new type IDs (Backward compatibility)
- * @param {string} typeName - Old type name or new type ID
+ * Enhanced to handle full labels with parentheses
+ * @param {string} typeName - Old type name, new type ID, or full label
  * @return {string} Type ID
  */
 function mapLegacyTypeToId(typeName) {
+  if (!typeName) return 'OTHER';
+  
   // If already a valid ID, return as-is
   if (LOAN_TYPES[typeName]) {
     return typeName;
   }
   
-  // Legacy mapping
+  // Try exact match with legacy mapping first
   const legacyMapping = {
     // Legacy lending types (from LendingForm.html)
     'Tất toán gốc - lãi cuối kỳ': 'BULLET',
@@ -214,7 +217,41 @@ function mapLegacyTypeToId(typeName) {
     'Khác': 'OTHER'
   };
   
-  return legacyMapping[typeName] || 'OTHER';
+  if (legacyMapping[typeName]) {
+    return legacyMapping[typeName];
+  }
+  
+  // NEW: Try fuzzy matching with current labels (handle full labels with descriptions)
+  // Check if typeName matches any debtLabel or lendingLabel
+  for (const [id, config] of Object.entries(LOAN_TYPES)) {
+    if (typeName === config.debtLabel || typeName === config.lendingLabel) {
+      return id;
+    }
+  }
+  
+  // NEW: Try partial matching (e.g., "Vay trả góp (Gốc đều, lãi giảm dần)" contains "Vay trả góp")
+  const typeNameLower = typeName.toLowerCase();
+  
+  // Match patterns
+  if (typeNameLower.includes('vay trả góp') || typeNameLower.includes('cho vay trả góp')) {
+    if (typeNameLower.includes('miễn lãi')) {
+      return 'INTEREST_FREE';
+    } else if (typeNameLower.includes('phí ban đầu')) {
+      return 'EQUAL_PRINCIPAL_UPFRONT_FEE';
+    } else {
+      return 'EQUAL_PRINCIPAL';
+    }
+  }
+  
+  if (typeNameLower.includes('nợ ngân hàng') || typeNameLower.includes('trả lãi hàng tháng') || typeNameLower.includes('trả lãi định kỳ')) {
+    return 'INTEREST_ONLY';
+  }
+  
+  if (typeNameLower.includes('tất toán') || typeNameLower.includes('gốc + lãi cuối kỳ') || typeNameLower.includes('gốc, lãi cuối kỳ')) {
+    return 'BULLET';
+  }
+  
+  return 'OTHER';
 }
 
 // ==================== MENU CHÍNH ====================
