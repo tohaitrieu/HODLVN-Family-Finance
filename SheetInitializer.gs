@@ -105,6 +105,45 @@ const SheetInitializer = {
     if (typeof DashboardManager !== 'undefined') {
       DashboardManager.setupDashboard();
     }
+    
+    // Sắp xếp lại thứ tự Sheet
+    this.reorderSheets();
+  },
+
+  /**
+   * Sắp xếp lại thứ tự các Sheet theo quy định
+   */
+  reorderSheets() {
+    const ss = getSpreadsheet();
+    const desiredOrder = [
+      APP_CONFIG.SHEETS.DASHBOARD,        // 1. Tổng quan
+      APP_CONFIG.SHEETS.INCOME,           // 2. Thu
+      APP_CONFIG.SHEETS.EXPENSE,          // 3. Chi
+      APP_CONFIG.SHEETS.BUDGET,           // 4. Budget
+      APP_CONFIG.SHEETS.DEBT_MANAGEMENT,  // 5. Quản lý nợ
+      APP_CONFIG.SHEETS.DEBT_PAYMENT,     // 6. Trả nợ
+      APP_CONFIG.SHEETS.GOLD,             // 7. Vàng
+      APP_CONFIG.SHEETS.STOCK,            // 8. Chứng khoán
+      APP_CONFIG.SHEETS.CRYPTO,           // 9. Crypto
+      APP_CONFIG.SHEETS.LENDING,          // 10. Cho vay
+      APP_CONFIG.SHEETS.LENDING_REPAYMENT,// 11. Thu nợ
+      APP_CONFIG.SHEETS.OTHER_INVESTMENT, // 12. Đầu tư khác
+      APP_CONFIG.SHEETS.CHANGELOG         // 13. Lịch sử cập nhật
+    ];
+    
+    desiredOrder.forEach((sheetName, index) => {
+      const sheet = ss.getSheetByName(sheetName);
+      if (sheet) {
+        ss.setActiveSheet(sheet);
+        ss.moveActiveSheet(index + 1);
+      }
+    });
+    
+    // Quay về Dashboard
+    const dashboard = ss.getSheetByName(APP_CONFIG.SHEETS.DASHBOARD);
+    if (dashboard) {
+      ss.setActiveSheet(dashboard);
+    }
   },
 
   /**

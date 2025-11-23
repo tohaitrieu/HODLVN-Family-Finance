@@ -591,7 +591,14 @@ function processSetupWizard(setupData) {
     Logger.log('✅ Đã cập nhật Dashboard');
     
     // ============================================================
-    // BƯỚC 6: Trả về kết quả
+    // BƯỚC 6: Sắp xếp lại thứ tự Sheet
+    // ============================================================
+    
+    SheetInitializer.reorderSheets();
+    Logger.log('✅ Đã sắp xếp lại thứ tự Sheet');
+    
+    // ============================================================
+    // BƯỚC 7: Trả về kết quả
     // ============================================================
     
     return {
