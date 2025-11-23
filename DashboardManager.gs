@@ -64,7 +64,10 @@ const DashboardManager = {
       // 4. Setup Chart
       this._createChart(sheet);
       
-      // 5. Format & Finalize
+      // 5. Setup Action Buttons (Checkboxes)
+      this._setupActionButtons(sheet);
+      
+      // 6. Format & Finalize
       this._formatSheet(sheet);
       this._setupTriggers();
       
@@ -120,6 +123,64 @@ const DashboardManager = {
     sheet.getRange('B2').setValue(currentYear.toString());
     sheet.getRange('B3').setValue('Tất cả');
     sheet.getRange('B4').setValue('Tất cả');
+  },
+
+  _setupActionButtons(sheet) {
+    // Define buttons configuration
+    const buttons = [
+      { cell: 'D2', label: '+ NHẬP THU', color: '#4CAF50' },
+      { cell: 'D4', label: '+ NHẬP CHI', color: '#F44336' },
+      { cell: 'F2', label: 'QUẢN LÝ NỢ', color: '#FF9800' },
+      { cell: 'F4', label: 'QUẢN LÝ CHO VAY', color: '#2196F3' },
+      { cell: 'H2', label: 'GD VÀNG', color: '#FFC107' },
+      { cell: 'H4', label: 'GD CHỨNG KHOÁN', color: '#9C27B0' },
+      { cell: 'J2', label: 'GD CRYPTO', color: '#607D8B' },
+      { cell: 'J4', label: 'ĐẦU TƯ KHÁC', color: '#795548' }
+    ];
+
+    buttons.forEach(btn => {
+      // Set Checkbox
+      const range = sheet.getRange(btn.cell);
+      range.insertCheckboxes();
+      range.setValue(false); // Default unchecked
+      range.setFontColor(btn.color);
+      range.setFontWeight('bold');
+      
+      // Set Label (in the same cell, but we can't do that easily with checkbox)
+      // The user requested: "D2: + NHẬP THU". 
+      // In Sheets, a cell is either a checkbox OR text. 
+      // To achieve "Checkbox + Text", we usually put text in the NEXT cell or use a Note.
+      // However, the user request specifically says "D2: + NHẬP THU".
+      // Let's try to set the value as FALSE (unchecked) and use Data Validation for checkbox, 
+      // but we can't have visible text AND a checkbox in the same cell easily without custom drawing.
+      // ALTERNATIVE: Put the Label in the cell to the RIGHT (e.g., E2) or ABOVE/BELOW?
+      // Looking at the coordinates: D2, D4, F2, F4... 
+      // D2 is Checkbox. Let's put the Label in D2 itself? No, that overwrites the checkbox.
+      // Let's assume the user wants the Checkbox in D2, and the Label is implied or we put it in the cell next to it?
+      // BUT D2 is a single cell.
+      // Let's use the "Note" feature or simply rely on the user knowing what it is? 
+      // OR: The user might mean "Label in D2, Checkbox in E2"? 
+      // "D2: + NHẬP THU" -> implies the cell D2 CONTAINS the text "+ NHẬP THU".
+      // If we want a checkbox, maybe the checkbox IS the mechanism.
+      // Let's try this: Put the text in the cell, and make it a checkbox? No, Sheets doesn't support that.
+      // Let's interpret: D2 contains the Checkbox. We need a label.
+      // Let's put the label in the cell to the RIGHT (E2) for D2?
+      // D2 (Checkbox) | E2 (Label: + NHẬP THU)
+      // But E2 might be used.
+      // Let's look at the layout. 
+      // D2, D4, F2, F4... these are in the header area (Rows 2-4).
+      // Columns: A(Label), B(Dropdown), C(Empty?), D(Action?), E(Action?)...
+      // Let's check _setupHeader: A2:A4 are labels, B2:B4 are dropdowns.
+      // So C is likely empty. D is available.
+      // Let's put Checkbox in D2, and Label in E2?
+      // Wait, the user said "D2: + NHẬP THU". This might mean "Label is + NHẬP THU, and there is a checkbox there".
+      // Actually, a common trick is to set the cell value to FALSE, add a checkbox data validation, 
+      // and use a Custom Number Format to show text next to the checkbox?
+      // YES! Custom Number Format: "Label";"Label";"Label"
+      // Let's try that.
+      
+      range.setNumberFormat(`"${btn.label}";"${btn.label}";"${btn.label}"`);
+    });
   },
   
 

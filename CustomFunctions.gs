@@ -159,6 +159,7 @@ function calculateNextPayment(typeId, params) {
 
 /**
  * BULLET: Principal and interest at maturity
+ * Hiển thị duy nhất một sự kiện cuối kỳ
  */
 function calculateBulletPayment(params) {
   const { name, isDebt, remaining, rate, startDate, maturityDate, today } = params;
@@ -180,6 +181,7 @@ function calculateBulletPayment(params) {
 
 /**
  * INTEREST_ONLY: Monthly interest, principal at maturity
+ * Lãi kỳ này = Số ngày trong tháng cột Ngày * (Gốc còn lại * lãi)/365
  */
 function calculateInterestOnlyPayment(params) {
   const { name, isDebt, remaining, rate, term, startDate, today } = params;
@@ -190,15 +192,14 @@ function calculateInterestOnlyPayment(params) {
     payDate.setMonth(payDate.getMonth() + i);
     
     if (payDate >= today) {
-      // Calculate days in this month
-      let prevDate = new Date(startDate);
-      prevDate.setMonth(prevDate.getMonth() + i - 1);
-      const daysInMonth = getDaysDiff(prevDate, payDate);
+      // Calculate days in the month of the payment date
+      const daysInMonth = getDaysInMonth(payDate);
       
-      // Monthly interest = Days × (Principal × Rate) / 365
+      // Monthly interest = Days in Month * (Remaining Principal * Rate) / 365
       let monthlyInterest = daysInMonth * (rate * remaining) / 365;
       
       // Principal payment only on last period
+      // Gốc kỳ này = 0. Nếu là kỳ cuối thì = tổng gốc cho vay (remaining)
       let principalPay = (i === term) ? remaining : 0;
       
       return {
@@ -217,38 +218,35 @@ function calculateInterestOnlyPayment(params) {
 
 /**
  * EQUAL_PRINCIPAL: Equal principal installments, decreasing interest
+ * Cột Gốc kỳ này = Tổng gốc/số kỳ phải trả.
+ * Lãi kỳ này = Số ngày trong tháng cột Ngày * (Gốc còn lại * lãi)/365
  */
 function calculateEqualPrincipalPayment(params) {
-  const { name, isDebt, initialPrincipal, rate, term, startDate, today } = params;
+  const { name, isDebt, initialPrincipal, remaining, rate, term, startDate, today } = params;
   
   const monthlyPrincipal = initialPrincipal / term;
-  let simulatedRemaining = initialPrincipal;
   
   for (let i = 1; i <= term; i++) {
     let payDate = new Date(startDate);
     payDate.setMonth(payDate.getMonth() + i);
     
-    // Calculate interest for this period based on remaining at start of period
-    let prevDate = new Date(startDate);
-    prevDate.setMonth(prevDate.getMonth() + i - 1);
-    const daysInMonth = getDaysDiff(prevDate, payDate);
-    
-    let monthlyInterest = daysInMonth * (rate * simulatedRemaining) / 365;
-    
     // If payment date >= today, return this event
     if (payDate >= today) {
+      // Calculate days in the month of the payment date
+      const daysInMonth = getDaysInMonth(payDate);
+      
+      // Interest based on ACTUAL remaining principal from sheet
+      let monthlyInterest = daysInMonth * (rate * remaining) / 365;
+      
       return {
         date: payDate,
         action: isDebt ? 'Phải trả' : 'Phải thu',
         name: `${name} (Kỳ ${i}/${term})`,
-        remaining: simulatedRemaining,
+        remaining: remaining, // Use actual remaining
         principalPayment: monthlyPrincipal,
         interestPayment: monthlyInterest
       };
     }
-    
-    simulatedRemaining -= monthlyPrincipal;
-    if (simulatedRemaining < 0) simulatedRemaining = 0;
   }
   
   return null;
@@ -258,10 +256,9 @@ function calculateEqualPrincipalPayment(params) {
  * INTEREST_FREE: Equal principal installments, zero interest
  */
 function calculateInterestFreePayment(params) {
-  const { name, isDebt, initialPrincipal, term, startDate, today } = params;
+  const { name, isDebt, initialPrincipal, remaining, term, startDate, today } = params;
   
   const monthlyPrincipal = initialPrincipal / term;
-  let simulatedRemaining = initialPrincipal;
   
   for (let i = 1; i <= term; i++) {
     let payDate = new Date(startDate);
@@ -272,14 +269,11 @@ function calculateInterestFreePayment(params) {
         date: payDate,
         action: isDebt ? 'Phải trả' : 'Phải thu',
         name: `${name} (Kỳ ${i}/${term})`,
-        remaining: simulatedRemaining,
+        remaining: remaining, // Use actual remaining
         principalPayment: monthlyPrincipal,
         interestPayment: 0
       };
     }
-    
-    simulatedRemaining -= monthlyPrincipal;
-    if (simulatedRemaining < 0) simulatedRemaining = 0;
   }
   
   return null;
@@ -294,6 +288,13 @@ function getDaysDiff(d1, d2) {
   if (!d1 || !d2) return 0;
   const diffTime = Math.abs(d2.getTime() - d1.getTime());
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+}
+
+/**
+ * Get number of days in the month of a specific date
+ */
+function getDaysInMonth(date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 }
 
 /**

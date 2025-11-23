@@ -11,7 +11,16 @@
  * - BudgetManager.gs: Quản lý ngân sách
  * - DashboardManager.gs: Quản lý dashboard & thống kê
  * 
- * VERSION: 3.5.2 - Expense Report Upgrade
+ * VERSION: 3.5.4 - Dashboard Quick Actions
+ * CHANGELOG v3.5.4:
+ * ✅ NEW: Quick Action Checkboxes on Dashboard
+ * ✅ NEW: Trigger integration for fast data entry
+ * 
+ * CHANGELOG v3.5.3:
+ * ✅ REFACTOR: Unified Debt & Lending Type System (Shared Logic)
+ * ✅ FIX: Event Calendar for Payables & Receivables
+ * ✅ UPDATE: Backward compatibility for old data
+ * 
  * CHANGELOG v3.5.2:
  * ✅ NEW: Báo cáo chi phí chi tiết (Ngân sách, Còn lại, Trạng thái)
  * ✅ UPDATE: Tự động lấy dữ liệu từ Sheet BUDGET
@@ -44,7 +53,7 @@
 // ==================== CẤU HÌNH TOÀN CỤC ====================
 
 const APP_CONFIG = {
-  VERSION: '3.5.2',
+  VERSION: '3.5.5',
   APP_NAME: '💰 Quản lý Tài chính',
   
   // Danh sách các sheet

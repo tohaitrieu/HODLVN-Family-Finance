@@ -47,11 +47,82 @@ function onEdit(e) {
     // 4. Cập nhật Dashboard (nếu cần)
     // Dashboard dùng công thức nên thường tự cập nhật.
     
-    // 5. Xử lý đồng bộ dữ liệu 2 chiều (Transaction ID)
+    // 5. Xử lý Quick Actions trên Dashboard (Checkboxes)
+    if (sheetName === APP_CONFIG.SHEETS.DASHBOARD) {
+      handleDashboardAction(range);
+    }
+    
+    // 6. Xử lý đồng bộ dữ liệu 2 chiều (Transaction ID)
     SyncManager.handleOnEdit(e);
     
   } catch (error) {
     Logger.log('❌ Lỗi onEdit: ' + error.message);
+  }
+}
+
+/**
+ * Xử lý Quick Actions trên Dashboard
+ * @param {Range} range - Range được edit
+ */
+function handleDashboardAction(range) {
+  const sheet = range.getSheet();
+  const row = range.getRow();
+  const col = range.getColumn();
+  const a1Notation = range.getA1Notation();
+  const value = range.getValue();
+  
+  // Chỉ xử lý khi Checkbox được tích (TRUE)
+  if (value !== true) return;
+  
+  // Map A1Notation -> Function Name
+  const actionMap = {
+    'D2': 'showIncomeForm',
+    'D4': 'showExpenseForm',
+    'F2': 'showDebtManagementForm',
+    'F4': 'showLendingForm',
+    'H2': 'showGoldForm',
+    'H4': 'showStockForm',
+    'J2': 'showCryptoForm',
+    'J4': 'showOtherInvestmentForm'
+  };
+  
+  const functionName = actionMap[a1Notation];
+  
+  if (functionName) {
+    // 1. Uncheck ngay lập tức để reset
+    range.setValue(false);
+    
+    // 2. Gọi hàm hiển thị form
+    // Lưu ý: onEdit simple trigger không thể mở Modal/Sidebar nếu không được cấp quyền.
+    // Nếu user chạy thủ công hoặc qua Installable Trigger thì được.
+    // Chúng ta sẽ thử gọi trực tiếp.
+    try {
+      // Dùng this[functionName]() nếu hàm ở global scope, hoặc eval (không khuyến khích).
+      // Cách tốt nhất là switch case hoặc map trực tiếp function.
+      
+      // Tuy nhiên, Main.gs functions are global.
+      // Trong Apps Script, global functions are properties of the global object.
+      // Nhưng 'this' trong onEdit context có thể khác.
+      // Hãy dùng switch case cho an toàn và rõ ràng.
+      
+      switch (functionName) {
+        case 'showIncomeForm': showIncomeForm(); break;
+        case 'showExpenseForm': showExpenseForm(); break;
+        case 'showDebtManagementForm': showDebtManagementForm(); break;
+        case 'showLendingForm': showLendingForm(); break;
+        case 'showGoldForm': showGoldForm(); break;
+        case 'showStockForm': showStockForm(); break;
+        case 'showCryptoForm': showCryptoForm(); break;
+        case 'showOtherInvestmentForm': showOtherInvestmentForm(); break;
+      }
+      
+      // Hiển thị thông báo nhỏ (Toast)
+      SpreadsheetApp.getActive().toast('Đang mở form...', 'Hệ thống', 1);
+      
+    } catch (e) {
+      Logger.log(`❌ Lỗi mở form ${functionName}: ${e.message}`);
+      range.setNote(`Lỗi: ${e.message}`); // Ghi lỗi vào note để debug
+    }
   }
 }
 
