@@ -327,7 +327,7 @@ const DashboardManager = {
     return rows.length + 2; // Header + SubHeader + Data rows
   },
 
-  _renderExpenseTable(sheet, startRow, startCol, title, color, rows) {
+ _renderExpenseTable(sheet, startRow, startCol, title, color, rows) {
     const numCols = 5; // Name, Spent, Budget, Remaining, Status
     
     // Header
@@ -387,7 +387,7 @@ const DashboardManager = {
         sheet.getRange(r, startCol).setFontWeight('bold');
         sheet.getRange(r, startCol, 1, numCols).setBackground('#EEEEEE');
       }
-    });
+    });  // <-- ĐÃ THÊM DẤU ĐÓNG forEach
     
     // Conditional Formatting for Status Column
     const statusRange = sheet.getRange(dataStart, startCol + 4, rows.length, 1);
@@ -411,49 +411,6 @@ const DashboardManager = {
     // Green - Trong hạn mức (✅)
     const ruleGreen = SpreadsheetApp.newConditionalFormatRule()
       .whenTextContains('✅')
-      .setBackground('#E8F5E9')
-      .setFontColor('#2E7D32')
-      .setRanges([statusRange])
-      .build();
-      
-    // Add rules to sheet
-    const rules = sheet.getConditionalFormatRules();
-    rules.push(ruleRed, ruleYellow, ruleGreen);
-    sheet.setConditionalFormatRules(rules);
-    
-    // Border
-    sheet.getRange(startRow, startCol, rows.length + 2, numCols)
-      .setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
-      
-    return rows.length + 2;
-  },
-    
-    // Formatting
-    // Number format for Spent, Budget, Remaining
-    //sheet.getRange(dataStart, startCol + 1, rows.length, 3).setNumberFormat('#,##0');
-    
-    // Conditional Formatting for Status
-    const statusRange = sheet.getRange(dataStart, startCol + 4, rows.length, 1);
-    
-    // Red - Vượt (> 100%)
-    const ruleRed = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberGreaterThan(1)
-      .setBackground('#FFEBEE')
-      .setFontColor('#C62828')
-      .setRanges([statusRange])
-      .build();
-      
-    // Yellow - Sắp hết (80% - 100%)
-    const ruleYellow = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberBetween(0.8, 1)
-      .setBackground('#FFF3E0')
-      .setFontColor('#EF6C00')
-      .setRanges([statusRange])
-      .build();
-      
-    // Green - Trong hạn mức (< 80%)
-    const ruleGreen = SpreadsheetApp.newConditionalFormatRule()
-      .whenNumberLessThan(0.8)
       .setBackground('#E8F5E9')
       .setFontColor('#2E7D32')
       .setRanges([statusRange])
