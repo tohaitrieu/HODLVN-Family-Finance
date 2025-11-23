@@ -113,34 +113,27 @@ function AccReceivable(lendingData) {
 
 /**
  * Helper function to calculate events
- * ĐÃ SỬA: Thêm hiển thị cột Lãi suất và chuẩn hóa tính toán
+ * ĐÃ SỬA: Đưa cột Lãi suất xuống cuối để không làm lệch cột Gốc/Lãi
  */
 function _calculateEvents(data, isDebt) {
   const events = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  // A(0): STT, B(1): Name, C(2): Type, D(3): Principal, E(4): Rate, F(5): Term, G(6): Date, H(7): Maturity
-  // I(8): PaidPrin, J(9): PaidInt, K(10): Remaining, L(11): Status
-  
   data.forEach(row => {
-    // Skip empty rows
     if (!row[1]) return;
     
     const name = row[1];
-    let type = row[2]; 
+    let type = row[2];
     
-    // Convert legacy type name to ID
     type = mapLegacyTypeToId(type);
     
     const initialPrincipal = parseCurrency(row[3]);
     let rate = parseFloat(row[4]) || 0;
     
-    // --- LOGIC CHUẨN HÓA LÃI SUẤT ---
-    // Google Sheets: 10% = 0.1. Nếu người dùng nhập số thường (10), ta chia 100.
-    // Nếu lãi suất < 0, coi như bằng 0.
+    // Chuẩn hóa lãi suất
     if (rate > 1) {
-      rate = rate / 100; 
+      rate = rate / 100;
     }
     if (isNaN(rate) || rate < 0) {
       rate = 0;
@@ -160,8 +153,7 @@ function _calculateEvents(data, isDebt) {
     
     const startDate = parseDate(rawStartDate);
     const maturityDate = parseDate(rawMaturityDate);
-
-    // Check active status
+    
     let isActive = false;
     if (isDebt) {
       isActive = (status === 'Chưa trả' || status === 'Đang trả');
@@ -183,46 +175,41 @@ function _calculateEvents(data, isDebt) {
       });
       
       if (nextEvent) {
-        // --- SỬA 1: Lưu lãi suất vào sự kiện để hiển thị ---
-        nextEvent.rate = rate; 
+        nextEvent.rate = rate; // Lưu lãi suất
         events.push(nextEvent);
       }
     }
   });
 
   if (events.length === 0) {
-    // --- SỬA 2: Thêm 1 cột trống cho đúng cấu trúc bảng (7 cột) ---
+    // Trả về 7 cột trống
     return [['Không có sự kiện sắp tới', '', '', '', '', '', '']];
   }
   
-  // Sort by date
   events.sort((a, b) => a.date - b.date);
-
-  // Limit to 10
   const limitedEvents = events.slice(0, 10);
-
-  // Convert to 2D array
+  
+  // --- SỬA ĐỔI QUAN TRỌNG: Đưa rate xuống cuối ---
   const result = limitedEvents.map(evt => [
-    evt.date,
-    evt.action,
-    evt.name,
-    evt.remaining,
-    evt.rate, // --- SỬA 3: Thêm cột Lãi suất vào đây (Cột thứ 5) ---
-    evt.principalPayment,
-    evt.interestPayment
+    evt.date,              // Cột 1: Ngày
+    evt.action,            // Cột 2: Hành động
+    evt.name,              // Cột 3: Tên
+    evt.remaining,         // Cột 4: Còn lại
+    evt.principalPayment,  // Cột 5: Gốc (Giữ nguyên vị trí cũ)
+    evt.interestPayment,   // Cột 6: Lãi (Giữ nguyên vị trí cũ)
+    evt.rate               // Cột 7: Lãi suất (Mới thêm vào cuối)
   ]);
-
-  // Add Total Row
+  
   let totalPrincipal = 0;
   let totalInterest = 0;
-
+  
   limitedEvents.forEach(evt => {
     totalPrincipal += evt.principalPayment;
     totalInterest += evt.interestPayment;
   });
-
-  // --- SỬA 4: Thêm ô trống vào dòng Tổng cộng để không bị lệch cột ---
-  result.push(['TỔNG CỘNG', '', '', '', '', totalPrincipal, totalInterest]);
+  
+  // Dòng tổng cộng: Tổng Gốc (cột 5), Tổng Lãi (cột 6), Trống (cột 7)
+  result.push(['TỔNG CỘNG', '', '', '', totalPrincipal, totalInterest, '']);
   
   return result;
 }
