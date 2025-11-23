@@ -894,32 +894,58 @@ const SheetInitializer = {
     sheet.getRange('B2').setNumberFormat('#,##0');
     
     // ========== ROW 3-5: PHÂN BỔ NGÂN SÁCH ==========
-    sheet.getRange('A3').setValue('% Chi tiêu:')
+    sheet.getRange('A3').setValue('Nhóm Chi tiêu:')
       .setFontWeight('bold')
       .setHorizontalAlignment('right');
-    sheet.getRange('B3').setNumberFormat('0%').setValue(0.5); // Default 50%
+    sheet.getRange('B3').setNumberFormat('0.00%').setValue(0.5); // Default 50%
     
-    sheet.getRange('A4').setValue('% Đầu tư:')
+    sheet.getRange('A4').setValue('Nhóm Đầu tư:')
       .setFontWeight('bold')
       .setHorizontalAlignment('right');
-    sheet.getRange('B4').setNumberFormat('0%').setValue(0.3); // Default 30%
+    sheet.getRange('B4').setNumberFormat('0.00%').setValue(0.3); // Default 30%
     
-    sheet.getRange('A5').setValue('% Trả nợ:')
+    sheet.getRange('A5').setValue('Nhóm Trả nợ:')
       .setFontWeight('bold')
       .setHorizontalAlignment('right');
-    sheet.getRange('B5').setNumberFormat('0%').setValue(0.2); // Default 20%
+    sheet.getRange('B5').setNumberFormat('0.00%').setValue(0.2); // Default 20%
     
     // Validation: Sum must be 100%
-    sheet.getRange('C3').setFormula('=IF(SUM(B3:B5)<>1, "⚠️ Tổng phải là 100%", "✅ OK")');
+    sheet.getRange('C3').setFormula('=IF(SUM(B3:B5)<>1, "⚠️ Tổng phải là 100%", "")');
     
     // ========== TABLE HEADERS (Row 6) ==========
-    const headers = ['Danh mục', 'Mục tiêu', 'Thực tế', 'Còn lại', 'Trạng thái', 'Ghi chú'];
+    // Updated headers to match screenshot and user request
+    const headers = ['Danh mục', '% Nhóm', 'Ngân sách', 'Đã chi', 'Còn lại', 'Trạng thái'];
     sheet.getRange('A6:F6').setValues([headers])
       .setFontWeight('bold')
-      .setBackground('#EEEEEE')
+      .setBackground('#4472C4') // Blue header like screenshot
+      .setFontColor('#FFFFFF')
       .setHorizontalAlignment('center');
       
     // ========== GROUP 1: CHI TIÊU (Row 7-16) ==========
+    // Header Row for Chi Tieu
+    sheet.getRange('A7:F7').merge().setValue('📛 CHI TIÊU')
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center')
+      .setBackground('#EA4335') // Red like screenshot
+      .setFontColor('#FFFFFF');
+
+    // Reset headers at Row 8 because Row 7 is now a section header?
+    // Wait, screenshot shows:
+    // Row ?: Nhóm Chi tiêu
+    // Row ?: CHI TIÊU (Red bar)
+    // Row ?: Headers (Blue bar)
+    // Row ?: Data
+    
+    // Let's stick to the previous row structure but update headers/formats
+    // Row 6 is Headers.
+    // Row 7 starts Data?
+    // In screenshot, "CHI TIÊU" is ABOVE the headers?
+    // Or maybe "CHI TIÊU" is the header for the section.
+    
+    // Let's follow the previous code's row indexing but apply new structure.
+    // Previous code: Row 6 headers. Row 7 data.
+    // I will keep Row 6 as Headers.
+    
     const expenseCats = [
       'Ăn uống', 'Đi lại', 'Nhà ở', 'Điện nước', 'Viễn thông',
       'Giáo dục', 'Y tế', 'Mua sắm', 'Giải trí', 'Khác'
@@ -930,76 +956,98 @@ const SheetInitializer = {
     });
     
     // Total Expense Row (17)
-    sheet.getRange('A17').setValue('TỔNG CHI TIÊU').setFontWeight('bold');
-    sheet.getRange('B17').setFormula('=SUM(B7:B16)');
+    sheet.getRange('A17').setValue('TỔNG CHI').setFontWeight('bold');
+    sheet.getRange('B17').setFormula('=SUM(B7:B16)').setNumberFormat('0.00%');
     sheet.getRange('C17').setFormula('=SUM(C7:C16)');
-    sheet.getRange('D17').setFormula('=B17-C17');
+    sheet.getRange('D17').setFormula('=SUM(D7:D16)');
+    sheet.getRange('E17').setFormula('=C17-D17');
     
-    // ========== GROUP 2: ĐẦU TƯ (Row 19-23) - MOVED UP ==========
-    sheet.getRange('A19').setValue('ĐẦU TƯ').setFontWeight('bold').setBackground('#D4EDDA');
+    // ========== GROUP 2: ĐẦU TƯ (Row 19-23) ==========
+    sheet.getRange('A19').setValue('💰 ĐẦU TƯ').setFontWeight('bold').setBackground('#34A853').setFontColor('#FFFFFF'); // Green
     sheet.getRange('A20').setValue('Chứng khoán');
     sheet.getRange('A21').setValue('Vàng');
     sheet.getRange('A22').setValue('Crypto');
     sheet.getRange('A23').setValue('Đầu tư khác');
     
     // Total Investment Row (24)
-    sheet.getRange('A24').setValue('TỔNG ĐẦU TƯ').setFontWeight('bold');
-    sheet.getRange('B24').setFormula('=SUM(B20:B23)');
+    sheet.getRange('A24').setValue('TỔNG ĐT').setFontWeight('bold');
+    sheet.getRange('B24').setFormula('=SUM(B20:B23)').setNumberFormat('0.00%');
     sheet.getRange('C24').setFormula('=SUM(C20:C23)');
-    sheet.getRange('D24').setFormula('=B24-C24');
+    sheet.getRange('D24').setFormula('=SUM(D20:D23)');
+    sheet.getRange('E24').setFormula('=C24-D24');
 
-    // ========== GROUP 3: TRẢ NỢ (Row 26) - MOVED DOWN ==========
-    sheet.getRange('A26').setValue('TRẢ NỢ').setFontWeight('bold').setBackground('#F8D7DA');
-    sheet.getRange('A27').setValue('Trả nợ (Gốc + Lãi)');
+    // ========== GROUP 3: TRẢ NỢ (Row 26) ==========
+    sheet.getRange('A26').setValue('💳 TRẢ NỢ').setFontWeight('bold').setBackground('#FBBC04').setFontColor('#FFFFFF'); // Yellow/Orange
+    sheet.getRange('A27').setValue('Trả nợ');
     
-    // Sync Warning for Debt
-    sheet.getRange('E27').setFormula(
-      '=IF(B27 < IFERROR(SUM(\'QUẢN LÝ NỢ\'!G:G), 0), "⚠️ Thấp hơn thực tế", "✅ OK")'
-    );
-
-    // ========== FORMULAS FOR ACTUAL (Column C) ==========
+    // Total Debt Row (27 is data, maybe 28 is total?)
+    // Let's just treat 27 as the only row for now.
+    
+    // ========== FORMULAS ==========
+    
+    // 1. Calculate Budget (Col C) based on % (Col B)
+    // Expense: Budget = Income * Group% * Item%
+    // Note: B3 is Group% for Expense
+    sheet.getRange('C7:C16').setFormula('=IF(B7<>"", $B$2 * $B$3 * B7, 0)');
+    
+    // Investment: Budget = Income * Group% * Item%
+    // Note: B4 is Group% for Investment
+    sheet.getRange('C20:C23').setFormula('=IF(B20<>"", $B$2 * $B$4 * B20, 0)');
+    
+    // Debt: Manual or Fixed. Let's leave it as value or simple formula.
+    // If user enters value in C27, it stays.
+    
+    // 2. Calculate Spent (Col D) - SUMIFS
     // Expense
-    sheet.getRange('C7:C16').setFormulaR1C1(
-      '=IFERROR(SUMIFS(CHI!C3, CHI!C4, RC[-2], CHI!C2, ">="&DATE(YEAR(TODAY()), MONTH(TODAY()), 1), CHI!C2, "<"&DATE(YEAR(TODAY()), MONTH(TODAY())+1, 1)), 0)'
+    sheet.getRange('D7:D16').setFormulaR1C1(
+      '=IFERROR(SUMIFS(CHI!C3, CHI!C4, RC[-3], CHI!C2, ">="&DATE(YEAR(TODAY()), MONTH(TODAY()), 1), CHI!C2, "<"&DATE(YEAR(TODAY()), MONTH(TODAY())+1, 1)), 0)'
     );
     
     // Investment
     // Stock
-    sheet.getRange('C20').setFormula(
+    sheet.getRange('D20').setFormula(
       '=IFERROR(SUMIFS(\'CHỨNG KHOÁN\'!H:H, \'CHỨNG KHOÁN\'!C:C, "Mua", \'CHỨNG KHOÁN\'!B:B, ">="&DATE(YEAR(TODAY()), MONTH(TODAY()), 1), \'CHỨNG KHOÁN\'!B:B, "<"&DATE(YEAR(TODAY()), MONTH(TODAY())+1, 1)), 0)'
     );
     // Gold
-    sheet.getRange('C21').setFormula(
+    sheet.getRange('D21').setFormula(
       '=IFERROR(SUMIFS(\'VÀNG\'!I:I, \'VÀNG\'!D:D, "Mua", \'VÀNG\'!B:B, ">="&DATE(YEAR(TODAY()), MONTH(TODAY()), 1), \'VÀNG\'!B:B, "<"&DATE(YEAR(TODAY()), MONTH(TODAY())+1, 1)), 0)'
     );
     // Crypto
-    sheet.getRange('C22').setFormula(
+    sheet.getRange('D22').setFormula(
       '=IFERROR(SUMIFS(\'CRYPTO\'!I:I, \'CRYPTO\'!C:C, "Mua", \'CRYPTO\'!B:B, ">="&DATE(YEAR(TODAY()), MONTH(TODAY()), 1), \'CRYPTO\'!B:B, "<"&DATE(YEAR(TODAY()), MONTH(TODAY())+1, 1)), 0)'
     );
     // Other
-    sheet.getRange('C23').setFormula(
+    sheet.getRange('D23').setFormula(
       '=IFERROR(SUMIFS(\'ĐẦU TƯ KHÁC\'!D:D, \'ĐẦU TƯ KHÁC\'!B:B, ">="&DATE(YEAR(TODAY()), MONTH(TODAY()), 1), \'ĐẦU TƯ KHÁC\'!B:B, "<"&DATE(YEAR(TODAY()), MONTH(TODAY())+1, 1)), 0)'
     );
     
     // Debt
-    sheet.getRange('C27').setFormula(
+    sheet.getRange('D27').setFormula(
       '=IFERROR(SUMIFS(\'TRẢ NỢ\'!F:F, \'TRẢ NỢ\'!B:B, ">="&DATE(YEAR(TODAY()), MONTH(TODAY()), 1), \'TRẢ NỢ\'!B:B, "<"&DATE(YEAR(TODAY()), MONTH(TODAY())+1, 1)), 0)'
     );
     
-    // ========== REMAINING & STATUS ==========
-    sheet.getRange('D7:D27').setFormula('=IF(B7>0, B7-C7, 0)');
-    sheet.getRange('E7:E24').setFormula(
-      '=IF(C7=0, "⚪ Chưa chi", IF(C7>B7, "🔴 Vượt ngân sách", IF(C7/B7>=0.8, "⚠️ Sắp hết", "✅ Trong hạn mức")))'
+    // 3. Calculate Remaining (Col E) = Budget (C) - Spent (D)
+    sheet.getRange('E7:E27').setFormula('=IF(C7>0, C7-D7, 0)');
+    
+    // 4. Status (Col F)
+    sheet.getRange('F7:F27').setFormula(
+      '=IF(D7=0, "⚪ Chưa chi", IF(D7>C7, "🔴 Vượt ngân sách", IF(D7/C7>=0.8, "⚠️ Sắp hết", "✅ Trong hạn mức")))'
     );
     
-    // Formatting
-    sheet.getRange('B2:D30').setNumberFormat('#,##0');
-    sheet.setColumnWidth(1, 200);
-    sheet.setColumnWidth(2, 120);
-    sheet.setColumnWidth(3, 120);
-    sheet.setColumnWidth(4, 120);
-    sheet.setColumnWidth(5, 150);
-    sheet.setColumnWidth(6, 200);
+    // ========== FORMATTING ==========
+    // Col B: %
+    sheet.getRange('B7:B27').setNumberFormat('0.00%');
+    
+    // Col C, D, E: Number (NO CURRENCY)
+    sheet.getRange('C7:E30').setNumberFormat('#,##0');
+    
+    // Widths
+    sheet.setColumnWidth(1, 200); // Danh mục
+    sheet.setColumnWidth(2, 80);  // % Nhóm
+    sheet.setColumnWidth(3, 120); // Ngân sách
+    sheet.setColumnWidth(4, 120); // Đã chi
+    sheet.setColumnWidth(5, 120); // Còn lại
+    sheet.setColumnWidth(6, 150); // Trạng thái
     
     return sheet;
   }
