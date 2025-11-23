@@ -58,10 +58,10 @@ const DashboardManager = {
       // Return the last row used to position the Monthly Table
       const lastRow = this._setupGridTables(sheet, this.CONFIG.LAYOUT.START_ROW);
       
-      // 3. Setup Monthly Table (Table 2)
-      this._setupTable2(sheet, lastRow + 3);
+      // 3. Setup Monthly Table (Table 2) - Fixed at row 36
+      this._setupTable2(sheet, 36);
       
-      // 4. Setup Chart
+      // 4. Setup Chart - Fixed at K36
       this._createChart(sheet);
       
       // 5. Setup Action Buttons (Checkboxes) - DISABLED
@@ -93,7 +93,7 @@ const DashboardManager = {
   
   _setupHeader(sheet) {
     // Title
-    sheet.getRange('A1:J1').merge()
+    sheet.getRange('A1:I1').merge()
       .setValue('📊 BÁO CÁO TÀI CHÍNH (CASHFLOW)')
       .setFontSize(14)
       .setFontWeight('bold')
@@ -821,8 +821,9 @@ const DashboardManager = {
   },
   
   _createChart(sheet) {
-    const chartRow = this.CONFIG.LAYOUT.CHART_ROW; // Row 33
-    const chartCol = this.CONFIG.LAYOUT.CHART_COL; // Col K
+    // Chart vẽ từ K36 đến P49
+    const chartStartRow = 36;
+    const chartStartCol = 11; // Column K
     
     // Tìm vị trí các dòng TỔNG trong Dashboard
     const cfg = this.CONFIG.LAYOUT;
@@ -860,13 +861,15 @@ const DashboardManager = {
     sheet.getRange('E3:H3').setHorizontalAlignment('center');
     
     // Tạo biểu đồ cột sử dụng E2:H3
+    // Position: K36 (row 36, col 11)
+    // Size: 6 columns (K-P) x 14 rows (36-49)
     const chart = sheet.newChart()
       .setChartType(Charts.ChartType.COLUMN)
       .addRange(sheet.getRange('E2:H3')) // Header + Data
-      .setPosition(chartRow, chartCol, 0, 0) // Vẽ tại vị trí chart
+      .setPosition(chartStartRow, chartStartCol, 0, 0) // K36
       .setOption('title', 'Tổng quan Tài chính')
-      .setOption('width', 600)
-      .setOption('height', 350)
+      .setOption('width', 720) // 6 columns * 120px = 720px
+      .setOption('height', 420) // 14 rows height
       .setOption('legend', { position: 'none' }) // Không cần legend
       .setOption('colors', ['#4CAF50', '#F44336', '#FF9800', '#2196F3']) // Xanh, Đỏ, Cam, Xanh dương
       .setOption('vAxis', { 
