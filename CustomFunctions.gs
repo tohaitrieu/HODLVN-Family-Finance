@@ -1,13 +1,13 @@
 /**
  * ===============================================
- * CUSTOM FUNCTIONS v3.5.6 - STABLE RELEASE
+ * CUSTOM FUNCTIONS v3.5.7 - DEBUG MODE
  * ===============================================
- * Fix: "Result was not a number" error
- * Fix: Logic tính lãi và hiển thị sự kiện
+ * - Bỏ hiển thị cột Lãi suất (quay về 6 cột).
+ * - Thêm Logs chi tiết để kiểm tra tại sao Lãi = 0.
  */
 
 /**
- * Map tên loại hình cũ sang ID mới
+ * Map legacy type names to new type IDs
  */
 function mapLegacyTypeToId(typeName) {
   if (!typeName) return 'OTHER';
@@ -66,23 +66,21 @@ function _calculateEvents(data, isDebt) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  data.forEach(row => {
+  data.forEach((row, index) => {
     if (!row[1]) return;
     
     const name = row[1];
     const type = mapLegacyTypeToId(row[2]);
     
-    // Sử dụng hàm parseCurrency an toàn mới
+    // Parse an toàn
     const initialPrincipal = parseCurrency(row[3]);
-    const remaining = parseCurrency(row[10]); 
-    
-    // Xử lý Rate an toàn
     let rate = parseFloat(row[4]);
+    
+    // Chuẩn hóa Rate
     if (isNaN(rate)) rate = 0;
     if (rate > 1) rate = rate / 100;
     if (rate < 0) rate = 0;
     
-    // Xử lý Term an toàn
     let term = row[5];
     if (term instanceof Date) {
       term = Math.round((term - new Date(1899, 11, 30)) / 86400000);
@@ -93,6 +91,9 @@ function _calculateEvents(data, isDebt) {
     
     const startDate = parseDate(row[6]);
     const maturityDate = parseDate(row[7]);
+    
+    // Lấy dư nợ từ cột K
+    const remaining = parseCurrency(row[10]); 
     const status = row[11];
     
     let isActive = false;
@@ -116,28 +117,27 @@ function _calculateEvents(data, isDebt) {
       });
       
       if (nextEvent) {
-        nextEvent.rate = rate;
         events.push(nextEvent);
       }
     }
   });
 
   if (events.length === 0) {
-    return [['Không có sự kiện sắp tới', '', '', '', '', '', '']];
+    // Trả về 6 cột trống (đã bỏ cột lãi suất)
+    return [['Không có sự kiện sắp tới', '', '', '', '', '']];
   }
   
   events.sort((a, b) => a.date - b.date);
   const limitedEvents = events.slice(0, 10);
   
-  // Map kết quả và đảm bảo không có giá trị NaN
+  // Map kết quả - BỎ CỘT RATE
   const result = limitedEvents.map(evt => [
     evt.date,
     evt.action || '',
     evt.name || '',
     safeNumber(evt.remaining),
     safeNumber(evt.principalPayment),
-    safeNumber(evt.interestPayment),
-    safeNumber(evt.rate)
+    safeNumber(evt.interestPayment)
   ]);
   
   let totalPrincipal = 0;
@@ -147,12 +147,13 @@ function _calculateEvents(data, isDebt) {
     totalInterest += safeNumber(evt.interestPayment);
   });
   
-  result.push(['TỔNG CỘNG', '', '', '', totalPrincipal, totalInterest, '']);
+  // Dòng tổng cộng - 6 cột
+  result.push(['TỔNG CỘNG', '', '', '', totalPrincipal, totalInterest]);
   
   return result;
 }
 
-// ==================== LOGIC TÍNH TOÁN ====================
+// ==================== LOGIC TÍNH TOÁN (CÓ DEBUG) ====================
 
 function calculateNextPayment(typeId, params) {
   switch(typeId) {
@@ -165,6 +166,9 @@ function calculateNextPayment(typeId, params) {
   }
 }
 
+/**
+ * 1. VAY TRẢ GÓP
+ */
 function calculateEqualPrincipalPayment(params) {
   const { name, isDebt, initialPrincipal, remaining, rate, term, startDate, today } = params;
   const monthlyPrincipal = term ? initialPrincipal / term : 0;
@@ -179,9 +183,20 @@ function calculateEqualPrincipalPayment(params) {
 
     if (payDate >= today) {
       const daysInMonth = getDaysInMonth(payDate);
-      // Sử dụng dư nợ thực tế (remaining) để tính lãi
+      
+      // --- LOGIC TÍNH LÃI ---
       let monthlyInterest = (daysInMonth * remaining * rate) / 365;
       
+      // --- DEBUG LOG ---
+      Logger.log(`[DEBUG TRẢ GÓP] Khoản: ${name}`);
+      Logger.log(`  - 1. Lãi suất (rate): ${rate} (${rate * 100}%)`);
+      Logger.log(`  - 2. Số tiền còn lại (remaining): ${remaining}`);
+      Logger.log(`  - 3. Số ngày (daysInMonth): ${daysInMonth} (Tháng ${payDate.getMonth()+1})`);
+      Logger.log(`  - 4. Gốc phải trả: ${monthlyPrincipal}`);
+      Logger.log(`  - 5. Lãi phải trả (tính): ${monthlyInterest}`);
+      Logger.log(`  - Công thức: (${daysInMonth} * ${remaining} * ${rate}) / 365`);
+      // -----------------
+
       return {
         date: payDate,
         action: isDebt ? 'Phải trả' : 'Phải thu',
@@ -195,6 +210,9 @@ function calculateEqualPrincipalPayment(params) {
   return null;
 }
 
+/**
+ * 2. TRẢ LÃI ĐỊNH KỲ
+ */
 function calculateInterestOnlyPayment(params) {
   const { name, isDebt, remaining, rate, term, startDate, today } = params;
   
@@ -208,9 +226,20 @@ function calculateInterestOnlyPayment(params) {
 
     if (payDate >= today) {
       const daysInMonth = getDaysInMonth(payDate);
+      
+      // --- LOGIC TÍNH LÃI ---
       let monthlyInterest = (daysInMonth * remaining * rate) / 365;
       let principalPay = (i === term) ? remaining : 0;
       
+      // --- DEBUG LOG ---
+      Logger.log(`[DEBUG TRẢ LÃI] Khoản: ${name}`);
+      Logger.log(`  - 1. Lãi suất (rate): ${rate} (${rate * 100}%)`);
+      Logger.log(`  - 2. Số tiền còn lại (remaining): ${remaining}`);
+      Logger.log(`  - 3. Số ngày (daysInMonth): ${daysInMonth}`);
+      Logger.log(`  - 4. Gốc phải trả: ${principalPay}`);
+      Logger.log(`  - 5. Lãi phải trả (tính): ${monthlyInterest}`);
+      // -----------------
+
       return {
         date: payDate,
         action: isDebt ? 'Phải trả' : 'Phải thu',
@@ -224,10 +253,15 @@ function calculateInterestOnlyPayment(params) {
   return null;
 }
 
+/**
+ * 3. TẤT TOÁN CUỐI KỲ
+ */
 function calculateBulletPayment(params) {
   const { name, isDebt, remaining, rate, term, maturityDate, today } = params;
   if (!maturityDate || maturityDate < today) return null;
   
+  // Tính lãi ước lượng: Gốc * Lãi * (Số tháng / 12)
+  // Hoặc chính xác hơn: (Gốc * Lãi * Số ngày thực tế) / 365
   const interest = term * (remaining * rate) / 12; 
 
   return {
@@ -262,19 +296,13 @@ function calculateInterestFreePayment(params) {
   return null;
 }
 
-// ==================== HELPER FUNCTIONS (FIXED) ====================
+// ==================== HELPER FUNCTIONS ====================
 
-/**
- * Hàm parseCurrency an toàn, luôn trả về số, không trả về NaN
- */
 function parseCurrency(val) {
-  if (typeof val === 'number') {
-    return isNaN(val) ? 0 : val;
-  }
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
   if (typeof val === 'string') {
     if (!val.trim()) return 0;
-    // Xóa tất cả ký tự không phải số
-    const clean = val.replace(/\D/g, '');
+    const clean = val.replace(/\D/g, ''); // Chỉ giữ lại số
     if (!clean) return 0;
     const num = parseFloat(clean);
     return isNaN(num) ? 0 : num;
@@ -282,13 +310,8 @@ function parseCurrency(val) {
   return 0;
 }
 
-/**
- * Hàm đảm bảo giá trị là số hợp lệ
- */
 function safeNumber(val) {
-  if (typeof val === 'number') {
-    return isNaN(val) ? 0 : val;
-  }
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
   return 0;
 }
 
