@@ -19,8 +19,8 @@ const DashboardManager = {
       LEFT_COL: 1,      // A
       RIGHT_COL: 5,     // E
       CALENDAR_COL: 11, // K
-      CHART_COL: 12,    // K
-      CHART_ROW: 39,    // Row 33
+      CHART_COL: 11,    // K
+      CHART_ROW: 33,    // Row 33
       START_ROW: 6,     // Start data after header/dropdowns
       COL_WIDTH: 3      // Width of each table (A-B-C)
     },
@@ -64,8 +64,8 @@ const DashboardManager = {
       // 4. Setup Chart
       this._createChart(sheet);
       
-      // 5. Setup Action Buttons (Checkboxes)
-      this._setupActionButtons(sheet);
+      // 5. Setup Action Buttons (Checkboxes) - DISABLED
+      // this._setupActionButtons(sheet);
       
       // 6. Format & Finalize
       this._formatSheet(sheet);
@@ -93,7 +93,7 @@ const DashboardManager = {
   
   _setupHeader(sheet) {
     // Title
-    sheet.getRange('A1:G1').merge()
+    sheet.getRange('A1:J1').merge()
       .setValue('📊 BÁO CÁO TÀI CHÍNH (CASHFLOW)')
       .setFontSize(14)
       .setFontWeight('bold')
@@ -131,6 +131,12 @@ const DashboardManager = {
     sheet.getRange('B2').setValue(currentYear); // Set NUMBER
     sheet.getRange('B3').setValue('Tất cả');
     sheet.getRange('B4').setValue('Tất cả');
+    
+    // Chart Data Headers (E2:H2)
+    sheet.getRange('E2').setValue('Thu nhập').setFontWeight('bold').setHorizontalAlignment('center');
+    sheet.getRange('F2').setValue('Chi phí').setFontWeight('bold').setHorizontalAlignment('center');
+    sheet.getRange('G2').setValue('Nợ').setFontWeight('bold').setHorizontalAlignment('center');
+    sheet.getRange('H2').setValue('Tài sản').setFontWeight('bold').setHorizontalAlignment('center');
   },
 
   _setupActionButtons(sheet) {
@@ -766,7 +772,7 @@ const DashboardManager = {
     const currentYear = new Date().getFullYear();
     
     // Title
-    sheet.getRange(startRow, 1, 1, 10).merge()
+    sheet.getRange(startRow, 1, 1, 9).merge()
       .setValue(`📈 THỐNG KÊ TÀI CHÍNH GIA ĐÌNH NĂM ${currentYear}`)
       .setFontSize(12)
       .setFontWeight('bold')
@@ -777,8 +783,8 @@ const DashboardManager = {
     const headerRow = startRow + 1;
     const dataStart = startRow + 2;
     
-    const headers = ['Kỳ', 'Thu', 'Chi', 'Nợ (Gốc)', 'Lãi', 'CK', 'Vàng', 'Crypto', 'ĐT khác', 'Dòng tiền'];
-    sheet.getRange(headerRow, 1, 1, 10).setValues([headers])
+    const headers = ['Kỳ', 'Thu', 'Chi', 'Nợ', 'CK', 'Vàng', 'Crypto', 'ĐT khác', 'Dòng tiền'];
+    sheet.getRange(headerRow, 1, 1, 9).setValues([headers])
       .setFontWeight('bold')
       .setBackground('#EEEEEE')
       .setHorizontalAlignment('center');
@@ -793,28 +799,25 @@ const DashboardManager = {
       sheet.getRange(r, 2).setFormula(`=IFERROR(SUMIFS(THU!C:C, THU!B:B, ">="&DATE(${currentYear},${m},1), THU!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
       // Chi
       sheet.getRange(r, 3).setFormula(`=IFERROR(SUMIFS(CHI!C:C, CHI!B:B, ">="&DATE(${currentYear},${m},1), CHI!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
-      // Nợ (Gốc)
-      sheet.getRange(r, 4).setFormula(`=IFERROR(SUMIFS('TRẢ NỢ'!D:D, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${m},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
-      // Lãi
-      sheet.getRange(r, 5).setFormula(`=IFERROR(SUMIFS('TRẢ NỢ'!E:E, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${m},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      // Nợ (Gốc + Lãi)
+      sheet.getRange(r, 4).setFormula(`=IFERROR(SUMIFS('TRẢ NỢ'!D:D, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${m},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0) + IFERROR(SUMIFS('TRẢ NỢ'!E:E, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${m},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
       
       // CK (Profit)
-      sheet.getRange(r, 6).setFormula(`=IFERROR(SUMIFS('CHỨNG KHOÁN'!N:N, 'CHỨNG KHOÁN'!B:B, ">="&DATE(${currentYear},${m},1), 'CHỨNG KHOÁN'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      sheet.getRange(r, 5).setFormula(`=IFERROR(SUMIFS('CHỨNG KHOÁN'!N:N, 'CHỨNG KHOÁN'!B:B, ">="&DATE(${currentYear},${m},1), 'CHỨNG KHOÁN'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
       // Vàng (Profit)
-      sheet.getRange(r, 7).setFormula(`=IFERROR(SUMIFS('VÀNG'!L:L, 'VÀNG'!B:B, ">="&DATE(${currentYear},${m},1), 'VÀNG'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      sheet.getRange(r, 6).setFormula(`=IFERROR(SUMIFS('VÀNG'!L:L, 'VÀNG'!B:B, ">="&DATE(${currentYear},${m},1), 'VÀNG'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
       // Crypto (Profit)
-      sheet.getRange(r, 8).setFormula(`=IFERROR(SUMIFS('CRYPTO'!N:N, 'CRYPTO'!B:B, ">="&DATE(${currentYear},${m},1), 'CRYPTO'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      sheet.getRange(r, 7).setFormula(`=IFERROR(SUMIFS('CRYPTO'!N:N, 'CRYPTO'!B:B, ">="&DATE(${currentYear},${m},1), 'CRYPTO'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
       // ĐT khác (Profit)
-      sheet.getRange(r, 9).setFormula(`=IFERROR(SUMIFS('ĐẦU TƯ KHÁC'!H:H, 'ĐẦU TƯ KHÁC'!B:B, ">="&DATE(${currentYear},${m},1), 'ĐẦU TƯ KHÁC'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      sheet.getRange(r, 8).setFormula(`=IFERROR(SUMIFS('ĐẦU TƯ KHÁC'!H:H, 'ĐẦU TƯ KHÁC'!B:B, ">="&DATE(${currentYear},${m},1), 'ĐẦU TƯ KHÁC'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
       
-      // Dòng tiền = Thu - Chi - Trả nợ (Gốc+Lãi) + Lãi đầu tư (Optional, usually included in Income)
-      // Here: Thu - Chi - (Debt Principal + Interest)
-      sheet.getRange(r, 10).setFormula(`=R[0]C[-8] - R[0]C[-7] - R[0]C[-6] - R[0]C[-5]`);
+      // Dòng tiền = Thu - Chi - Nợ (Gốc+Lãi)
+      sheet.getRange(r, 9).setFormula(`=R[0]C[-7] - R[0]C[-6] - R[0]C[-5]`);
     }
     
     // Format
-    sheet.getRange(dataStart, 2, 12, 9).setNumberFormat('#,##0');
-    sheet.getRange(headerRow, 1, 13, 10).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
+    sheet.getRange(dataStart, 2, 12, 8).setNumberFormat('#,##0');
+    sheet.getRange(headerRow, 1, 13, 9).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
   },
   
   _createChart(sheet) {
@@ -822,7 +825,6 @@ const DashboardManager = {
     const chartCol = this.CONFIG.LAYOUT.CHART_COL; // Col K
     
     // Tìm vị trí các dòng TỔNG trong Dashboard
-    // Sử dụng vị trí động dựa trên cấu trúc layout
     const cfg = this.CONFIG.LAYOUT;
     const startRow = cfg.START_ROW;
     
@@ -847,35 +849,21 @@ const DashboardManager = {
     // Assets: 6 items + TỔNG TÀI SẢN
     const assetTotalRow = row2StartRow + 2 + 6; // Dòng TỔNG TÀI SẢN
     
-    // Tạo hidden helper table cho biểu đồ (4 hàng x 2 cột: Category, Value)
-    const chartDataRow = chartRow;
+    // Điền dữ liệu vào E3:H3 (Giá trị tổng cho biểu đồ)
+    sheet.getRange('E3').setFormula(`=B${incomeTotalRow}`); // TỔNG THU NHẬP
+    sheet.getRange('F3').setFormula(`=F${expenseTotalRow}`); // TỔNG CHI PHÍ
+    sheet.getRange('G3').setFormula(`=B${debtTotalRow}`); // TỔNG NỢ
+    sheet.getRange('H3').setFormula(`=H${assetTotalRow}`); // TỔNG TÀI SẢN
     
-    // Header
-    sheet.getRange(chartDataRow, chartCol).setValue('Danh mục');
-    sheet.getRange(chartDataRow, chartCol + 1).setValue('Số tiền');
+    // Format E3:H3
+    sheet.getRange('E3:H3').setNumberFormat('#,##0');
+    sheet.getRange('E3:H3').setHorizontalAlignment('center');
     
-    // Data rows
-    sheet.getRange(chartDataRow + 1, chartCol).setValue('Thu nhập');
-    sheet.getRange(chartDataRow + 1, chartCol + 1).setFormula(`=B${incomeTotalRow}`); // TỔNG THU NHẬP
-    
-    sheet.getRange(chartDataRow + 2, chartCol).setValue('Chi phí');
-    sheet.getRange(chartDataRow + 2, chartCol + 1).setFormula(`=F${expenseTotalRow}`); // TỔNG CHI PHÍ
-    
-    sheet.getRange(chartDataRow + 3, chartCol).setValue('Nợ');
-    sheet.getRange(chartDataRow + 3, chartCol + 1).setFormula(`=B${debtTotalRow}`); // TỔNG NỢ
-    
-    sheet.getRange(chartDataRow + 4, chartCol).setValue('Tài sản');
-    sheet.getRange(chartDataRow + 4, chartCol + 1).setFormula(`=H${assetTotalRow}`); // TỔNG TÀI SẢN (Giá trị HT)
-    
-    // Format helper table
-    sheet.getRange(chartDataRow, chartCol, 5, 2).setNumberFormat('#,##0');
-    sheet.getRange(chartDataRow, chartCol, 5, 2).setFontSize(9);
-    
-    // Tạo biểu đồ cột
+    // Tạo biểu đồ cột sử dụng E2:H3
     const chart = sheet.newChart()
       .setChartType(Charts.ChartType.COLUMN)
-      .addRange(sheet.getRange(chartDataRow, chartCol, 5, 2)) // K33:L37 (header + 4 rows)
-      .setPosition(chartDataRow + 6, chartCol, 0, 0) // Vẽ dưới helper table
+      .addRange(sheet.getRange('E2:H3')) // Header + Data
+      .setPosition(chartRow, chartCol, 0, 0) // Vẽ tại vị trí chart
       .setOption('title', 'Tổng quan Tài chính')
       .setOption('width', 600)
       .setOption('height', 350)
@@ -898,24 +886,10 @@ const DashboardManager = {
     // Hide gridlines
     sheet.setHiddenGridlines(true);
     
-    // Set column widths
-    sheet.setColumnWidth(1, 200); // A
-    sheet.setColumnWidth(2, 120); // B
-    sheet.setColumnWidth(3, 120); // C
-    sheet.setColumnWidth(4, 120);  // Checkbox
-    sheet.setColumnWidth(5, 150); // Label
-    
-    sheet.setColumnWidth(6, 120);  // Checkbox
-    sheet.setColumnWidth(7, 150); // Label
-    
-    sheet.setColumnWidth(8, 120);  // Checkbox
-    sheet.setColumnWidth(9, 150); // Label
-    
-    sheet.setColumnWidth(10, 120); // Checkbox
-    sheet.setColumnWidth(11, 150); // Label
-    
-    // M column (Calendar)
-    sheet.setColumnWidth(13, 200); // M
+    // Set tất cả column widths = 120
+    for (let col = 1; col <= 20; col++) {
+      sheet.setColumnWidth(col, 120);
+    }
   },
   
   _setupTriggers() {
