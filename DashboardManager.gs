@@ -418,6 +418,11 @@ const DashboardManager = {
       // 2. Ngân sách (Budget)
       if (name === 'TỔNG CHI PHÍ') {
          sheet.getRange(r, startCol + 2).setFormula(`=SUM(R[-${rows.length - 1}]C:R[-1]C)`);
+      } else if (name === 'Đầu tư') {
+         // Map 'Đầu tư' expense to 'TỔNG ĐT' in Budget
+         const budgetBase = `IFERROR(VLOOKUP("TỔNG ĐT", BUDGET!A:C, 3, 0), 0)`;
+         const multiplier = `IF($B$4<>"Tất cả", 1, IF($B$3<>"Tất cả", 3, 12))`;
+         sheet.getRange(r, startCol + 2).setFormula(`=${budgetBase} * ${multiplier}`);
       } else {
          // VLOOKUP từ BUDGET sheet với multiplier động theo bộ lọc thời gian
          // Nếu chọn Tháng: x1, Quý: x3, Năm: x12
@@ -834,7 +839,7 @@ const DashboardManager = {
     const incomeCategories = APP_CONFIG.CATEGORIES.INCOME;
     const incomeTotalRow = startRow + 2 + incomeCategories.length;
 
-    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ');
+    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ' && cat !== 'Cho vay');
     const expenseTotalRow = startRow + 2 + expenseCategories.length + 1;
 
     // Tính row height để xác định vị trí block dưới
@@ -853,7 +858,7 @@ const DashboardManager = {
     // Giả định vị trí cột Tiền là C và G (hoặc H tùy cấu hình của bạn).
     // Bạn hãy kiểm tra kỹ cột chứa số liệu thực tế trong sheet Dashboard để sửa C/G/H cho đúng.
     sheet.getRange('F3').setFormula(`=B${incomeTotalRow}`); // Thu nhập
-    sheet.getRange('G3').setFormula(`=G${expenseTotalRow}`); // Chi phí
+    sheet.getRange('G3').setFormula(`=F${expenseTotalRow}`); // Chi phí (Thực tế)
     sheet.getRange('H3').setFormula(`=B${debtTotalRow}`); // Nợ
     sheet.getRange('I3').setFormula(`=H${assetTotalRow}`); // Tài sản
 

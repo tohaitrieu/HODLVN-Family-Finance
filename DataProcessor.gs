@@ -601,6 +601,22 @@ function addStock(data) {
     
     BudgetManager.updateInvestmentBudget('Chứng khoán', total);
     
+    // [NEW] Tự động ghi nhận Chi phí Đầu tư khi MUA
+    if (type === 'Mua') {
+      const expenseResult = addExpense({
+        date: date,
+        amount: total,
+        category: 'Đầu tư',
+        subcategory: `Mua CK: ${stockCodeUpper}`,
+        note: `Mua ${quantity} CP ${stockCodeUpper} giá ${formatCurrency(price)}`,
+        transactionId: Utilities.getUuid() // New ID for expense
+      });
+      
+      if (expenseResult.success) {
+        Logger.log('✅ Đã tự động thêm chi phí đầu tư chứng khoán');
+      }
+    }
+    
     Logger.log(`Đã thêm giao dịch CK: ${type} ${quantity} ${stockCodeUpper} @ ${formatCurrency(price)}`);
     
     return {
@@ -708,6 +724,22 @@ function addGold(data) {
     });
     
     BudgetManager.updateInvestmentBudget('Vàng', total);
+    
+    // [NEW] Tự động ghi nhận Chi phí Đầu tư khi MUA
+    if (type === 'Mua') {
+      const expenseResult = addExpense({
+        date: date,
+        amount: total,
+        category: 'Đầu tư',
+        subcategory: `Mua Vàng: ${goldType}`,
+        note: `Mua ${quantity} ${unit} ${goldType} giá ${formatCurrency(price)}`,
+        transactionId: Utilities.getUuid()
+      });
+      
+      if (expenseResult.success) {
+        Logger.log('✅ Đã tự động thêm chi phí đầu tư vàng');
+      }
+    }
     
     Logger.log(`Đã thêm giao dịch vàng: ${type} ${quantity} ${unit} ${goldType}`);
     
@@ -837,6 +869,22 @@ function addCrypto(data) {
     
     BudgetManager.updateInvestmentBudget('Crypto', totalVND);
     
+    // [NEW] Tự động ghi nhận Chi phí Đầu tư khi MUA
+    if (type === 'Mua') {
+      const expenseResult = addExpense({
+        date: date,
+        amount: totalVND,
+        category: 'Đầu tư',
+        subcategory: `Mua Crypto: ${coin}`,
+        note: `Mua ${quantity} ${coin} giá $${formatCurrency(priceUSD)}`,
+        transactionId: Utilities.getUuid()
+      });
+      
+      if (expenseResult.success) {
+        Logger.log('✅ Đã tự động thêm chi phí đầu tư crypto');
+      }
+    }
+    
     Logger.log(`Đã thêm giao dịch crypto: ${type} ${quantity} ${coin}`);
     
     return {
@@ -905,6 +953,21 @@ function addOtherInvestment(data) {
     });
     
     BudgetManager.updateInvestmentBudget('Đầu tư khác', amount);
+    
+    // [NEW] Tự động ghi nhận Chi phí Đầu tư
+    // Đầu tư khác mặc định là chi tiền ra để đầu tư
+    const expenseResult = addExpense({
+      date: date,
+      amount: amount,
+      category: 'Đầu tư',
+      subcategory: `Đầu tư: ${investmentType}`,
+      note: note,
+      transactionId: Utilities.getUuid()
+    });
+    
+    if (expenseResult.success) {
+      Logger.log('✅ Đã tự động thêm chi phí đầu tư khác');
+    }
     
     Logger.log(`Đã thêm đầu tư khác: ${investmentType} - ${formatCurrency(amount)}`);
     

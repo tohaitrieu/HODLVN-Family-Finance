@@ -53,7 +53,7 @@
 // ==================== CẤU HÌNH TOÀN CỤC ====================
 
 const APP_CONFIG = {
-  VERSION: '3.5.5',
+  VERSION: '3.5.7',
   APP_NAME: '💰 Quản lý Tài chính',
   
   // Danh sách các sheet
@@ -100,7 +100,7 @@ const APP_CONFIG = {
     ],
     EXPENSE: [
       'Ăn uống', 'Đi lại', 'Nhà ở', 'Y tế', 
-      'Giáo dục', 'Mua sắm', 'Giải trí', 'Cho vay', 'Trả nợ', 'Khác'
+      'Giáo dục', 'Mua sắm', 'Giải trí', 'Cho vay', 'Trả nợ', 'Đầu tư', 'Khác'
     ],
     INVESTMENT: [
       'Chứng khoán', 'Vàng', 'Crypto', 'Đầu tư khác'

@@ -938,7 +938,7 @@ const SheetInitializer = {
     // Filter out 'Trả nợ' and 'Cho vay' from Expense Categories if they exist, 
     // as they have their own sections or logic.
     // User requested "Trả nợ" to be separate.
-    const expenseCats = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ' && cat !== 'Cho vay');
+    const expenseCats = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ' && cat !== 'Cho vay' && cat !== 'Đầu tư');
     
     expenseCats.forEach((cat, i) => {
       const r = 8 + i;

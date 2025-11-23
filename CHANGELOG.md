@@ -2,6 +2,18 @@
 
 Mọi thay đổi đáng chú ý của dự án sẽ được ghi lại trong file này.
 
+## [3.5.7] - 2025-11-23
+### Tự động ghi nhận Chi phí Đầu tư
+- ✅ **NEW**: Thêm danh mục "Đầu tư" vào nhóm Chi phí.
+- ✅ **LOGIC**: Tự động tạo khoản Chi phí tương ứng khi thực hiện giao dịch MUA (Chứng khoán, Vàng, Crypto, Đầu tư khác).
+- ✅ **SYNC**: Đảm bảo dòng tiền ra được ghi nhận đầy đủ vào báo cáo Chi tiêu.
+
+## [3.5.6] - 2025-11-23
+### Sửa lỗi Dashboard
+- ✅ **FIX**: Sửa lỗi tính toán vị trí dòng Tổng Chi phí (do sai lệch bộ lọc danh mục).
+- ✅ **FIX**: Biểu đồ Tổng quan giờ hiển thị Chi phí Thực tế (Cột F) thay vì Ngân sách (Cột G).
+- ✅ **UI**: Cập nhật hiển thị biểu đồ chính xác hơn.
+
 ## [3.5.5] - 2025-11-23
 ### Tinh chỉnh Logic Lịch sự kiện
 - ✅ **FIX**: Cập nhật logic Lịch sự kiện cho "Vay trả góp" và "Trả lãi hàng tháng".
