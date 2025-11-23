@@ -799,32 +799,14 @@ const DashboardManager = {
   },
   
   _formatSheet(sheet) {
-    // Set all columns A-L to 120
+    // 1. Set columns A-L (1-12) to 120
     sheet.setColumnWidths(1, 12, 120);
-    // Set column M to 200
+    
+    // 2. Set column M (13) to 200
     sheet.setColumnWidth(13, 200);
-    sheet.setColumnWidth(2, 120); // B: Value
-    sheet.setColumnWidth(3, 60);  // C: %
     
-    sheet.setColumnWidth(4, 50);  // D: Spacer
-    
-    // E, F, G, H, I: Expense / Assets
-    sheet.setColumnWidth(5, 200); // E: Name
-    sheet.setColumnWidth(6, 120); // F: Value / Capital
-    sheet.setColumnWidth(7, 100); // G: % / P/L
-    sheet.setColumnWidth(8, 120); // H: Current Val
-    sheet.setColumnWidth(9, 120); // I: % (Assets)
-    
-    sheet.setColumnWidth(10, 50); // J: Spacer
-    
-    // K, L, M, N, O, P: Calendar (6 cols)
-    // Date, Action, Event, Remaining, Principal, Interest
-    sheet.setColumnWidth(11, 100); // K: Date
-    sheet.setColumnWidth(12, 100); // L: Action
-    sheet.setColumnWidth(13, 200); // M: Event
-    sheet.setColumnWidth(14, 120); // N: Remaining
-    sheet.setColumnWidth(15, 120); // O: Principal Payment
-    sheet.setColumnWidth(16, 120); // P: Interest Payment
+    // 3. Set columns N, O, P (14-16) to 120
+    sheet.setColumnWidths(14, 3, 120);
     
     sheet.setFrozenRows(1);
   },
