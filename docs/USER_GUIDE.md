@@ -168,6 +168,19 @@ Xem phim, du lịch, game, sách
 
 ---
 
+## 🤝 Quản lý Cho vay (Lending)
+
+Tính năng giúp bạn theo dõi các khoản tiền mang đi cho vay, lịch thu hồi nợ và lãi.
+
+### Các tính năng chính
+- **Thêm khoản vay**: Ghi nhận người vay, số tiền, lãi suất, kỳ hạn.
+- **Thu nợ & lãi**: Ghi nhận các lần thu hồi gốc và lãi.
+- **Tự động hóa**: Tự động tạo giao dịch Chi (khi cho vay) và Thu (khi thu nợ) để cân bằng Cash Flow.
+
+👉 **Xem hướng dẫn chi tiết:** [Hướng dẫn Cho vay (Lending)](LENDING.md)
+
+---
+
 ## 💳 Quản lý Nợ
 
 ### Form Quản lý Nợ

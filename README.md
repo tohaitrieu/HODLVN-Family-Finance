@@ -280,6 +280,7 @@ HODLVN-Family-Finance/
 |----------|-------|------|
 | 📥 **Installation Guide** | Hướng dẫn cài đặt từng bước chi tiết | [INSTALLATION.md](docs/INSTALLATION.md) |
 | 📖 **User Guide** | Hướng dẫn sử dụng các tính năng | [USER_GUIDE.md](docs/USER_GUIDE.md) |
+| 🤝 **Lending Guide** | Hướng dẫn tính năng Cho vay | [LENDING.md](docs/LENDING.md) |
 | 🔧 **Technical Docs** | Tài liệu kỹ thuật cho developers | [TECHNICAL_DOCUMENTATION.md](docs/TECHNICAL_DOCUMENTATION.md) |
 | 📝 **Changelog** | Lịch sử phát triển và cập nhật | [CHANGELOG.md](docs/CHANGELOG.md) |
 | 🔍 **Troubleshooting** | Xử lý lỗi và FAQ | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
