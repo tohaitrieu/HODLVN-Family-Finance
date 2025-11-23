@@ -286,11 +286,6 @@ function calculateInterestOnlyPayment(params) {
   const validRate = (isNaN(rate) || rate < 0) ? 0 : rate;
   const validRemaining = (isNaN(remaining) || remaining < 0) ? 0 : remaining;
   
-  // DEBUG LOG
-  Logger.log(`[calculateInterestOnlyPayment] ${name}`);
-  Logger.log(`  rate (input): ${rate}, validRate: ${validRate}`);
-  Logger.log(`  remaining (input): ${remaining}, validRemaining: ${validRemaining}`);
-  
   // Loop through each month to find next payment
   for (let i = 1; i <= term; i++) {
     // Create new date object for each iteration
@@ -302,10 +297,7 @@ function calculateInterestOnlyPayment(params) {
     }
     
     // Check for invalid date
-    if (isNaN(payDate.getTime())) {
-      Logger.log(`⚠️ Invalid payDate at iteration ${i}`);
-      continue;
-    }
+    if (isNaN(payDate.getTime())) continue;
     
     if (payDate >= today) {
       // Calculate days in the month of the payment date
@@ -313,10 +305,6 @@ function calculateInterestOnlyPayment(params) {
       
       // Monthly interest = (Days in Month × Remaining Principal × Rate) / 365
       let monthlyInterest = (daysInMonth * validRemaining * validRate) / 365;
-      
-      // DEBUG LOG
-      Logger.log(`  [Kỳ ${i}] daysInMonth: ${daysInMonth}, validRemaining: ${validRemaining}, validRate: ${validRate}`);
-      Logger.log(`  [Kỳ ${i}] Calculation: (${daysInMonth} * ${validRemaining} * ${validRate}) / 365 = ${monthlyInterest}`);
       
       // Validate result
       if (isNaN(monthlyInterest) || monthlyInterest < 0) {
@@ -354,12 +342,6 @@ function calculateEqualPrincipalPayment(params) {
   const validInitialPrincipal = (isNaN(initialPrincipal) || initialPrincipal < 0) ? 0 : initialPrincipal;
   const validRemaining = (isNaN(remaining) || remaining < 0) ? 0 : remaining;
 
-  // DEBUG LOG
-  Logger.log(`[calculateEqualPrincipalPayment] ${name}`);
-  Logger.log(`  rate (input): ${rate}, validRate: ${validRate}`);
-  Logger.log(`  remaining (input): ${remaining}, validRemaining: ${validRemaining}`);
-  Logger.log(`  initialPrincipal: ${initialPrincipal}, term: ${term}`);
-
   // Monthly principal payment (constant)
   const monthlyPrincipal = term ? validInitialPrincipal / term : 0;
 
@@ -376,20 +358,12 @@ function calculateEqualPrincipalPayment(params) {
       payDate = new Date(startDate.getFullYear(), startDate.getMonth() + i + 1, 0);
     }
 
-    if (isNaN(payDate.getTime())) {
-      Logger.log(`⚠️ Invalid payDate at iteration ${i}`);
-      continue;
-    }
+    if (isNaN(payDate.getTime())) continue;
 
     if (payDate >= today) {
       const daysInMonth = getDaysInMonth(payDate);
       // Lãi = (Số ngày trong tháng × Gốc còn lại × Lãi suất) / 365
       let monthlyInterest = (daysInMonth * currentRemaining * validRate) / 365;
-      
-      // DEBUG LOG
-      Logger.log(`  [Kỳ ${i}] daysInMonth: ${daysInMonth}, currentRemaining: ${currentRemaining}, validRate: ${validRate}`);
-      Logger.log(`  [Kỳ ${i}] Calculation: (${daysInMonth} * ${currentRemaining} * ${validRate}) / 365 = ${monthlyInterest}`);
-      
       if (isNaN(monthlyInterest) || monthlyInterest < 0) monthlyInterest = 0;
 
       return {
@@ -451,10 +425,38 @@ function getDaysDiff(d1, d2) {
 
 /**
  * Get number of days in the month of a specific date
+ * Uses hardcoded map for accuracy
  */
 function getDaysInMonth(date) {
   if (!date || isNaN(date.getTime())) return 30; // Fallback
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  
+  const month = date.getMonth(); // 0-11
+  const year = date.getFullYear();
+  
+  // Map số ngày cho từng tháng (index 0-11)
+  const daysInMonthMap = [
+    31, // Jan (0)
+    isLeapYear(year) ? 29 : 28, // Feb (1) - Check năm nhuận
+    31, // Mar (2)
+    30, // Apr (3)
+    31, // May (4)
+    30, // Jun (5)
+    31, // Jul (6)
+    31, // Aug (7)
+    30, // Sep (8)
+    31, // Oct (9)
+    30, // Nov (10)
+    31  // Dec (11)
+  ];
+  
+  return daysInMonthMap[month];
+}
+
+/**
+ * Check if a year is a leap year
+ */
+function isLeapYear(year) {
+  return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
 }
 
 /**
