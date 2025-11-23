@@ -154,7 +154,7 @@ const DashboardManager = {
     sheet.getRange(incTotalRow, cfg.LEFT_COL + 2).setValue(1).setNumberFormat('0%');
     
     // 2. Expense Table (5 Cols: Name, Spent, Budget, Remaining, Status)
-    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ gốc' && cat !== 'Trả lãi');
+    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ');
     const expenseRows = [...expenseCategories, 'Trả nợ (Gốc + Lãi)', 'TỔNG CHI PHÍ'];
     const expenseHeight = this._renderExpenseTable(sheet, currentRow, cfg.RIGHT_COL, '2. Báo cáo Chi phí', this.CONFIG.COLORS.EXPENSE, expenseRows);
 
@@ -345,7 +345,7 @@ const DashboardManager = {
       
     // Rows
     const dataStart = startRow + 2;
-    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE;
+    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ');
     const totalRowIdx = dataStart + rows.length - 1;
     
     rows.forEach((name, idx) => {
@@ -357,7 +357,7 @@ const DashboardManager = {
         // Normal categories
         sheet.getRange(r, startCol + 1).setFormula('=' + this._createDynamicSumFormula('CHI', 'C', name, 'D'));
       } else if (name === 'Trả nợ (Gốc + Lãi)') {
-        // Debt
+        // Debt - Gộp Gốc (col D) + Lãi (col E) từ sheet TRẢ NỢ
         sheet.getRange(r, startCol + 1).setFormula('=' + `${this._createDynamicSumFormula('TRẢ NỢ', 'D')} + ${this._createDynamicSumFormula('TRẢ NỢ', 'E')}`);
       } else {
         // Total
@@ -368,28 +368,12 @@ const DashboardManager = {
       if (name === 'TỔNG CHI PHÍ') {
          sheet.getRange(r, startCol + 2).setFormula(`=SUM(R[-${rows.length - 1}]C:R[-1]C)`);
       } else {
-         // VLOOKUP from BUDGET sheet. Range A:C. Col 3 is Budget.
-         // IF name is "Trả nợ (Gốc + Lãi)", map to "Trả nợ gốc" + "Trả lãi" in Budget?
-         // Budget sheet has "Trả nợ gốc" and "Trả lãi" separate.
-         // For simplicity, we will try to VLOOKUP the name directly.
-         // Note: "Trả nợ (Gốc + Lãi)" won't match directly. We need to handle it.
-         
-         if (name === 'Trả nợ (Gốc + Lãi)') {
-           // Sum Budget of "Trả nợ gốc" and "Trả lãi"
-           sheet.getRange(r, startCol + 2).setFormula(`=IFERROR(VLOOKUP("Trả nợ gốc", BUDGET!A:C, 3, 0), 0) + IFERROR(VLOOKUP("Trả lãi", BUDGET!A:C, 3, 0), 0)`);
-         } else {
-           sheet.getRange(r, startCol + 2).setFormula(`=IFERROR(VLOOKUP("${name}", BUDGET!A:C, 3, 0), 0)`);
-         }
+         // VLOOKUP từ BUDGET sheet - Tất cả các mục đều VLOOKUP trực tiếp (kể cả "Trả nợ (Gốc + Lãi)")
+         sheet.getRange(r, startCol + 2).setFormula(`=IFERROR(VLOOKUP("${name}", BUDGET!A:C, 3, 0), 0)`);
       }
       
       // 3. Còn lại (Remaining) = Budget - Spent
       sheet.getRange(r, startCol + 3).setFormula(`=R[0]C[-1] - R[0]C[-2]`);
-      
-      // 4. Trạng thái (Status)
-      // If Spent > Budget -> "Vượt" (Red)
-      // If Spent > 80% Budget -> "Sắp hết" (Yellow)
-      // Else -> "Trong hạn mức" (Green)
-      // Skip for Total row if needed, but useful there too.
       
       // 4. Trạng thái (Status) - Icon + Percent
       const statusFormula = `=IF(R[0]C[-2]=0, "⚪ 0%", 
@@ -404,6 +388,45 @@ const DashboardManager = {
         sheet.getRange(r, startCol, 1, numCols).setBackground('#EEEEEE');
       }
     });
+    
+    // Conditional Formatting for Status Column
+    const statusRange = sheet.getRange(dataStart, startCol + 4, rows.length, 1);
+
+    // Red - Vượt ngân sách (🔴)
+    const ruleRed = SpreadsheetApp.newConditionalFormatRule()
+      .whenTextContains('🔴')
+      .setBackground('#FFEBEE')
+      .setFontColor('#C62828')
+      .setRanges([statusRange])
+      .build();
+      
+    // Yellow - Sắp hết (⚠️)
+    const ruleYellow = SpreadsheetApp.newConditionalFormatRule()
+      .whenTextContains('⚠️')
+      .setBackground('#FFF3E0')
+      .setFontColor('#EF6C00')
+      .setRanges([statusRange])
+      .build();
+      
+    // Green - Trong hạn mức (✅)
+    const ruleGreen = SpreadsheetApp.newConditionalFormatRule()
+      .whenTextContains('✅')
+      .setBackground('#E8F5E9')
+      .setFontColor('#2E7D32')
+      .setRanges([statusRange])
+      .build();
+      
+    // Add rules to sheet
+    const rules = sheet.getConditionalFormatRules();
+    rules.push(ruleRed, ruleYellow, ruleGreen);
+    sheet.setConditionalFormatRules(rules);
+    
+    // Border
+    sheet.getRange(startRow, startCol, rows.length + 2, numCols)
+      .setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
+      
+    return rows.length + 2;
+  },
     
     // Formatting
     // Number format for Spent, Budget, Remaining
