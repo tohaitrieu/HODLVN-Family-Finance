@@ -71,7 +71,16 @@ function _calculateEvents(data, isDebt) {
       rate = 0;
     }
     
-    const term = parseInt(row[5]) || 1;
+    // CRITICAL: Parse Term - handle case where it was auto-converted to Date
+    let term = row[5];
+    if (term instanceof Date) {
+      // If it's a Date, extract the serial number
+      // This happens when Google Sheets auto-converts "48" to a date
+      term = Math.round((term - new Date(1899, 11, 30)) / 86400000);
+    } else {
+      term = parseInt(term) || 1;
+    }
+    
     const rawStartDate = row[6];
     const rawMaturityDate = row[7];
     const remaining = parseCurrency(row[10]);

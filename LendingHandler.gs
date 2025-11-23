@@ -108,6 +108,7 @@ function addLending(data) {
     formatNewRow(lendingSheet, emptyRow, {
       4: '#,##0',           // D: Gốc
       5: '0.00"%"',         // E: Lãi suất
+      6: '0',               // F: Kỳ hạn (Number)
       7: 'dd/mm/yyyy',      // G: Ngày vay
       8: 'dd/mm/yyyy',      // H: Đáo hạn
       9: '#,##0',           // I: Gốc đã thu

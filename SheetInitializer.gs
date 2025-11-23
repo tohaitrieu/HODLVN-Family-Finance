@@ -29,6 +29,7 @@ const SheetInitializer = {
    * Helper: Fix Date Column Format
    * Converts text dates (dd/MM/yyyy) to Date objects and sets format
    * Also strips time components from existing Date objects
+   * Also handles Excel serial numbers
    */
   _fixDateColumn(sheet, colIndex) {
     const lastRow = sheet.getLastRow();
@@ -54,8 +55,16 @@ const SheetInitializer = {
       else if (val instanceof Date) {
         dateObj = val;
       }
+      // Case 3: Excel serial number (e.g., 48030.29166...)
+      else if (typeof val === 'number' && val > 1000) {
+        // Excel serial date: days since 1900-01-01
+        // Google Sheets uses same system
+        const excelEpoch = new Date(1899, 11, 30); // Excel epoch (Dec 30, 1899)
+        const milliseconds = Math.round((val - Math.floor(val)) * 86400000); // fractional part to ms
+        dateObj = new Date(excelEpoch.getTime() + Math.floor(val) * 86400000 + milliseconds);
+      }
 
-      if (dateObj) {
+      if (dateObj && !isNaN(dateObj.getTime())) {
         // Create new date with time set to 00:00:00
         const cleanDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
         
@@ -75,6 +84,52 @@ const SheetInitializer = {
       range.setValues(fixedValues);
     }
     range.setNumberFormat(APP_CONFIG.FORMATS.DATE);
+  },
+
+  /**
+   * Helper: Fix Term Column Format
+   * Converts Date objects back to plain numbers (months)
+   * This fixes cases where Google Sheets auto-converted numbers to dates
+   */
+  _fixTermColumn(sheet, colIndex) {
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return;
+    
+    const range = sheet.getRange(2, colIndex, lastRow - 1, 1);
+    const values = range.getValues();
+    let hasChange = false;
+    
+    const fixedValues = values.map(row => {
+      const val = row[0];
+      if (!val) return [val];
+
+      // If it's a Date object, extract the numeric value
+      // Google Sheets might have auto-converted "48" to a date like "Feb 17, 1900"
+      if (val instanceof Date) {
+        // Get the serial number and use it as the term
+        // This is a workaround - ideally we'd have the original number
+        // For dates in 1900, the day of year is roughly the number
+        const serialNumber = Math.round((val - new Date(1899, 11, 30)) / 86400000);
+        hasChange = true;
+        return [serialNumber];
+      }
+      
+      // If it's already a number, ensure it's an integer
+      if (typeof val === 'number') {
+        const intVal = Math.round(val);
+        if (intVal !== val) {
+          hasChange = true;
+          return [intVal];
+        }
+      }
+      
+      return [val];
+    });
+    
+    if (hasChange) {
+      range.setValues(fixedValues);
+    }
+    range.setNumberFormat('0'); // Plain integer, no decimals
   },
 
   /**
@@ -310,15 +365,23 @@ const SheetInitializer = {
     sheet.setColumnWidth(12, 200);
     sheet.hideColumns(14);         // Hide TransactionID
     
-    // Format
+    // Format - CRITICAL: Set BEFORE any data validation or formulas
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('C2:C').setNumberFormat('@'); // Type is text
     sheet.getRange('D2:D').setNumberFormat('#,##0');
     sheet.getRange('E2:E').setNumberFormat('0.00"%"');
-    sheet.getRange('F2:F').setNumberFormat('0'); // Term (Month) - Number
+    
+    // CRITICAL: Force Kỳ hạn (Term) column to be NUMBER, not DATE
+    const termRange = sheet.getRange('F2:F1000');
+    termRange.setNumberFormat('0'); // Plain integer
+    // Clear any existing format that might interfere
+    this._fixTermColumn(sheet, 6); // Column F
+    
+    // Date columns
     sheet.getRange('G2:H').setNumberFormat(APP_CONFIG.FORMATS.DATE); // Start Date, Maturity Date
     this._fixDateColumn(sheet, 7); // Ngày vay
     this._fixDateColumn(sheet, 8); // Ngày đến hạn
+    
     sheet.getRange('I2:K').setNumberFormat('#,##0');
     
     // Formula
@@ -383,15 +446,23 @@ const SheetInitializer = {
     sheet.setColumnWidth(12, 200);
     sheet.hideColumns(14);         // Hide TransactionID
     
-    // Format
+    // Format - CRITICAL: Set BEFORE any data validation or formulas
     sheet.getRange('A2:A').setNumberFormat('0');
     sheet.getRange('C2:C').setNumberFormat('@'); // Type is text
     sheet.getRange('D2:D').setNumberFormat('#,##0');
     sheet.getRange('E2:E').setNumberFormat('0.00"%"');
-    sheet.getRange('F2:F').setNumberFormat('0'); // Term - Number
+    
+    // CRITICAL: Force Kỳ hạn (Term) column to be NUMBER, not DATE
+    const termRange = sheet.getRange('F2:F1000');
+    termRange.setNumberFormat('0'); // Plain integer
+    // Clear any existing format that might interfere
+    this._fixTermColumn(sheet, 6); // Column F
+    
+    // Date columns
     sheet.getRange('G2:H').setNumberFormat(APP_CONFIG.FORMATS.DATE); // Start Date, Maturity Date
     this._fixDateColumn(sheet, 7); // Ngày vay
     this._fixDateColumn(sheet, 8); // Ngày đến hạn
+    
     sheet.getRange('I2:K').setNumberFormat('#,##0');
     
     // Formula

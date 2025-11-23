@@ -155,7 +155,7 @@ const DashboardManager = {
       labelRange.setHorizontalAlignment('left');
       
       // Clear any previous number format on the checkbox cell
-      range.setNumberFormat('@'); 
+      // Removed number format to avoid validation error 
     });
   },
   
