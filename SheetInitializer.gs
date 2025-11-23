@@ -96,6 +96,9 @@ const SheetInitializer = {
     this.initializeBudgetSheet();
     this.initializeChangelogSheet();
     // Dashboard được cập nhật riêng qua DashboardManager
+    if (typeof DashboardManager !== 'undefined') {
+      DashboardManager.setupDashboard();
+    }
   },
 
   /**

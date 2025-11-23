@@ -281,7 +281,7 @@ const DashboardManager = {
     }
     sheet.getRange(assetTotalRow, cfg.RIGHT_COL + 4).setValue(1).setNumberFormat('0%');
     
-    sheet.getRange(assetHeaderRow, cfg.RIGHT_COL, 9, 5).setBorder(true, true, true, true, true, true);
+    sheet.getRange(assetHeaderRow, cfg.RIGHT_COL, 9, 5).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
     
     const assetHeight = 9; // Fixed height for Assets table
     
@@ -338,8 +338,9 @@ const DashboardManager = {
     });
     
     // Border
+    // Border - Lighter Color
     sheet.getRange(startRow, startCol, rows.length + 2, numCols)
-      .setBorder(true, true, true, true, true, true);
+      .setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
       
     return rows.length + 2; // Header + SubHeader + Data rows
   },
@@ -373,7 +374,7 @@ const DashboardManager = {
     
     // Format columns (Assuming max 12 rows returned)
     const dataRange = sheet.getRange(formulaRow, startCol, 12, numCols);
-    dataRange.setBorder(true, true, true, true, true, true);
+    dataRange.setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
     
     // Format Date Column
     sheet.getRange(formulaRow, startCol, 12, 1).setNumberFormat('dd/MM/yyyy');
@@ -685,7 +686,7 @@ const DashboardManager = {
     }
     
     sheet.getRange(dataStart, 2, 13, 9).setNumberFormat('#,##0');
-    sheet.getRange(headerRow, 1, 14, 10).setBorder(true, true, true, true, true, true);
+    sheet.getRange(headerRow, 1, 14, 10).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
   },
   
   _createChart(sheet) {
@@ -704,15 +705,15 @@ const DashboardManager = {
     // Note: We need to find the Total cells dynamically or use named ranges. 
     // For simplicity, we'll re-calculate totals in the hidden area using the same logic.
     
-    // Thu nhập (Total Income)
-    sheet.getRange('AA2').setFormula('=' + this._createDynamicSumFormula('THU', 'C'));
+    // Thu nhập (Total Income) / 1000
+    sheet.getRange('AA2').setFormula('=' + this._createDynamicSumFormula('THU', 'C') + '/1000');
     
-    // Chi phí (Total Expense)
+    // Chi phí (Total Expense) / 1000
     // Chi phí = Chi tiêu (CHI) + Trả nợ (TRẢ NỢ)
     const chiFormula = this._createDynamicSumFormula('CHI', 'C');
     const traNoGoc = this._createDynamicSumFormula('TRẢ NỢ', 'D');
     const traNoLai = this._createDynamicSumFormula('TRẢ NỢ', 'E');
-    sheet.getRange('AA3').setFormula('=' + `${chiFormula} + ${traNoGoc} + ${traNoLai}`);
+    sheet.getRange('AA3').setFormula('=(' + `${chiFormula} + ${traNoGoc} + ${traNoLai}` + ')/1000');
     
     // Tài sản (Total Assets)
     // Tài sản = (Thu - Chi - Đầu tư + Thoái vốn) + Giá trị hiện tại các khoản đầu tư
@@ -768,26 +769,28 @@ const DashboardManager = {
     const currentValCrypto = `(SUMIF(CRYPTO!C:C, "Mua", CRYPTO!I:I) - SUMIF(CRYPTO!C:C, "Bán", CRYPTO!I:I))`;
     const currentValOther = `SUM('ĐẦU TƯ KHÁC'!D:D)`; // Giả sử chưa thu về
     
-    // Tổng hợp lại cho Chart
-    sheet.getRange('AA4').setFormula('=' + `IFERROR(${netCash} + ${currentValCK} + ${currentValGold} + ${currentValCrypto} + ${currentValOther}, 0)`);
+    // Tổng hợp lại cho Chart / 1000
+    sheet.getRange('AA4').setFormula('=' + `IFERROR(${netCash} + ${currentValCK} + ${currentValGold} + ${currentValCrypto} + ${currentValOther}, 0)/1000`);
     
-    // Nợ (Total Liabilities)
+    // Nợ (Total Liabilities) / 1000
     // Nợ cũng là Stock (Tích lũy). Lọc theo thời gian cho Nợ nghĩa là gì? "Nợ phát sinh trong kỳ"?
     // Bảng Liabilities đang dùng: SUMIFS('QUẢN LÝ NỢ'!J:J, 'QUẢN LÝ NỢ'!B:B, name) -> Cột J là "Còn nợ".
     // Nó KHÔNG lọc theo ngày tháng trong Bảng Liabilities (xem dòng 164: formula không có date criteria).
     // Vậy Chart cũng không nên lọc theo ngày tháng cho Nợ.
-    sheet.getRange('AA5').setFormula(`=SUM('QUẢN LÝ NỢ'!J:J)`);
+    sheet.getRange('AA5').setFormula(`=SUM('QUẢN LÝ NỢ'!J:J)/1000`);
     
     // Create Chart
     const chart = sheet.newChart()
       .setChartType(Charts.ChartType.COLUMN)
       .addRange(chartDataRange)
-      .setPosition(33, 11, 0, 0) // Row 33, Col K
-      .setOption('title', 'Tổng quan Tài chính')
+      .setPosition(39, 12, 0, 0) // Row 39, Col L (Index 12)
+      .setOption('title', 'Tổng quan Tài chính (Đơn vị: Nghìn VND)')
       .setOption('width', 600)
       .setOption('height', 400)
       .setOption('legend', { position: 'none' })
       .setOption('useFirstColumnAsDomain', true)
+      .setOption('colors', ['#4CAF50', '#F44336', '#2196F3', '#D32F2F']) // Income(Green), Expense(Red), Assets(Blue), Debt(Dark Red)
+      .setOption('vAxis.format', '#,##0')
       .setNumHeaders(1)
       .build();
       
@@ -796,8 +799,10 @@ const DashboardManager = {
   },
   
   _formatSheet(sheet) {
-    // A, B, C: Income / Liabilities (3 cols)
-    sheet.setColumnWidth(1, 200); // A: Name
+    // Set all columns A-L to 120
+    sheet.setColumnWidths(1, 12, 120);
+    // Set column M to 200
+    sheet.setColumnWidth(13, 200);
     sheet.setColumnWidth(2, 120); // B: Value
     sheet.setColumnWidth(3, 60);  // C: %
     

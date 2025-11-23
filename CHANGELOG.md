@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
 - ✅ **FIX**: Debt Payment & Collection forms now support precise amounts (removed 1000 step).
 - ✅ **FIX**: Dashboard tables row offset issues.
 - ✅ **UPDATE**: Event Calendar now shows only the nearest upcoming event per loan.
+- ✅ **UI**: Dashboard column widths standardized (120px) and M column widened (200px).
+- ✅ **UI**: Lighter table borders for better visibility.
+- ✅ **UI**: Chart moved to L39, Y-axis scaled (x1000 VND), and Debt series colored Red.
 
 ## [3.4.1] - 2025-05-22
 ### Fix Budget Menu & Reports
