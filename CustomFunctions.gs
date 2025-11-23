@@ -1,10 +1,10 @@
 /**
  * ===============================================
- * CUSTOM FUNCTIONS v3.6.1 - NATIVE DATE FIX
+ * CUSTOM FUNCTIONS v3.6.4 - CONFLICT FIX
  * ===============================================
- * - FIX: Loại bỏ hoàn toàn mảng mapping thủ công gây lỗi NaN.
- * - UPDATE: Dùng new Date(y, m+1, 0).getDate() để lấy số ngày chuẩn xác 100% từ hệ thống.
- * - DEBUG: Vẫn giữ Log chi tiết để bạn kiểm tra lần cuối.
+ * - CRITICAL FIX: Đổi tên hàm helper thành _getDaysInMonthSafe để tránh xung đột
+ * với hàm getDaysInMonth(month, year) đang tồn tại trong file Utils.gs.
+ * - Đây là nguyên nhân gốc rễ gây ra lỗi NaN.
  */
 
 function mapLegacyTypeToId(typeName) {
@@ -49,6 +49,8 @@ function AccReceivable(lendingData) {
 }
 
 function _calculateEvents(data, isDebt) {
+  Logger.log("=== RUNNING v3.6.4 (Conflict Fixed) ==="); 
+  
   const events = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -77,9 +79,9 @@ function _calculateEvents(data, isDebt) {
     const startDate = parseDate(row[6]);
     const maturityDate = parseDate(row[7]);
     const remaining = parseCurrency(row[10]); 
-    const status = row[11];
     
     let isActive = false;
+    const status = row[11];
     if (isDebt) {
       isActive = (status === 'Chưa trả' || status === 'Đang trả');
     } else {
@@ -147,7 +149,7 @@ function calculateNextPayment(typeId, params) {
 }
 
 /**
- * 1. VAY TRẢ GÓP (EQUAL_PRINCIPAL)
+ * 1. VAY TRẢ GÓP
  */
 function calculateEqualPrincipalPayment(params) {
   const { name, isDebt, initialPrincipal, remaining, rate, term, startDate, today } = params;
@@ -162,18 +164,13 @@ function calculateEqualPrincipalPayment(params) {
     if (isNaN(payDate.getTime())) continue;
 
     if (payDate >= today) {
-      // GỌI HÀM MỚI
-      const daysInMonth = getDaysInMonth(payDate);
+      // GỌI HÀM MỚI (Đã đổi tên)
+      const daysInMonth = _getDaysInMonthSafe(payDate);
       
       let monthlyInterest = (daysInMonth * remaining * rate) / 365;
       if (isNaN(monthlyInterest)) monthlyInterest = 0;
       
-      // DEBUG LOG
-      Logger.log(`[DEBUG TRẢ GÓP] ${name}:`);
-      Logger.log(`  PayDate: ${payDate} (Tháng ${payDate.getMonth()+1})`);
-      Logger.log(`  Days In Month (Native): ${daysInMonth}`);
-      Logger.log(`  Rem: ${remaining}, Rate: ${rate}`);
-      Logger.log(`  -> Int: ${monthlyInterest}`);
+      Logger.log(`[FIXED TRẢ GÓP] ${name}: PayDate=${payDate.toDateString()}, Days=${daysInMonth}, Interest=${monthlyInterest}`);
 
       return {
         date: payDate,
@@ -189,7 +186,7 @@ function calculateEqualPrincipalPayment(params) {
 }
 
 /**
- * 2. TRẢ LÃI ĐỊNH KỲ (INTEREST_ONLY)
+ * 2. TRẢ LÃI ĐỊNH KỲ
  */
 function calculateInterestOnlyPayment(params) {
   const { name, isDebt, remaining, rate, term, startDate, today } = params;
@@ -203,20 +200,15 @@ function calculateInterestOnlyPayment(params) {
     if (isNaN(payDate.getTime())) continue;
 
     if (payDate >= today) {
-      // GỌI HÀM MỚI
-      const daysInMonth = getDaysInMonth(payDate);
+      // GỌI HÀM MỚI (Đã đổi tên)
+      const daysInMonth = _getDaysInMonthSafe(payDate);
       
       let monthlyInterest = (daysInMonth * remaining * rate) / 365;
       if (isNaN(monthlyInterest)) monthlyInterest = 0;
       
       let principalPay = (i === term) ? remaining : 0;
       
-      // DEBUG LOG
-      Logger.log(`[DEBUG TRẢ LÃI] ${name}:`);
-      Logger.log(`  PayDate: ${payDate} (Tháng ${payDate.getMonth()+1})`);
-      Logger.log(`  Days In Month (Native): ${daysInMonth}`);
-      Logger.log(`  Rem: ${remaining}, Rate: ${rate}`);
-      Logger.log(`  -> Int: ${monthlyInterest}`);
+      Logger.log(`[FIXED TRẢ LÃI] ${name}: PayDate=${payDate.toDateString()}, Days=${daysInMonth}, Interest=${monthlyInterest}`);
 
       return {
         date: payDate,
@@ -231,6 +223,9 @@ function calculateInterestOnlyPayment(params) {
   return null;
 }
 
+/**
+ * 3. TẤT TOÁN CUỐI KỲ
+ */
 function calculateBulletPayment(params) {
   const { name, isDebt, remaining, rate, term, maturityDate, today } = params;
   if (!maturityDate || maturityDate < today) return null;
@@ -269,22 +264,25 @@ function calculateInterestFreePayment(params) {
   return null;
 }
 
-// ==================== HELPER FUNCTIONS (CORE FIX) ====================
+// ==================== HELPER FUNCTIONS ====================
 
 /**
- * SỬA LỖI TRIỆT ĐỂ: Dùng Date Native của Javascript
- * Không parse chuỗi, không map mảng.
+ * ĐÃ ĐỔI TÊN HÀM: _getDaysInMonthSafe
+ * Lý do: Hàm getDaysInMonth(month, year) đã tồn tại trong Utils.gs.
+ * Nếu dùng tên cũ, nó sẽ gọi nhầm hàm bên Utils.gs (yêu cầu 2 tham số), dẫn đến lỗi NaN.
  */
-function getDaysInMonth(date) {
-  if (!date) return 30;
-  
-  // Đảm bảo date là đối tượng Date hợp lệ
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return 30;
-  
-  // LOGIC: Ngày 0 của tháng (m+1) là ngày cuối cùng của tháng m
-  // Ví dụ: new Date(2025, 12, 0) -> 31/12/2025 -> getDate() = 31
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+function _getDaysInMonthSafe(date) {
+  try {
+    if (!date) return 30;
+    var d = new Date(date);
+    if (isNaN(d.getTime())) return 30;
+    
+    // new Date(year, month + 1, 0) trả về ngày cuối tháng
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  } catch (e) {
+    Logger.log("_getDaysInMonthSafe Error: " + e.toString());
+    return 30;
+  }
 }
 
 function parseCurrency(val) {
