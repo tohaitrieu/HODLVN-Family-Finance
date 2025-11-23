@@ -13,6 +13,12 @@ All notable changes to this project will be documented in this file.
 - ✅ **UI**: Lighter table borders for better visibility.
 - ✅ **UI**: Chart moved to L39, Y-axis scaled (x1000 VND), and Debt series colored Red.
 
+## [3.5.1] - 2025-11-23
+### Budget Refinement & Sync
+- ✅ **UPDATE**: Moved "Trả nợ" group after "Đầu tư" in Budget sheet.
+- ✅ **NEW**: Added Sync Warning if Budgeted Debt Payment < Expected Debt Payment.
+- ✅ **FIX**: Removed incorrect items from Debt group.
+
 ## [3.4.1] - 2025-05-22
 ### Fix Budget Menu & Reports
 - ✅ **FIX**: Menu "Đặt Ngân sách tháng" không hoạt động.

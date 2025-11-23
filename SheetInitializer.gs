@@ -95,6 +95,12 @@ const SheetInitializer = {
     this.initializeOtherInvestmentSheet();
     this.initializeBudgetSheet();
     this.initializeChangelogSheet();
+    
+    // Cập nhật nội dung Changelog
+    if (typeof ChangelogManager !== 'undefined') {
+      ChangelogManager.updateChangelogSheet();
+    }
+    
     // Dashboard được cập nhật riêng qua DashboardManager
     if (typeof DashboardManager !== 'undefined') {
       DashboardManager.setupDashboard();
@@ -845,45 +851,8 @@ const SheetInitializer = {
     const tongChiStatus = `=IF(C${chiEndRow}=0, "⚪ N/A", IF(E${chiEndRow}<0, "🔴 " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%"), IF(D${chiEndRow}/C${chiEndRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%"), IF(D${chiEndRow}/C${chiEndRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%"), "✅ " & TEXT(D${chiEndRow}/C${chiEndRow}, "0.0%")))))`;
     sheet.getRange(chiEndRow, 6).setFormula(tongChiStatus).setFontWeight('bold');
     
-    // ========== ROW: % NHÓM TRẢ NỢ ==========
-    const debtRow = chiEndRow + 2;
-    sheet.getRange(debtRow, 1).setValue('Nhóm Trả nợ:').setFontWeight('bold').setFontColor('#FF9800');
-    
-    if (sheet.getRange(debtRow, 2).getValue() === '') {
-      sheet.getRange(debtRow, 2).setValue(0.2);
-    }
-    sheet.getRange(debtRow, 2).setNumberFormat('0.00%').setFontWeight('bold').setBackground('#FFE0B2').setHorizontalAlignment('center');
-    
-    // ========== SECTION 2: TRẢ NỢ ==========
-    const debtHeaderRow = debtRow + 1;
-    sheet.getRange(`A${debtHeaderRow}:F${debtHeaderRow}`).merge()
-      .setValue('💸 TRẢ NỢ').setFontWeight('bold').setBackground('#FF9800').setFontColor('#FFFFFF').setHorizontalAlignment('center');
-    
-    const debtColRow = debtHeaderRow + 1;
-    sheet.getRange(`A${debtColRow}:F${debtColRow}`).setValues([chiHeaders])
-      .setFontWeight('bold').setHorizontalAlignment('center').setBackground('#4472C4').setFontColor('#FFFFFF');
-      
-    // Data Row
-    const debtDataRow = debtColRow + 1;
-    sheet.getRange(debtDataRow, 1).setValue('Trả nợ (Gốc + Lãi)');
-    sheet.getRange(debtDataRow, 2).setValue(1).setNumberFormat('0.00%').setHorizontalAlignment('center');
-    
-    // Budget
-    sheet.getRange(debtDataRow, 3).setFormula(`=$B$2*$B$${debtRow}`).setNumberFormat('#,##0');
-    
-    // Actual
-    const formulaTraNo = `=SUMIFS('TRẢ NỢ'!F:F, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${currentMonth},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`;
-    sheet.getRange(debtDataRow, 4).setFormula(formulaTraNo).setNumberFormat('#,##0');
-    
-    // Remaining
-    sheet.getRange(debtDataRow, 5).setFormula(`=C${debtDataRow}-D${debtDataRow}`).setNumberFormat('#,##0');
-    
-    // Status
-    const debtStatusFormula = `=IF(C${debtDataRow}=0, "⚪ N/A", IF(E${debtDataRow}<0, "🔴 " & TEXT(D${debtDataRow}/C${debtDataRow}, "0.0%"), IF(D${debtDataRow}/C${debtDataRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${debtDataRow}/C${debtDataRow}, "0.0%"), IF(D${debtDataRow}/C${debtDataRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${debtDataRow}/C${debtDataRow}, "0.0%"), "✅ " & TEXT(D${debtDataRow}/C${debtDataRow}, "0.0%")))))`;
-    sheet.getRange(debtDataRow, 6).setFormula(debtStatusFormula);
-
     // ========== ROW: % NHÓM ĐẦU TƯ ==========
-    const dautuRow = debtDataRow + 2;
+    const dautuRow = chiEndRow + 2;
     sheet.getRange(dautuRow, 1).setValue('Nhóm Đầu tư:').setFontWeight('bold').setFontColor('#70AD47');
     
     if (sheet.getRange(dautuRow, 2).getValue() === '') {
@@ -924,6 +893,69 @@ const SheetInitializer = {
       
       const statusFormula = `=IF(C${row}=0, "⚪ N/A", IF(E${row}<0, "🔴 " & TEXT(D${row}/C${row}, "0.0%"), IF(D${row}/C${row} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${row}/C${row}, "0.0%"), IF(D${row}/C${row} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${row}/C${row}, "0.0%"), "✅ " & TEXT(D${row}/C${row}, "0.0%")))))`;
       sheet.getRange(row, 6).setFormula(statusFormula);
+    }
+
+    // ========== ROW: % NHÓM TRẢ NỢ ==========
+    const debtRow = dautuColRow + investCategories.length + 2;
+    sheet.getRange(debtRow, 1).setValue('Nhóm Trả nợ:').setFontWeight('bold').setFontColor('#FF9800');
+    
+    if (sheet.getRange(debtRow, 2).getValue() === '') {
+      sheet.getRange(debtRow, 2).setValue(0.2);
+    }
+    sheet.getRange(debtRow, 2).setNumberFormat('0.00%').setFontWeight('bold').setBackground('#FFE0B2').setHorizontalAlignment('center');
+    
+    // ========== SECTION 3: TRẢ NỢ ==========
+    const debtHeaderRow = debtRow + 1;
+    sheet.getRange(`A${debtHeaderRow}:F${debtHeaderRow}`).merge()
+      .setValue('💸 TRẢ NỢ').setFontWeight('bold').setBackground('#FF9800').setFontColor('#FFFFFF').setHorizontalAlignment('center');
+    
+    const debtColRow = debtHeaderRow + 1;
+    sheet.getRange(`A${debtColRow}:F${debtColRow}`).setValues([chiHeaders])
+      .setFontWeight('bold').setHorizontalAlignment('center').setBackground('#4472C4').setFontColor('#FFFFFF');
+      
+    // Data Row
+    const debtDataRow = debtColRow + 1;
+    sheet.getRange(debtDataRow, 1).setValue('Trả nợ (Gốc + Lãi)');
+    sheet.getRange(debtDataRow, 2).setValue(1).setNumberFormat('0.00%').setHorizontalAlignment('center');
+    
+    // Budget
+    sheet.getRange(debtDataRow, 3).setFormula(`=$B$2*$B$${debtRow}`).setNumberFormat('#,##0');
+    
+    // Actual
+    const formulaTraNo = `=SUMIFS('TRẢ NỢ'!F:F, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${currentMonth},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${currentMonth}+1,1))`;
+    sheet.getRange(debtDataRow, 4).setFormula(formulaTraNo).setNumberFormat('#,##0');
+    
+    // Remaining
+    sheet.getRange(debtDataRow, 5).setFormula(`=C${debtDataRow}-D${debtDataRow}`).setNumberFormat('#,##0');
+    
+    // Status
+    const debtStatusFormula = `=IF(C${debtDataRow}=0, "⚪ N/A", IF(E${debtDataRow}<0, "🔴 " & TEXT(D${debtDataRow}/C${debtDataRow}, "0.0%"), IF(D${debtDataRow}/C${debtDataRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0))+0.1, "🔴 " & TEXT(D${debtDataRow}/C${debtDataRow}, "0.0%"), IF(D${debtDataRow}/C${debtDataRow} > DAY(TODAY())/DAY(EOMONTH(TODAY(),0)), "⚠️ " & TEXT(D${debtDataRow}/C${debtDataRow}, "0.0%"), "✅ " & TEXT(D${debtDataRow}/C${debtDataRow}, "0.0%")))))`;
+    sheet.getRange(debtDataRow, 6).setFormula(debtStatusFormula);
+    
+    // ========== SYNC WARNING ==========
+    // Calculate Expected Debt Payment for current month
+    if (typeof DashboardManager !== 'undefined' && typeof DashboardManager._getCalendarEvents === 'function') {
+      const events = DashboardManager._getCalendarEvents();
+      const currentMonthEvents = events.payables.filter(e => {
+        const d = new Date(e.date);
+        return d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear;
+      });
+      
+      const totalExpected = currentMonthEvents.reduce((sum, e) => sum + (e.principalPayment || 0) + (e.interestPayment || 0), 0);
+      
+      // Get Budgeted Amount (Need to fetch value because formula isn't calculated yet in script)
+      // Budget = Income * Debt Ratio
+      const income = sheet.getRange('B2').getValue() || 0;
+      const debtRatio = sheet.getRange(debtRow, 2).getValue() || 0;
+      const budgeted = income * debtRatio;
+      
+      if (budgeted < totalExpected) {
+        SpreadsheetApp.getUi().alert(
+          '⚠️ CẢNH BÁO NGÂN SÁCH TRẢ NỢ',
+          `Ngân sách trả nợ dự kiến (${Utilities.formatString('#,##0', budgeted)}) thấp hơn nghĩa vụ trả nợ thực tế trong tháng (${Utilities.formatString('#,##0', totalExpected)}).\n\nVui lòng điều chỉnh tỷ lệ phân bổ ngân sách hoặc tăng thu nhập dự kiến!`,
+          SpreadsheetApp.getUi().ButtonSet.OK
+        );
+      }
     }
     
     return sheet;

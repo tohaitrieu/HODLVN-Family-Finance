@@ -8,18 +8,32 @@
 
 const CHANGELOG_HISTORY = [
   {
-    version: '3.5.0',
+    version: '3.5.1',
     date: '2025-11-23',
-    title: 'Lending Refactor & Dynamic Dashboard',
+    title: 'Budget Refinement & Sync',
     changes: [
-      '✅ NEW: Refactored Lending System with 3 specific types (Maturity, Interest Only, Installment)',
-      '✅ NEW: Dynamic Event Calendar using Custom Functions (AccPayable, AccReceivable)',
-      '✅ FIX: Debt Payment & Collection forms now support precise amounts',
-      '✅ FIX: Dashboard tables row offset issues',
-      '✅ UPDATE: Event Calendar now shows only the nearest upcoming event per loan'
+      '✅ UPDATE: Moved "Trả nợ" group after "Đầu tư" in Budget sheet',
+      '✅ NEW: Added Sync Warning if Budgeted Debt Payment < Expected Debt Payment',
+      '✅ FIX: Removed incorrect items from Debt group'
     ],
     actions: [
-      'Chạy "Cập nhật Dashboard" để áp dụng công thức lịch sự kiện mới',
+      'Chạy "Khởi tạo lại toàn bộ" để cập nhật cấu trúc Sheet Budget',
+      'Kiểm tra cảnh báo đồng bộ khi khởi tạo'
+    ]
+  },
+  {
+    version: '3.5.0',
+    date: '2025-11-23',
+    title: 'Lending Refactor & UI Improvements',
+    changes: [
+      '✅ NEW: Refactored Lending System with 3 specific types',
+      '✅ NEW: Dynamic Event Calendar using Custom Functions',
+      '✅ UI: Dashboard column widths standardized (120px) and M column widened (200px)',
+      '✅ UI: Lighter table borders for better visibility',
+      '✅ UI: Chart moved to L39, Y-axis scaled (x1000 VND), Debt series Red'
+    ],
+    actions: [
+      'Chạy "Cập nhật Dashboard" để áp dụng giao diện mới',
       'Kiểm tra lại loại hình cho vay trong sheet CHO VAY nếu cần'
     ]
   },
