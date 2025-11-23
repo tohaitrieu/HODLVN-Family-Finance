@@ -804,8 +804,8 @@ const DashboardManager = {
       // Formulas
       // Thu
       sheet.getRange(r, 2).setFormula(`=IFERROR(SUMIFS(THU!C:C, THU!B:B, ">="&DATE(${currentYear},${m},1), THU!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
-      // Chi
-      sheet.getRange(r, 3).setFormula(`=IFERROR(SUMIFS(CHI!C:C, CHI!B:B, ">="&DATE(${currentYear},${m},1), CHI!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      // Chi (Loại trừ Trả nợ để tránh tính trùng với cột Nợ)
+      sheet.getRange(r, 3).setFormula(`=IFERROR(SUMIFS(CHI!C:C, CHI!B:B, ">="&DATE(${currentYear},${m},1), CHI!B:B, "<"&DATE(${currentYear},${m}+1,1), CHI!D:D, "<>Trả nợ"), 0)`);
       // Nợ (Gốc + Lãi)
       sheet.getRange(r, 4).setFormula(`=IFERROR(SUMIFS('TRẢ NỢ'!D:D, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${m},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0) + IFERROR(SUMIFS('TRẢ NỢ'!E:E, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${m},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
       
