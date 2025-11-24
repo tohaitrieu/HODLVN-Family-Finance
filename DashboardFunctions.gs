@@ -162,7 +162,7 @@ function hffsExpense() {
       const budgetValues = budgetSheet.getDataRange().getValues();
       for (let i = 1; i < budgetValues.length; i++) {
         const cat = budgetValues[i][0]; // Column A: Category
-        const budget = parseFloat(budgetValues[i][1]) || 0; // Column B: Budget
+        const budget = parseFloat(budgetValues[i][2]) || 0; // Column C: Ngân sách (Budget)
         if (cat && budget > 0) {
           budgetData[cat] = budget;
         }
