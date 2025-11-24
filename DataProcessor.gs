@@ -263,15 +263,22 @@ function addDebt(data) {
       11: '#,##0'
     });
     
-    // Add Income record
-    // Map Debt Type to Income Category
-    let incomeCategory = 'Khác';
-    if (data.type === 'BANK_LOAN' || data.type === 'CREDIT_CARD') incomeCategory = 'Vay ngân hàng';
-    else if (data.type === 'PERSONAL_LOAN') incomeCategory = 'Vay cá nhân';
+    // STEP 1: ALL debts record INCOME (receiving cash from loan)
+    let incomeCategory = 'Vay ngân hàng';
     
-    // Verify if category exists in INCOME list, if not default to 'Khác'
+    // Map debt type to income category
+    if (data.debtType === 'INTEREST_ONLY' || data.debtType === 'BULLET') {
+      incomeCategory = 'Vay ngân hàng';
+    } else if (data.debtType === 'OTHER') {
+      incomeCategory = 'Vay cá nhân';
+    } else {
+      // Installment loans also use "Vay ngân hàng" or appropriate category
+      incomeCategory = 'Vay ngân hàng';
+    }
+    
+    // Verify category exists
     if (!APP_CONFIG.CATEGORIES.INCOME.includes(incomeCategory)) {
-        incomeCategory = 'Khác';
+      incomeCategory = 'Khác';
     }
 
     addIncome({
@@ -280,6 +287,20 @@ function addDebt(data) {
       category: incomeCategory,
       note: `Giải ngân khoản vay: ${data.debtName}`
     });
+    
+    // STEP 2: For installment loans, ALSO record EXPENSE (spending cash on purchase)
+    const isInstallmentLoan = ['EQUAL_PRINCIPAL', 'EQUAL_PRINCIPAL_UPFRONT_FEE', 'INTEREST_FREE'].includes(data.debtType);
+    
+    if (isInstallmentLoan) {
+      addExpense({
+        date: data.loanDate,
+        amount: principal,
+        category: 'Mua sắm', // Or category based on what was purchased
+        subcategory: 'Trả góp',
+        note: `Mua trả góp: ${data.debtName}`,
+        transactionId: Utilities.getUuid()
+      });
+    }
     
     // Trigger dashboard refresh
     triggerDashboardRefresh();

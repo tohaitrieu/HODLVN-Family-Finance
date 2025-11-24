@@ -18,9 +18,11 @@ var SyncManager = {
   },
   
   // Cấu hình cặp sheet cần đồng bộ
+  // Note: QUẢN LÝ NỢ can sync to both THU and CHI depending on debt type
   SYNC_PAIRS: [
     { a: 'TRẢ NỢ', b: 'CHI' },
-    { a: 'QUẢN LÝ NỢ', b: 'THU' },
+    { a: 'QUẢN LÝ NỢ', b: 'THU' },      // Bank loans -> Income
+    { a: 'QUẢN LÝ NỢ', b: 'CHI' },      // Installment loans -> Expense
     { a: 'CHO VAY', b: 'CHI' }
   ],
 
@@ -189,42 +191,42 @@ var SyncManager = {
    * Xử lý xóa dòng đồng bộ dựa trên ID
    */
   syncDeletedRows: function(ss, sheetName) {
-    // Tìm sheet đối tác
-    const pair = this.SYNC_PAIRS.find(p => p.a === sheetName || p.b === sheetName);
-    if (!pair) return;
+    // Tìm tất cả sheet đối tác (có thể có nhiều pairs)
+    const relevantPairs = this.SYNC_PAIRS.filter(p => p.a === sheetName || p.b === sheetName);
     
-    const targetSheetName = (pair.a === sheetName) ? pair.b : pair.a;
-    const targetSheet = ss.getSheetByName(targetSheetName);
-    if (!targetSheet) return;
+    if (relevantPairs.length === 0) return;
     
-    const currentSheet = ss.getSheetByName(sheetName);
-    const currentIdCol = this.ID_COLUMNS[sheetName];
-    const targetIdCol = this.ID_COLUMNS[targetSheetName];
-    
-    // Lấy danh sách ID hiện tại của sheet vừa bị xóa dòng
-    const currentIds = this.getAllIds(currentSheet, currentIdCol);
-    const currentIdSet = new Set(currentIds);
-    
-    // Lấy danh sách ID của sheet đối tác
-    const targetIds = this.getAllIds(targetSheet, targetIdCol);
-    
-    // Tìm những ID có bên Target mà KHÔNG có bên Current -> Cần xóa
-    // (Giả sử ban đầu 2 bên khớp nhau, giờ bên Current mất 1 dòng -> bên Target dư ra dòng đó)
-    // Lưu ý: Logic này chỉ đúng nếu trước đó đã đồng bộ. 
-    // Để an toàn, ta chỉ xóa những dòng có ID (không rỗng) và không tìm thấy bên kia.
-    
-    const rowsToDelete = [];
-    targetIds.forEach((id, index) => {
-      if (id && !currentIdSet.has(id)) {
-        rowsToDelete.push(index + 2); // Row index (1-based)
+    // Xử lý từng pair
+    relevantPairs.forEach(pair => {
+      const targetSheetName = (pair.a === sheetName) ? pair.b : pair.a;
+      const targetSheet = ss.getSheetByName(targetSheetName);
+      if (!targetSheet) return;
+      
+      const currentSheet = ss.getSheetByName(sheetName);
+      const currentIdCol = this.ID_COLUMNS[sheetName];
+      const targetIdCol = this.ID_COLUMNS[targetSheetName];
+      
+      // Lấy danh sách ID hiện tại của sheet vừa bị xóa dòng
+      const currentIds = this.getAllIds(currentSheet, currentIdCol);
+      const currentIdSet = new Set(currentIds);
+      
+      // Lấy danh sách ID của sheet đối tác
+      const targetIds = this.getAllIds(targetSheet, targetIdCol);
+      
+      // Tìm những ID có bên Target mà KHÔNG có bên Current -> Cần xóa
+      const rowsToDelete = [];
+      targetIds.forEach((id, index) => {
+        if (id && !currentIdSet.has(id)) {
+          rowsToDelete.push(index + 2); // Row index (1-based)
+        }
+      });
+      
+      // Xóa từ dưới lên
+      for (let i = rowsToDelete.length - 1; i >= 0; i--) {
+        targetSheet.deleteRow(rowsToDelete[i]);
+        Logger.log(`🗑️ Đã xóa dòng đồng bộ bên ${targetSheetName} (Row ${rowsToDelete[i]})`);
       }
     });
-    
-    // Xóa từ dưới lên
-    for (let i = rowsToDelete.length - 1; i >= 0; i--) {
-      targetSheet.deleteRow(rowsToDelete[i]);
-      Logger.log(`🗑️ Đã xóa dòng đồng bộ bên ${targetSheetName} (Row ${rowsToDelete[i]})`);
-    }
   },
   
   getAllIds: function(sheet, idCol) {
