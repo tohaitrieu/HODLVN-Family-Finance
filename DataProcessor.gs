@@ -112,6 +112,9 @@ function addIncome(data) {
     
     Logger.log(`Đã thêm thu nhập: ${formatCurrency(amount)} - ${source}`);
     
+    // Trigger dashboard refresh
+    triggerDashboardRefresh();
+    
     return {
       success: true,
       message: `✅ Đã ghi nhận thu nhập ${formatCurrency(amount)} từ ${source}!`
@@ -181,6 +184,9 @@ function addExpense(data) {
     BudgetManager.updateBudgetSpent(category);
     
     Logger.log(`Đã thêm chi tiêu: ${formatCurrency(amount)} - ${category}`);
+    
+    // Trigger dashboard refresh
+    triggerDashboardRefresh();
     
     return {
       success: true,
@@ -274,6 +280,9 @@ function addDebt(data) {
       category: incomeCategory,
       note: `Giải ngân khoản vay: ${data.debtName}`
     });
+    
+    // Trigger dashboard refresh
+    triggerDashboardRefresh();
     
     return { success: true, message: '✅ Đã thêm khoản nợ mới' };
     
@@ -430,6 +439,9 @@ function addLending(data) {
       note: `Cho vay: ${data.borrowerName}`,
       transactionId: Utilities.getUuid()
     });
+    
+    // Trigger dashboard refresh
+    triggerDashboardRefresh();
     
     return { success: true, message: '✅ Đã thêm khoản cho vay mới' };
     
@@ -715,6 +727,9 @@ function addGold(data) {
       });
     }
     
+    // Trigger dashboard refresh
+    triggerDashboardRefresh();
+    
     return {
       success: true,
       message: `✅ Đã ghi nhận ${data.type} ${quantity} ${data.unit} ${data.goldType}!`
@@ -839,6 +854,9 @@ function addCrypto(data) {
       });
     }
     
+    // Trigger dashboard refresh
+    triggerDashboardRefresh();
+    
     return {
       success: true,
       message: `✅ Đã ghi nhận ${data.type} ${quantity} ${data.coin}!`
@@ -923,6 +941,9 @@ function addOtherInvestment(data) {
       note: `Đầu tư ${data.investmentType}: ${formatCurrency(amount)}`,
       transactionId: Utilities.getUuid()
     });
+    
+    // Trigger dashboard refresh
+    triggerDashboardRefresh();
     
     return {
       success: true,
@@ -1154,6 +1175,9 @@ function processDividend(data) {
         Logger.log(`✅ Đã cập nhật cổ tức ${formatCurrency(totalDividend)} cho ${stockCode} vào cột I`);
       }
       
+      // Trigger dashboard refresh
+      triggerDashboardRefresh();
+      
       return {
         success: true,
         message: `✅ Đã ghi nhận cổ tức tiền mặt ${formatCurrency(totalDividend)} cho ${stockCode}!\n` +
@@ -1216,6 +1240,9 @@ function processDividend(data) {
       });
       
       Logger.log(`✅ Đã ghi nhận thưởng ${bonusShares} CP ${stockCode}`);
+      
+      // Trigger dashboard refresh
+      triggerDashboardRefresh();
       
       return {
         success: true,
