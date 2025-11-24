@@ -225,9 +225,6 @@ function addDebt(data) {
     const emptyRow = findEmptyRow(sheet, 2);
     const stt = getNextSTT(sheet, 2);
     
-    const emptyRow = findEmptyRow(sheet, 2);
-    const stt = getNextSTT(sheet, 2);
-    
     const principal = parseFloat(data.principal);
     
     const dataObj = {
@@ -272,10 +269,10 @@ function addDebt(data) {
     }
 
     addIncome({
-      date: data.startDate,
+      date: data.loanDate,
       amount: principal,
       category: incomeCategory,
-      note: `Giải ngân khoản vay: ${data.name}`
+      note: `Giải ngân khoản vay: ${data.debtName}`
     });
     
     return { success: true, message: '✅ Đã thêm khoản nợ mới' };
@@ -389,15 +386,20 @@ function addLending(data) {
     
     const principal = parseFloat(data.principal);
     
+    // Calculate end date
+    const startDate = new Date(data.date);
+    const endDate = new Date(data.date);
+    endDate.setMonth(endDate.getMonth() + parseInt(data.term));
+    
     const dataObj = {
       stt: stt,
-      name: data.name,
-      type: data.type,
+      name: data.borrowerName,
+      type: data.lendingType,
       principal: principal,
-      rate: (parseFloat(data.rate) || 0) / 100,
+      rate: (parseFloat(data.interestRate) || 0) / 100,
       term: parseInt(data.term) || 0,
-      startDate: new Date(data.startDate),
-      endDate: new Date(data.endDate),
+      startDate: startDate,
+      endDate: endDate,
       paidPrincipal: 0,
       paidInterest: 0,
       remaining: '', // Formula
@@ -410,10 +412,8 @@ function addLending(data) {
     
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
-    // K: Còn lại = D - I
-    sheet.getRange(emptyRow, 11).setFormula(`=IFERROR(D${emptyRow}-I${emptyRow}, 0)`);
-    
     formatNewRow(sheet, emptyRow, {
+      2: 'dd/mm/yyyy',
       4: '#,##0',
       5: '0.00%',
       7: 'dd/mm/yyyy',
@@ -423,11 +423,11 @@ function addLending(data) {
     
     // Add Expense record (Money out)
     addExpense({
-      date: data.startDate,
+      date: data.date,
       amount: principal,
       category: 'Đầu tư',
       subcategory: 'Cho vay',
-      note: `Cho vay: ${data.name}`,
+      note: `Cho vay: ${data.borrowerName}`,
       transactionId: Utilities.getUuid()
     });
     
