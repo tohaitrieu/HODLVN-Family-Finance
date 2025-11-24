@@ -435,73 +435,73 @@ function quickRefreshDashboard() {
  * Hiển thị form nhập thu
  */
 function showIncomeForm() {
-  showForm('IncomeForm', '📥 Nhập Thu nhập', 600, 650);
+  showForm('IncomeForm', 'Thu nhập - HODLVN Family Finance System', 800, 700);
 }
 
 /**
  * Hiển thị form nhập chi
  */
 function showExpenseForm() {
-  showForm('ExpenseForm', '📤 Nhập Chi tiêu', 600, 650);
+  showForm('ExpenseForm', 'Chi tiêu - HODLVN Family Finance System', 800, 700);
 }
 
 /**
  * Hiển thị form trả nợ
  */
 function showDebtPaymentForm() {
-  showForm('DebtPaymentForm', '💳 Trả nợ', 600, 650);
+  showForm('DebtPaymentForm', 'Trả nợ - HODLVN Family Finance System', 800, 700);
 }
 
 /**
  * Hiển thị form cho vay
  */
 function showLendingForm() {
-  showForm('LendingForm', '🤝 Thêm Khoản Cho Vay Mới', 600, 700);
+  showForm('LendingForm', 'Cho vay - HODLVN Family Finance System', 800, 750);
 }
 
 /**
  * Hiển thị form thu nợ
  */
 function showLendingPaymentForm() {
-  showForm('LendingPaymentForm', '💰 Thu Hồi Nợ & Lãi', 600, 650);
+  showForm('LendingPaymentForm', 'Thu hồi nợ & lãi - HODLVN Family Finance System', 800, 700);
 }
 /**
  * Hiển thị form thêm khoản nợ mới
  */
 function showDebtManagementForm() {
-  showForm('DebtManagementForm', '💳 Thêm Khoản Nợ Mới', 600, 700);
+  showForm('DebtManagementForm', 'Quản lý nợ - HODLVN Family Finance System', 800, 750);
 }
 /**
  * Hiển thị form giao dịch chứng khoán
  */
 function showStockForm() {
-  showForm('StockForm', '📈 Giao dịch Chứng khoán', 600, 650);
+  showForm('StockForm', 'Giao dịch chứng khoán - HODLVN Family Finance System', 800, 700);
 }
 /**
  * ✅ NEW v3.4: Hiển thị form nhập cổ tức
  */
 function showDividendForm() {
-  showForm('DividendForm', '📊 Nhập Cổ tức', 600, 650);
+  showForm('DividendForm', 'Nhập cổ tức - HODLVN Family Finance System', 800, 700);
 }
 /**
  * Hiển thị form giao dịch vàng
  */
 function showGoldForm() {
-  showForm('GoldForm', '🪙 Giao dịch Vàng', 600, 650);
+  showForm('GoldForm', 'Giao dịch vàng - HODLVN Family Finance System', 800, 700);
 }
 
 /**
  * Hiển thị form giao dịch crypto
  */
 function showCryptoForm() {
-  showForm('CryptoForm', '₿ Giao dịch Crypto', 600, 650);
+  showForm('CryptoForm', 'Giao dịch crypto - HODLVN Family Finance System', 800, 700);
 }
 
 /**
  * Hiển thị form đầu tư khác
  */
 function showOtherInvestmentForm() {
-  showForm('OtherInvestmentForm', '💼 Đầu tư khác', 600, 650);
+  showForm('OtherInvestmentForm', 'Đầu tư khác - HODLVN Family Finance System', 800, 700);
 }
 
 /**

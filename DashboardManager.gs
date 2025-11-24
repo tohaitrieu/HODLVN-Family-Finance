@@ -152,7 +152,7 @@ const DashboardManager = {
     sheet.getRange('B2:B10').setHorizontalAlignment('right');
     
     // Remove formatting from B5:B10 as requested
-    sheet.getRange('B5:B10').clear({contentsOnly: false, formatOnly: true});
+    sheet.getRange('B5:B10').clearFormat();
     
     // Data formulas - Thu nhập tháng hiện tại
     sheet.getRange('B5').setFormula(
@@ -909,32 +909,29 @@ const DashboardManager = {
   },
   
   _createChart(sheet) {
-    // NEW: Chart positioned at C2 with smaller, compact size
+    // Chart positioned at C2 with title only
     const chartStartRow = 2; // Row 2
     const chartStartCol = 3; // Column C
     const chartOffsetX = 5; 
     const chartOffsetY = 5; 
-
-    // Chart now uses the summary data from A5:B10
-    // Data is already populated by _setupSummarySection()
     
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
     
-    // 3. TẠO BIỂU ĐỒ compact từ dữ liệu A5:B10
+    // Create a minimal chart with only title - no data
     const chart = sheet.newChart()
         .setChartType(Charts.ChartType.COLUMN)
         
-        // NEW: Use summary section A5:B10 as data source
-        .addRange(sheet.getRange('A5:B10')) 
+        // Create empty data range for title-only chart
+        .addRange(sheet.getRange('Z1:Z1')) // Use empty range
         
         .setPosition(chartStartRow, chartStartCol, chartOffsetY, chartOffsetX)
         
-        // Compact chart styling
+        // Chart title only
         .setOption('title', '📊 TÀI CHÍNH ' + currentMonth + '/' + currentYear)
         .setOption('titleTextStyle', { 
-          fontSize: 12, 
+          fontSize: 16, 
           bold: true, 
           color: '#333333',
           fontName: 'Arial'
@@ -944,109 +941,35 @@ const DashboardManager = {
         .setOption('width', 480)
         .setOption('height', 288)
         
-        // Không transpose để mỗi cột là một series
-        .setTransposeRowsAndColumns(false) 
-        
-        // Legend với styling tốt hơn
-        .setOption('legend', { 
-          position: 'bottom', 
-          textStyle: { 
-            fontSize: 12, 
-            fontName: 'Arial',
-            color: '#333333'
-          },
-          alignment: 'center'
-        })
-        
-        // Màu sắc đậm và dễ phân biệt
-        .setOption('series', {
-            0: { 
-              color: '#4CAF50', 
-              dataLabel: { 
-                color: '#333333', 
-                fontSize: 11, 
-                fontName: 'Arial' 
-              }
-            }, // Thu nhập - Xanh lá
-            1: { 
-              color: '#F44336', 
-              dataLabel: { 
-                color: '#333333', 
-                fontSize: 11, 
-                fontName: 'Arial' 
-              }
-            }, // Chi phí - Đỏ
-            2: { 
-              color: '#FF9800', 
-              dataLabel: { 
-                color: '#333333', 
-                fontSize: 11, 
-                fontName: 'Arial' 
-              }
-            }, // Nợ - Cam
-            3: { 
-              color: '#2196F3', 
-              dataLabel: { 
-                color: '#333333', 
-                fontSize: 11, 
-                fontName: 'Arial' 
-              }
-            }  // Tài sản - Xanh dương
-        })
-        
-        // Trục Y với format tiền Việt Nam
-        .setOption('vAxis', { 
-          format: '#,##0₫',
-          textStyle: {
-            fontSize: 11,
-            fontName: 'Arial',
-            color: '#333333'
-          },
-          titleTextStyle: {
-            fontSize: 12,
-            fontName: 'Arial',
-            color: '#333333'
-          },
-          gridlines: { 
-            count: 6,
-            color: '#E0E0E0'
-          },
-          minorGridlines: {
-            count: 0
-          }
-        })
-        
-        // Trục X ẩn vì chỉ có 1 nhóm dữ liệu
+        // Hide all chart elements except title
+        .setOption('legend', { position: 'none' })
         .setOption('hAxis', { 
           textPosition: 'none',
-          gridlines: {
-            color: 'transparent'
-          }
-        }) 
+          gridlines: { color: 'transparent' },
+          baselineColor: 'transparent'
+        })
+        .setOption('vAxis', { 
+          textPosition: 'none',
+          gridlines: { color: 'transparent' },
+          baselineColor: 'transparent'
+        })
         
-        // Chart area với padding lớn hơn
+        // Maximize chart area for title display
         .setOption('chartArea', { 
-          left: 80, 
-          top: 60, 
-          width: '75%', 
-          height: '65%'
+          left: 10, 
+          top: 20, 
+          width: '95%', 
+          height: '80%'
         })
         
-        // Background và border
-        .setOption('backgroundColor', '#FAFAFA')
-        
-        // Animation
-        .setOption('animation', {
-          duration: 1000,
-          easing: 'out',
-          startup: true
-        })
+        // Clean background
+        .setOption('backgroundColor', '#FFFFFF')
         
         .build();
       
     sheet.insertChart(chart);
     
-    Logger.log('✅ Chart created with improved formatting and padding');
+    Logger.log('✅ Chart created with title only');
   },
   
   _formatSheet(sheet) {
