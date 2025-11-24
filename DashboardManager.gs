@@ -767,14 +767,40 @@ const DashboardManager = {
       .setFontColor('#FFFFFF');
     sheet.setRowHeight(startRow, 35);
     
-    const dataStart = startRow + 1;
+    const headerRow = startRow + 1;
+    const dataStart = startRow + 2;
+    const totalRow = dataStart + 12; // Row after 12 months
+    const avgRow = totalRow + 1; // Row after total
+    
+    // Headers
+    const headers = ['Kỳ', 'Thu', 'Chi', 'Nợ', 'CK', 'Vàng', 'Crypto', 'ĐT khác', 'Dòng tiền'];
+    sheet.getRange(headerRow, 1, 1, 9).setValues([headers])
+      .setFontWeight('bold')
+      .setBackground('#EEEEEE')
+      .setHorizontalAlignment('center');
     
     // Use custom function to get yearly data (uses current year by default)
     sheet.getRange(dataStart, 1).setFormula('=hffsYearly()');
     
+    // Total row
+    sheet.getRange(totalRow, 1).setValue('TỔNG').setFontWeight('bold');
+    for (let col = 2; col <= 9; col++) {
+      const colLetter = String.fromCharCode(64 + col); // B=2, C=3, etc.
+      sheet.getRange(totalRow, col).setFormula(`=SUM(${colLetter}${dataStart}:${colLetter}${dataStart + 11})`);
+    }
+    sheet.getRange(totalRow, 1, 1, 9).setBackground('#EEEEEE');
+    
+    // Average row
+    sheet.getRange(avgRow, 1).setValue('TRUNG BÌNH').setFontWeight('bold');
+    for (let col = 2; col <= 9; col++) {
+      const colLetter = String.fromCharCode(64 + col);
+      sheet.getRange(avgRow, col).setFormula(`=AVERAGE(${colLetter}${dataStart}:${colLetter}${dataStart + 11})`);
+    }
+    sheet.getRange(avgRow, 1, 1, 9).setBackground('#F5F5F5');
+    
     // Format
-    sheet.getRange(dataStart, 2, 12, 8).setNumberFormat('#,##0');
-    sheet.getRange(dataStart, 1, 13, 9).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
+    sheet.getRange(dataStart, 2, 14, 8).setNumberFormat('#,##0'); // 12 months + total + avg
+    sheet.getRange(headerRow, 1, 15, 9).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
   },
   
   _createChart(sheet) {
