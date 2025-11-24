@@ -53,7 +53,7 @@ function addLending(data) {
     // ============================================
     // DELEGATE TO DataProcessor.addLending() - SINGLE SOURCE OF TRUTH
     // ============================================
-    const result = addLending({
+    const result = DataProcessor.addLending({
       date: date,
       borrowerName: borrowerName,
       lendingType: lendingType,

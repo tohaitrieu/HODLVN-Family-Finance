@@ -76,10 +76,11 @@ function _getDateFilters() {
 /**
  * Get income breakdown by category
  * Reads filter from B2-B4
+ * @param {any} trigger - Dummy parameter to force recalculation (pass $Z$1)
  * @return {Array} 2D array: [["Category", "Amount", "Percentage"], ...]
  * @customfunction
  */
-function hffsIncome() {
+function hffsIncome(trigger) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const incomeSheet = ss.getSheetByName(APP_CONFIG.SHEETS.INCOME);
@@ -127,10 +128,11 @@ function hffsIncome() {
 /**
  * Get expense breakdown with budget comparison
  * Reads filter from B2-B4
+ * @param {any} trigger - Dummy parameter to force recalculation (pass $Z$1)
  * @return {Array} 2D array: [["Category", "Spent", "Budget", "Remaining", "Status%"], ...]
  * @customfunction
  */
-function hffsExpense() {
+function hffsExpense(trigger) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const expenseSheet = ss.getSheetByName(APP_CONFIG.SHEETS.EXPENSE);
@@ -231,10 +233,11 @@ function hffsExpense() {
 
 /**
  * Get list of outstanding debts
+ * @param {any} trigger - Dummy parameter to force recalculation (pass $Z$1)
  * @return {Array} 2D array: [["Debt Name", "Remaining", "Percentage"], ...]
  * @customfunction
  */
-function hffsDebt() {
+function hffsDebt(trigger) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const debtSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
@@ -282,10 +285,11 @@ function hffsDebt() {
  */
 /**
  * Get asset summary
+ * @param {any} trigger - Dummy parameter to force recalculation (pass $Z$1)
  * @return {Array} 2D array: [["Asset", "Cost", "P&L", "Current Value", "Percentage"], ...]
  * @customfunction
  */
-function hffsAssets() {
+function hffsAssets(trigger) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     
@@ -479,10 +483,11 @@ function hffsAssets() {
 /**
  * Get 12-month statistics
  * @param {number} year - Year (default: current year)
+ * @param {any} trigger - Dummy parameter to force recalculation (pass $Z$1)
  * @return {Array} 2D array with monthly statistics
  * @customfunction
  */
-function hffsYearly(year) {
+function hffsYearly(year, trigger) {
   try {
     const currentYear = year || new Date().getFullYear();
     const ss = SpreadsheetApp.getActiveSpreadsheet();

@@ -193,7 +193,7 @@ const DashboardManager = {
       sheet, currentRow, cfg.LEFT_COL, 
       '1. Báo cáo Thu nhập', 
       this.CONFIG.COLORS.INCOME, 
-      '=hffsIncome()', 
+      '=hffsIncome($Z$1)', 
       3, // 3 columns
       true, // has percentage
       incomeRowCount, // exact row count
@@ -205,7 +205,7 @@ const DashboardManager = {
       sheet, currentRow, cfg.RIGHT_COL,
       '2. Báo cáo Chi phí',
       this.CONFIG.COLORS.EXPENSE,
-      '=hffsExpense()',
+      '=hffsExpense($Z$1)',
       5, // 5 columns
       true, // has percentage
       expenseRowCount, // exact row count
@@ -231,7 +231,7 @@ const DashboardManager = {
       sheet, currentRow, cfg.LEFT_COL,
       '3. Báo cáo Nợ phải trả',
       this.CONFIG.COLORS.LIABILITIES,
-      '=hffsDebt()',
+      '=hffsDebt($Z$1)',
       3, // 3 columns
       true, // has percentage
       debtRowCount, // exact row count
@@ -243,7 +243,7 @@ const DashboardManager = {
       sheet, currentRow, cfg.RIGHT_COL,
       '4. Báo cáo Tài sản',
       this.CONFIG.COLORS.ASSETS,
-      '=hffsAssets()',
+      '=hffsAssets($Z$1)',
       5, // 5 columns
       true, // has percentage
       assetRowCount, // exact row count
@@ -783,7 +783,7 @@ const DashboardManager = {
       .setHorizontalAlignment('center');
     
     // Use custom function to get yearly data (uses current year by default)
-    sheet.getRange(dataStart, 1).setFormula('=hffsYearly()');
+    sheet.getRange(dataStart, 1).setFormula('=hffsYearly($B$2, $Z$1)');
     
     // Total row
     sheet.getRange(totalRow, 1).setValue('TỔNG').setFontWeight('bold');

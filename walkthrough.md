@@ -30,6 +30,10 @@
 
 ### 6. `DataProcessor.gs` (Additional Fixes)
 -   Updated `addDebt` and `addLending` to explicitly set the formula for the "Remaining" (Còn lại) column (Col K) for new rows. This prevents the formula from being overwritten by empty values during data entry.
+-   Fixed parameter mismatch in `addDebt`: changed `category` to `source` when calling `addIncome`, which was preventing automatic income entry when adding debt.
+
+### 7. `LendingHandler.gs`
+-   Fixed infinite recursion bug: changed `addLending({...})` to `DataProcessor.addLending({...})` at line 56. This was causing "Maximum call stack size exceeded" error when entering lending transactions.
 
 ## Verification
 

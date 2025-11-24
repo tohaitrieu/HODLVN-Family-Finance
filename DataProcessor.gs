@@ -254,6 +254,11 @@ function addDebt(data) {
     
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
+    // Set formula for Remaining (Col K - 11)
+    // Formula: =IFERROR(Principal(D) - PaidPrincipal(I), 0)
+    // R1C1: =IFERROR(RC[-7]-RC[-2], 0)
+    sheet.getRange(emptyRow, 11).setFormulaR1C1('=IFERROR(RC[-7]-RC[-2], 0)');
+    
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
       4: '#,##0',
@@ -284,7 +289,7 @@ function addDebt(data) {
     addIncome({
       date: data.loanDate,
       amount: principal,
-      category: incomeCategory,
+      source: incomeCategory,
       note: `Giải ngân khoản vay: ${data.debtName}`
     });
     
