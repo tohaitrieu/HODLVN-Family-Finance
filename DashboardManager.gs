@@ -181,36 +181,25 @@ const DashboardManager = {
     
     // === ROW 1: INCOME (Left) & EXPENSE (Middle) & PAYABLES (Right) ===
     
-    // 1. Income Table (3 Cols: Name, Value, %)
-    const incomeCategories = APP_CONFIG.CATEGORIES.INCOME;
-    const incomeRows = [...incomeCategories, 'TỔNG THU NHẬP'];
-    const incomeHeight = this._renderTable(sheet, currentRow, cfg.LEFT_COL, '1. Báo cáo Thu nhập', this.CONFIG.COLORS.INCOME, incomeRows, 3, true);
+    // 1. Income Table - Using custom function
+    const incomeHeight = this._renderCustomFunctionTable(
+      sheet, currentRow, cfg.LEFT_COL, 
+      '1. Báo cáo Thu nhập', 
+      this.CONFIG.COLORS.INCOME, 
+      '=hffsIncome()', 
+      3, // 3 columns
+      true // has percentage
+    );
     
-    // Formulas for Income
-    const incStart = currentRow + 2;
-    const incTotalRow = incStart + incomeCategories.length;
-    
-    incomeCategories.forEach((cat, idx) => {
-      const r = incStart + idx;
-      // Value
-      sheet.getRange(r, cfg.LEFT_COL + 1).setFormula('=' + this._createDynamicSumFormula('THU', 'C', cat, 'D'));
-      // % (Value / Total)
-      sheet.getRange(r, cfg.LEFT_COL + 2).setFormula(`=IFERROR(R[0]C[-1] / R${incTotalRow}C[-1], 0)`);
-    });
-    
-    // Total Income
-    sheet.getRange(incTotalRow, cfg.LEFT_COL + 1).setFormula(`=SUM(R[-${incomeCategories.length}]C:R[-1]C)`);
-    sheet.getRange(incTotalRow, cfg.LEFT_COL + 2).setValue(1).setNumberFormat('0%');
-    
-    // 2. Expense Table (5 Cols: Name, Spent, Budget, Remaining, Status)
-    // Filter out 'Trả nợ' and 'Cho vay' as they have their own sections/logic
-    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ' && cat !== 'Cho vay');
-    const expenseRows = [...expenseCategories, 'Trả nợ (Gốc + Lãi)', 'TỔNG CHI PHÍ'];
-    const expenseHeight = this._renderExpenseTable(sheet, currentRow, cfg.RIGHT_COL, '2. Báo cáo Chi phí', this.CONFIG.COLORS.EXPENSE, expenseRows);
-
-    // Define expStart for formatting section below
-    const expStart = currentRow + 2;
-    // Formulas for Expense are handled inside _renderExpenseTable now
+    // 2. Expense Table - Using custom function
+    const expenseHeight = this._renderCustomFunctionTable(
+      sheet, currentRow, cfg.RIGHT_COL,
+      '2. Báo cáo Chi phí',
+      this.CONFIG.COLORS.EXPENSE,
+      '=hffsExpense()',
+      5, // 5 columns
+      true // has percentage
+    );
     
     // 3. Payables Table (Right - Col K)
     const payablesHeight = this._renderPayables(sheet, currentRow, cfg.CALENDAR_COL);
@@ -221,102 +210,25 @@ const DashboardManager = {
     
     // === ROW 2: LIABILITIES (Left) & ASSETS (Middle) & RECEIVABLES (Right) ===
     
-    // 4. Liabilities Table (3 Cols: Name, Value, %)
-    const debtItems = this._getDebtItems();
-    const liabilityRows = [...debtItems.map(d => d.name), 'TỔNG NỢ'];
-    const liabilityHeight = this._renderTable(sheet, currentRow, cfg.LEFT_COL, '3. Báo cáo Nợ phải trả', this.CONFIG.COLORS.LIABILITIES, liabilityRows, 3, true);
+    // 4. Liabilities Table - Using custom function
+    const liabilityHeight = this._renderCustomFunctionTable(
+      sheet, currentRow, cfg.LEFT_COL,
+      '3. Báo cáo Nợ phải trả',
+      this.CONFIG.COLORS.LIABILITIES,
+      '=hffsDebt()',
+      3, // 3 columns
+      true // has percentage
+    );
     
-    // Formulas for Liabilities
-    const liabStart = currentRow + 2;
-    const liabTotalRow = liabStart + debtItems.length;
-    
-    debtItems.forEach((item, idx) => {
-      const r = liabStart + idx;
-      const formula = `=IFERROR(SUMIFS('QUẢN LÝ NỢ'!K:K, 'QUẢN LÝ NỢ'!B:B, "${item.name}"), 0)`; // Col K is Remaining
-      sheet.getRange(r, cfg.LEFT_COL + 1).setFormula(formula);
-      // %
-      sheet.getRange(r, cfg.LEFT_COL + 2).setFormula(`=IFERROR(R[0]C[-1] / R${liabTotalRow}C[-1], 0)`);
-    });
-    
-    // Total Liability
-    sheet.getRange(liabTotalRow, cfg.LEFT_COL + 1).setFormula(`=SUM(R[-${debtItems.length}]C:R[-1]C)`);
-    sheet.getRange(liabTotalRow, cfg.LEFT_COL + 2).setValue(1).setNumberFormat('0%');
-    
-    // 5. Assets Table (5 Cols: E, F, G, H, I)
-    // Name, Capital, P/L, Current, % (on Current)
-    const assetRows = ['Tiền mặt (Ròng)', 'Chứng khoán', 'Vàng', 'Crypto', 'Đầu tư khác', 'Cho vay', 'TỔNG TÀI SẢN'];
-    
-    // Header for Assets
-    const assetHeaderRow = currentRow;
-    sheet.getRange(assetHeaderRow, cfg.RIGHT_COL, 1, 5).merge()
-      .setValue('4. Báo cáo Tài sản')
-      .setFontWeight('bold')
-      .setBackground(this.CONFIG.COLORS.ASSETS)
-      .setFontColor('#FFFFFF')
-      .setHorizontalAlignment('left');
-      
-    // Sub-headers
-    sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL).setValue('Danh mục').setFontWeight('bold');
-    sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL + 1).setValue('Tổng vốn').setFontWeight('bold');
-    sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL + 2).setValue('Lãi/Lỗ').setFontWeight('bold');
-    sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL + 3).setValue('Giá trị HT').setFontWeight('bold');
-    sheet.getRange(assetHeaderRow + 1, cfg.RIGHT_COL + 4).setValue('Tỷ lệ').setFontWeight('bold');
-    
-    // Rows for Assets
-    const assetStart = assetHeaderRow + 2;
-    const assetTotalRow = assetStart + 6; // 6 items
-    
-    // 1. Cash (Net)
-    sheet.getRange(assetStart, cfg.RIGHT_COL).setValue('Tiền mặt (Ròng)');
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 1).setValue('-'); // Capital N/A
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 2).setValue('-'); // P/L N/A
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 3).setFormula('=' + `IFERROR(SUM(THU!C:C) - SUM(CHI!C:C), 0)`);
-    
-    // 2. Stock
-    sheet.getRange(assetStart + 1, cfg.RIGHT_COL).setValue('Chứng khoán');
-    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!H:H), 0)`); // Total Cost (Col H)
-    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(R[0]C[1] - R[0]C[-1], 0)`); // Current - Cost
-    sheet.getRange(assetStart + 1, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CHỨNG KHOÁN'!M:M), 0)`); // Market Value (Col M)
-    
-    // 3. Gold
-    sheet.getRange(assetStart + 2, cfg.RIGHT_COL).setValue('Vàng');
-    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('VÀNG'!I:I), 0)`); // Total Cost (Col I)
-    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(R[0]C[1] - R[0]C[-1], 0)`);
-    sheet.getRange(assetStart + 2, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('VÀNG'!K:K), 0)`); // Market Value (Col K)
-    
-    // 4. Crypto
-    sheet.getRange(assetStart + 3, cfg.RIGHT_COL).setValue('Crypto');
-    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CRYPTO'!I:I), 0)`); // Total Cost (Col I)
-    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(R[0]C[1] - R[0]C[-1], 0)`);
-    sheet.getRange(assetStart + 3, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CRYPTO'!M:M), 0)`); // Market Value VND (Col M)
-    
-    // 5. Other Investment
-    sheet.getRange(assetStart + 4, cfg.RIGHT_COL).setValue('Đầu tư khác');
-    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('ĐẦU TƯ KHÁC'!D:D), 0)`); // Capital (Col D)
-    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(R[0]C[1] - R[0]C[-1], 0)`); // Profit = Current - Capital
-    sheet.getRange(assetStart + 4, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('ĐẦU TƯ KHÁC'!G:G), 0)`); // Current Value (Expected Return - Col G)
-    
-    // 6. Lending (Receivables)
-    sheet.getRange(assetStart + 5, cfg.RIGHT_COL).setValue('Cho vay');
-    sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 1).setFormula(`=IFERROR(SUM('CHO VAY'!D:D), 0)`); // Principal
-    sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 2).setFormula(`=IFERROR(SUM('CHO VAY'!J:J), 0)`); // Interest Collected
-    sheet.getRange(assetStart + 5, cfg.RIGHT_COL + 3).setFormula(`=IFERROR(SUM('CHO VAY'!K:K), 0)`); // Remaining Principal
-    
-    // Total Assets
-    sheet.getRange(assetTotalRow, cfg.RIGHT_COL).setValue('TỔNG TÀI SẢN').setFontWeight('bold');
-    sheet.getRange(assetTotalRow, cfg.RIGHT_COL + 1).setFormula(`=SUM(R[-6]C:R[-1]C)`);
-    sheet.getRange(assetTotalRow, cfg.RIGHT_COL + 2).setFormula(`=SUM(R[-6]C:R[-1]C)`);
-    sheet.getRange(assetTotalRow, cfg.RIGHT_COL + 3).setFormula(`=SUM(R[-6]C:R[-1]C)`);
-    
-    // % Column
-    for (let i = 0; i < 6; i++) {
-      sheet.getRange(assetStart + i, cfg.RIGHT_COL + 4).setFormula(`=IFERROR(R[0]C[-1] / R${assetTotalRow}C[-1], 0)`);
-    }
-    sheet.getRange(assetTotalRow, cfg.RIGHT_COL + 4).setValue(1).setNumberFormat('0%');
-    
-    sheet.getRange(assetHeaderRow, cfg.RIGHT_COL, 9, 5).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
-    
-    const assetHeight = 9; // Fixed height for Assets table
+    // 5. Assets Table - Using custom function
+    const assetHeight = this._renderCustomFunctionTable(
+      sheet, currentRow, cfg.RIGHT_COL,
+      '4. Báo cáo Tài sản',
+      this.CONFIG.COLORS.ASSETS,
+      '=hffsAssets()',
+      5, // 5 columns
+      true // has percentage
+    );
     
     // 6. Receivables Table (Right - Col K, Row 2)
     const receivablesHeight = this._renderReceivables(sheet, currentRow, cfg.CALENDAR_COL);
@@ -486,6 +398,54 @@ const DashboardManager = {
       
     return rows.length + 2;
   },
+  
+  /**
+   * Render table using custom function that returns array
+   * @param {Sheet} sheet
+   * @param {number} startRow
+   * @param {number} startCol
+   * @param {string} title
+   * @param {string} color
+   * @param {string} formula - Custom function formula (e.g., '=hffsIncome()')
+   * @param {number} numCols - Number of columns
+   * @param {boolean} hasPercentage - Whether last column is percentage
+   * @return {number} Height of table
+   */
+  _renderCustomFunctionTable(sheet, startRow, startCol, title, color, formula, numCols, hasPercentage) {
+    // Header
+    sheet.getRange(startRow, startCol, 1, numCols).merge()
+      .setValue(title)
+      .setFontWeight('bold')
+      .setBackground(color)
+      .setFontColor('#FFFFFF')
+      .setHorizontalAlignment('left');
+    
+    // Data range - place formula in first cell
+    // The formula will spill to adjacent cells automatically
+    sheet.getRange(startRow + 1, startCol).setFormula(formula);
+    
+    // Format numbers (will apply to whatever rows get filled)
+    // Apply to reasonable max rows (20 should be enough for most cases)
+    const maxRows = 20;
+    
+    // Format all columns with numbers except first (category name)
+    if (numCols > 1) {
+      sheet.getRange(startRow + 1, startCol + 1, maxRows, numCols - 1).setNumberFormat('#,##0');
+    }
+    
+    // Format percentage column if exists
+    if (hasPercentage && numCols > 1) {
+      sheet.getRange(startRow + 1, startCol + numCols - 1, maxRows, 1).setNumberFormat('0.0%');
+    }
+    
+    // Border around table area
+    sheet.getRange(startRow, startCol, maxRows + 1, numCols)
+      .setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
+    
+    // Return estimated height (will auto-expand based on function output)
+    return maxRows + 1;
+  },
+  
   _renderPayables(sheet, startRow, startCol) {
     return this._renderEventTable(sheet, startRow, startCol, '📅 Lịch sự kiện: KHOẢN PHẢI TRẢ (Sắp tới)', this.CONFIG.COLORS.CALENDAR, 'AccPayable', 'QUẢN LÝ NỢ');
   },
@@ -790,37 +750,8 @@ const DashboardManager = {
     const headerRow = startRow + 1;
     const dataStart = startRow + 2;
     
-    const headers = ['Kỳ', 'Thu', 'Chi', 'Nợ', 'CK', 'Vàng', 'Crypto', 'ĐT khác', 'Dòng tiền'];
-    sheet.getRange(headerRow, 1, 1, 9).setValues([headers])
-      .setFontWeight('bold')
-      .setBackground('#EEEEEE')
-      .setHorizontalAlignment('center');
-      
-    // Rows for 12 months
-    for (let m = 1; m <= 12; m++) {
-      const r = dataStart + m - 1;
-      sheet.getRange(r, 1).setValue(`Tháng ${m}`);
-      
-      // Formulas
-      // Thu
-      sheet.getRange(r, 2).setFormula(`=IFERROR(SUMIFS(THU!C:C, THU!B:B, ">="&DATE(${currentYear},${m},1), THU!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
-      // Chi (Loại trừ Trả nợ để tránh tính trùng với cột Nợ)
-      sheet.getRange(r, 3).setFormula(`=IFERROR(SUMIFS(CHI!C:C, CHI!B:B, ">="&DATE(${currentYear},${m},1), CHI!B:B, "<"&DATE(${currentYear},${m}+1,1), CHI!D:D, "<>Trả nợ"), 0)`);
-      // Nợ (Gốc + Lãi)
-      sheet.getRange(r, 4).setFormula(`=IFERROR(SUMIFS('TRẢ NỢ'!D:D, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${m},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0) + IFERROR(SUMIFS('TRẢ NỢ'!E:E, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${m},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
-      
-      // CK (Tổng vốn - Col H)
-      sheet.getRange(r, 5).setFormula(`=IFERROR(SUMIFS('CHỨNG KHOÁN'!H:H, 'CHỨNG KHOÁN'!B:B, ">="&DATE(${currentYear},${m},1), 'CHỨNG KHOÁN'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
-      // Vàng (Tổng vốn - Col I)
-      sheet.getRange(r, 6).setFormula(`=IFERROR(SUMIFS('VÀNG'!I:I, 'VÀNG'!B:B, ">="&DATE(${currentYear},${m},1), 'VÀNG'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
-      // Crypto (Tổng vốn - Col I)
-      sheet.getRange(r, 7).setFormula(`=IFERROR(SUMIFS('CRYPTO'!I:I, 'CRYPTO'!B:B, ">="&DATE(${currentYear},${m},1), 'CRYPTO'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
-      // ĐT khác (Tổng vốn ĐT Khác Col D + Cho vay Col D)
-      sheet.getRange(r, 8).setFormula(`=IFERROR(SUMIFS('ĐẦU TƯ KHÁC'!D:D, 'ĐẦU TƯ KHÁC'!B:B, ">="&DATE(${currentYear},${m},1), 'ĐẦU TƯ KHÁC'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0) + IFERROR(SUMIFS('CHO VAY'!D:D, 'CHO VAY'!G:G, ">="&DATE(${currentYear},${m},1), 'CHO VAY'!G:G, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
-      
-      // Dòng tiền = Thu - Chi - Nợ (Gốc+Lãi)
-      sheet.getRange(r, 9).setFormula(`=R[0]C[-7] - R[0]C[-6] - R[0]C[-5]`);
-    }
+    // Use custom function to get yearly data
+    sheet.getRange(dataStart, 1).setFormula(`=hffsYearly(${currentYear})`);
     
     // Format
     sheet.getRange(dataStart, 2, 12, 8).setNumberFormat('#,##0');
