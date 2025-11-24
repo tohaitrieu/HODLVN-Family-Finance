@@ -492,9 +492,10 @@ const DashboardManager = {
     const headers = ['Ngày', 'Hành động', 'Sự kiện', 'Gốc còn lại', 'Gốc trả kỳ này', 'Lãi trả kỳ này'];
     sheet.getRange(startRow + 1, startCol, 1, numCols).setValues([headers]).setFontWeight('bold');
     
-    // Formula
+    // Formula with refresh trigger dependency
     const formulaRow = startRow + 2;
-    sheet.getRange(formulaRow, startCol).setFormula(`=${functionName}('${sourceSheet}'!A2:L)`);
+    const refreshCell = (functionName === 'AccPayable') ? 'Z1' : 'Z2';
+    sheet.getRange(formulaRow, startCol).setFormula(`=${functionName}('${sourceSheet}'!A2:L,${refreshCell})`);
     
     // Format columns (Assuming max 12 rows returned)
     const dataRange = sheet.getRange(formulaRow, startCol, 12, numCols);

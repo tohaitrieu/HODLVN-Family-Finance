@@ -38,12 +38,38 @@ function mapLegacyTypeToId(typeName) {
   return validIds.includes(typeName.toUpperCase()) ? typeName.toUpperCase() : 'OTHER';
 }
 
-function AccPayable(debtData) {
+function AccPayable(debtData, forceRefresh) {
+  // Make function volatile by referencing a refresh trigger
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const dashboard = ss.getSheetByName('TỔNG QUAN');
+    if (dashboard) {
+      // Read timestamp cell to force dependency (makes function volatile)
+      const refreshTrigger = dashboard.getRange('Z1').getValue();
+      // This creates a dependency that forces recalculation when Z1 changes
+    }
+  } catch (e) {
+    // Ignore errors to prevent function failure
+  }
+  
   if (!Array.isArray(debtData) || debtData.length === 0) return [['Không có dữ liệu']];
   return _calculateEvents(debtData, true);
 }
 
-function AccReceivable(lendingData) {
+function AccReceivable(lendingData, forceRefresh) {
+  // Make function volatile by referencing a refresh trigger
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const dashboard = ss.getSheetByName('TỔNG QUAN');
+    if (dashboard) {
+      // Read timestamp cell to force dependency (makes function volatile)
+      const refreshTrigger = dashboard.getRange('Z2').getValue();
+      // This creates a dependency that forces recalculation when Z2 changes
+    }
+  } catch (e) {
+    // Ignore errors to prevent function failure
+  }
+  
   if (!Array.isArray(lendingData) || lendingData.length === 0) return [['Không có dữ liệu']];
   return _calculateEvents(lendingData, false);
 }

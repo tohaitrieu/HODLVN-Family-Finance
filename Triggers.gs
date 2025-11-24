@@ -64,8 +64,21 @@ function processEdit(e) {
       Logger.log('🔄 Data changed in Debt Payment sheet. Budget should update automatically via formulas.');
     }
     
-    // 4. Cập nhật Dashboard (nếu cần)
-    // Dashboard dùng công thức nên thường tự cập nhật.
+    // 4. Cập nhật Dashboard tự động khi có thay đổi dữ liệu
+    if (sheetName === APP_CONFIG.SHEETS.INCOME || 
+        sheetName === APP_CONFIG.SHEETS.EXPENSE ||
+        sheetName === APP_CONFIG.SHEETS.DEBT_MANAGEMENT ||
+        sheetName === APP_CONFIG.SHEETS.DEBT_PAYMENT ||
+        sheetName === APP_CONFIG.SHEETS.LENDING) {
+      // Trigger quick refresh for better custom function updates
+      Logger.log(`🔄 Triggering dashboard refresh due to data change in ${sheetName}`);
+      try {
+        Utilities.sleep(200); // Small delay to ensure data is saved
+        _quickRefreshCustomFunctions();
+      } catch (error) {
+        Logger.log('⚠️ Could not auto-refresh dashboard: ' + error.message);
+      }
+    }
     
     // 5. Xử lý Quick Actions trên Dashboard (Checkboxes)
     if (sheetName === APP_CONFIG.SHEETS.DASHBOARD) {

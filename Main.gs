@@ -311,6 +311,7 @@ function onOpen() {
     // Dashboard & Thống kê
     .addSubMenu(ui.createMenu('📊 Dashboard & Thống kê')
       .addItem('🔄 Cập nhật Dashboard', 'refreshDashboard')
+      .addItem('⚡ Làm mới nhanh', 'quickRefreshDashboard')
       .addSeparator()
       .addItem('📅 Lịch trả nợ dự kiến', 'showDebtScheduleReport')
       .addSeparator()
@@ -380,7 +381,52 @@ function onOpen() {
  * ⭐ MENU FUNCTION: Cập nhật Dashboard thủ công
  */
 function refreshDashboard() {
-  DashboardManager.setupDashboard();
+  try {
+    // Full dashboard refresh with setup
+    DashboardManager.setupDashboard();
+    
+    // Additional forced refresh of custom functions
+    Utilities.sleep(1000); // Wait for setup to complete
+    forceDashboardRecalc();
+    
+    SpreadsheetApp.getUi().alert(
+      'Dashboard đã được cập nhật!',
+      'Dashboard và tất cả các custom functions đã được làm mới thành công.',
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+    
+  } catch (error) {
+    Logger.log('❌ Error in refreshDashboard: ' + error.message);
+    SpreadsheetApp.getUi().alert(
+      'Lỗi cập nhật Dashboard',
+      'Có lỗi xảy ra: ' + error.message,
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+  }
+}
+
+/**
+ * ⭐ MENU FUNCTION: Làm mới nhanh custom functions
+ */
+function quickRefreshDashboard() {
+  try {
+    forceDashboardRecalc();
+    
+    SpreadsheetApp.getActive().toast(
+      'Custom functions đã được làm mới thành công!', 
+      '⚡ Làm mới nhanh', 
+      2
+    );
+    
+    Logger.log('✅ Quick refresh dashboard completed');
+  } catch (error) {
+    Logger.log('❌ Error in quickRefreshDashboard: ' + error.message);
+    SpreadsheetApp.getUi().alert(
+      'Lỗi làm mới nhanh',
+      'Có lỗi xảy ra: ' + error.message,
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+  }
 }
 
 // ==================== HIỂN THỊ FORM ====================
