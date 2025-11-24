@@ -188,24 +188,24 @@ const DashboardManager = {
     const incomeRowCount = APP_CONFIG.CATEGORIES.INCOME.length + 1; // +1 for total
     const expenseRowCount = APP_CONFIG.CATEGORIES.EXPENSE.filter(c => c !== 'Trả nợ' && c !== 'Cho vay').length + 2; // +1 debt payment, +1 total
     
-    // 1. Income Table - Using custom function
+    // 1. Income Table - Using custom function with filter dependencies
     const incomeHeight = this._renderCustomFunctionTable(
       sheet, currentRow, cfg.LEFT_COL, 
       '1. Báo cáo Thu nhập', 
       this.CONFIG.COLORS.INCOME, 
-      '=hffsIncome($Z$1)', 
+      '=hffsIncome($B$2,$B$3,$B$4,$Z$1)', 
       3, // 3 columns
       true, // has percentage
       incomeRowCount, // exact row count
       ['Danh mục', 'Giá trị', 'Tỷ lệ'] // headers
     );
     
-    // 2. Expense Table - Using custom function
+    // 2. Expense Table - Using custom function with filter dependencies
     const expenseHeight = this._renderCustomFunctionTable(
       sheet, currentRow, cfg.RIGHT_COL,
       '2. Báo cáo Chi phí',
       this.CONFIG.COLORS.EXPENSE,
-      '=hffsExpense($Z$1)',
+      '=hffsExpense($B$2,$B$3,$B$4,$Z$1)',
       5, // 5 columns
       true, // has percentage
       expenseRowCount, // exact row count

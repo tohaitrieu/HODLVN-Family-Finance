@@ -112,8 +112,8 @@ function triggerDashboardRefresh() {
 }
 
 /**
- * Quick refresh method that only updates timestamp cells
- * Faster than full forceDashboardRecalc for frequent updates
+ * Quick refresh method that updates timestamp cells and forces custom function recalc
+ * Enhanced for filter-based refresh when B2:B4 change
  */
 function _quickRefreshCustomFunctions() {
   try {
@@ -124,16 +124,73 @@ function _quickRefreshCustomFunctions() {
       return;
     }
     
-    // Update timestamp cells with unique values
+    // Update timestamp cells with unique values to force recalculation
     const timestamp = new Date().getTime();
     dashboard.getRange('Z1').setValue(timestamp);
-    dashboard.getRange('Z2').setValue(timestamp + 1);
+    dashboard.getRange('Z2').setValue(timestamp + Math.random());
     
     // Force immediate recalculation
     SpreadsheetApp.flush();
     
-    Logger.log('✅ Quick refresh completed at ' + new Date());
+    // Additional force recalc for filter-dependent functions
+    // Clear and restore key custom function formulas that depend on filters
+    _forceFilterDependentFunctions(dashboard);
+    
+    Logger.log('✅ Quick refresh with filter dependencies completed at ' + new Date());
   } catch (error) {
     Logger.log('❌ Error in quick refresh: ' + error.message);
+  }
+}
+
+/**
+ * Force recalculation of functions that depend on filter values B2:B4
+ * This ensures they update when filter values change
+ */
+function _forceFilterDependentFunctions(dashboard) {
+  try {
+    // Find all formulas that reference B2, B3, B4 (filter-dependent functions)
+    const maxRows = 60;
+    const maxCols = 15; 
+    const dataRange = dashboard.getRange(1, 1, maxRows, maxCols);
+    const formulas = dataRange.getFormulas();
+    
+    const filterDependentCells = [];
+    
+    // Scan for formulas that reference B2, B3, or B4 (our filters)
+    for (let row = 0; row < formulas.length; row++) {
+      for (let col = 0; col < formulas[row].length; col++) {
+        const formula = formulas[row][col];
+        if (formula && (formula.includes('$B$2') || formula.includes('$B$3') || formula.includes('$B$4') || 
+                       formula.includes('hffsIncome') || formula.includes('hffsExpense') || 
+                       formula.includes('hffsYearly'))) {
+          filterDependentCells.push({
+            row: row + 1,
+            col: col + 1,
+            formula: formula
+          });
+        }
+      }
+    }
+    
+    Logger.log(`Found ${filterDependentCells.length} filter-dependent function cells to refresh`);
+    
+    // Force refresh by temporarily clearing and restoring formulas
+    filterDependentCells.forEach(cell => {
+      const cellRef = dashboard.getRange(cell.row, cell.col);
+      
+      // Step 1: Clear the formula temporarily
+      cellRef.setFormula('');
+      
+      // Step 2: Restore the original formula (this forces recalculation)
+      cellRef.setFormula(cell.formula);
+      
+      Logger.log(`Refreshed filter-dependent function at R${cell.row}C${cell.col}: ${cell.formula}`);
+    });
+    
+    // Force final calculation
+    SpreadsheetApp.flush();
+    
+  } catch (error) {
+    Logger.log('❌ Error in _forceFilterDependentFunctions: ' + error.message);
   }
 }

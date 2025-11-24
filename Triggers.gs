@@ -80,8 +80,21 @@ function processEdit(e) {
       }
     }
     
-    // 5. Xử lý Quick Actions trên Dashboard (Checkboxes)
+    // 5. Xử lý thay đổi bộ lọc trên Dashboard (B2:B4) 
     if (sheetName === APP_CONFIG.SHEETS.DASHBOARD) {
+      // Check if filter cells B2:B4 were changed
+      if ((col >= 2 && col <= 4) && (row >= 2 && row <= 4)) {
+        Logger.log(`🔄 Filter changed in Dashboard (${range.getA1Notation()}). Triggering refresh...`);
+        try {
+          Utilities.sleep(100); // Small delay to ensure filter value is saved
+          _quickRefreshCustomFunctions();
+          SpreadsheetApp.getActive().toast('Dữ liệu đã được cập nhật theo bộ lọc mới', '✅ Thành công', 2);
+        } catch (error) {
+          Logger.log('⚠️ Could not auto-refresh after filter change: ' + error.message);
+        }
+      }
+      
+      // Handle Quick Actions (Checkboxes)
       handleDashboardAction(range);
     }
     

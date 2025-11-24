@@ -17,6 +17,57 @@
 // ==================== HELPER FUNCTIONS ====================
 
 /**
+ * Calculate date filters from parameters (creates proper dependencies)
+ * @param {any} yearFilter - Year filter value from B2
+ * @param {any} quarterFilter - Quarter filter value from B3  
+ * @param {any} monthFilter - Month filter value from B4
+ * @return {Object} {year, quarter, month, startDate, endDate}
+ * @private
+ */
+function _getDateFiltersFromParams(yearFilter, quarterFilter, monthFilter) {
+  try {
+    let startDate, endDate;
+    const currentYear = typeof yearFilter === 'number' ? yearFilter : new Date().getFullYear();
+    
+    // Priority: Month > Quarter > Year
+    if (monthFilter && monthFilter !== 'Tất cả') {
+      // Extract month number from "Tháng 1", "Tháng 2", etc.
+      const monthNum = parseInt(monthFilter.replace('Tháng ', ''));
+      startDate = new Date(currentYear, monthNum - 1, 1);
+      endDate = new Date(currentYear, monthNum, 0);
+    } else if (quarterFilter && quarterFilter !== 'Tất cả') {
+      // Extract quarter number from "Quý 1", "Quý 2", etc.
+      const quarterNum = parseInt(quarterFilter.replace('Quý ', ''));
+      const startMonth = (quarterNum - 1) * 3;
+      startDate = new Date(currentYear, startMonth, 1);
+      endDate = new Date(currentYear, startMonth + 3, 0);
+    } else {
+      // Year filter
+      startDate = new Date(currentYear, 0, 1);
+      endDate = new Date(currentYear, 11, 31);
+    }
+    
+    return {
+      year: currentYear,
+      quarter: quarterFilter,
+      month: monthFilter,
+      startDate: startDate,
+      endDate: endDate
+    };
+  } catch (error) {
+    // Fallback to current month
+    const today = new Date();
+    return {
+      year: today.getFullYear(),
+      quarter: 'Tất cả',
+      month: 'Tất cả',
+      startDate: new Date(today.getFullYear(), 0, 1),
+      endDate: new Date(today.getFullYear(), 11, 31)
+    };
+  }
+}
+
+/**
  * Get filter values from dashboard cells B2-B4
  * @return {Object} {year, quarter, month, startDate, endDate}
  * @private
@@ -75,19 +126,22 @@ function _getDateFilters() {
 
 /**
  * Get income breakdown by category
- * Reads filter from B2-B4
+ * NEW: Direct filter parameters for auto-refresh when B2:B4 change
+ * @param {any} yearFilter - Year filter value from B2
+ * @param {any} quarterFilter - Quarter filter value from B3
+ * @param {any} monthFilter - Month filter value from B4
  * @param {any} trigger - Dummy parameter to force recalculation (pass $Z$1)
  * @return {Array} 2D array: [["Category", "Amount", "Percentage"], ...]
  * @customfunction
  */
-function hffsIncome(trigger) {
+function hffsIncome(yearFilter, quarterFilter, monthFilter, trigger) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const incomeSheet = ss.getSheetByName(APP_CONFIG.SHEETS.INCOME);
     
     if (!incomeSheet) return [['Lỗi: Sheet THU không tồn tại']];
     
-    const filters = _getDateFilters();
+    const filters = _getDateFiltersFromParams(yearFilter, quarterFilter, monthFilter);
     const data = incomeSheet.getDataRange().getValues();
     const categoryTotals = {};
     let totalIncome = 0;
@@ -127,12 +181,15 @@ function hffsIncome(trigger) {
 
 /**
  * Get expense breakdown with budget comparison
- * Reads filter from B2-B4
+ * NEW: Direct filter parameters for auto-refresh when B2:B4 change
+ * @param {any} yearFilter - Year filter value from B2
+ * @param {any} quarterFilter - Quarter filter value from B3
+ * @param {any} monthFilter - Month filter value from B4
  * @param {any} trigger - Dummy parameter to force recalculation (pass $Z$1)
  * @return {Array} 2D array: [["Category", "Spent", "Budget", "Remaining", "Status%"], ...]
  * @customfunction
  */
-function hffsExpense(trigger) {
+function hffsExpense(yearFilter, quarterFilter, monthFilter, trigger) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const expenseSheet = ss.getSheetByName(APP_CONFIG.SHEETS.EXPENSE);
@@ -141,7 +198,7 @@ function hffsExpense(trigger) {
     
     if (!expenseSheet) return [['Lỗi: Sheet CHI không tồn tại']];
     
-    const filters = _getDateFilters();
+    const filters = _getDateFiltersFromParams(yearFilter, quarterFilter, monthFilter);
     const categoryTotals = {};
     
     // Calculate spent by category (exclude 'Trả nợ' and 'Cho vay')
