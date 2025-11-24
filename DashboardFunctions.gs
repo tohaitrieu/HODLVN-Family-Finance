@@ -291,11 +291,12 @@ function hffsAssets() {
       return total;
     };
     
-    // 1. Net Cash (Income - Expense - Debt)
+    // 1. Net Cash = Income - Expense
+    // Note: Debt payments are already in Expense sheet, so don't subtract debt remaining
+    // Debt remaining is a liability, not a cash outflow
     const totalIncome = sumColumn(APP_CONFIG.SHEETS.INCOME, 2); // Col C
     const totalExpense = sumColumn(APP_CONFIG.SHEETS.EXPENSE, 2); // Col C
-    const totalDebt = sumColumn(APP_CONFIG.SHEETS.DEBT_MANAGEMENT, 10); // Col K
-    const netCash = totalIncome - totalExpense - totalDebt;
+    const netCash = totalIncome - totalExpense;
     
     // 2. Stock
     const stockCost = sumColumn(APP_CONFIG.SHEETS.STOCK, 7); // Col H: Total Cost

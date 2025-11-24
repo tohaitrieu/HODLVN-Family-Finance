@@ -193,7 +193,8 @@ const DashboardManager = {
       '=hffsIncome()', 
       3, // 3 columns
       true, // has percentage
-      incomeRowCount // exact row count
+      incomeRowCount, // exact row count
+      ['Danh mục', 'Giá trị', 'Tỷ lệ'] // headers
     );
     
     // 2. Expense Table - Using custom function
@@ -204,7 +205,8 @@ const DashboardManager = {
       '=hffsExpense()',
       5, // 5 columns
       true, // has percentage
-      expenseRowCount // exact row count
+      expenseRowCount, // exact row count
+      ['Danh mục', 'Đã chi', 'Ngân sách', 'Còn lại', 'Trạng thái'] // headers
     );
     
     // 3. Payables Table (Right - Col K)
@@ -229,7 +231,8 @@ const DashboardManager = {
       '=hffsDebt()',
       3, // 3 columns
       true, // has percentage
-      debtRowCount // exact row count
+      debtRowCount, // exact row count
+      ['Khoản nợ', 'Còn nợ', 'Tỷ lệ'] // headers
     );
     
     // 5. Assets Table - Using custom function
@@ -240,7 +243,8 @@ const DashboardManager = {
       '=hffsAssets()',
       5, // 5 columns
       true, // has percentage
-      assetRowCount // exact row count
+      assetRowCount, // exact row count
+      ['Danh mục', 'Tổng vốn', 'Lãi/Lỗ', 'Giá trị HT', 'Tỷ lệ'] // headers
     );
     
     // 6. Receivables Table (Right - Col K, Row 2)
@@ -414,9 +418,10 @@ const DashboardManager = {
    * @param {number} numCols - Number of columns
    * @param {boolean} hasPercentage - Whether last column is percentage
    * @param {number} expectedRows - Expected number of data rows (excluding header)
+   * @param {Array} subHeaders - Optional column headers
    * @return {number} Height of table
    */
-  _renderCustomFunctionTable(sheet, startRow, startCol, title, color, formula, numCols, hasPercentage, expectedRows) {
+  _renderCustomFunctionTable(sheet, startRow, startCol, title, color, formula, numCols, hasPercentage, expectedRows, subHeaders) {
     // Header
     sheet.getRange(startRow, startCol, 1, numCols).merge()
       .setValue(title)
@@ -425,27 +430,40 @@ const DashboardManager = {
       .setFontColor('#FFFFFF')
       .setHorizontalAlignment('left');
     
+    let dataStartRow = startRow + 1;
+    
+    // Optional sub-headers
+    if (subHeaders && subHeaders.length === numCols) {
+      sheet.getRange(dataStartRow, startCol, 1, numCols)
+        .setValues([subHeaders])
+        .setFontWeight('bold')
+        .setBackground('#EEEEEE')
+        .setHorizontalAlignment('center');
+      dataStartRow++;
+    }
+    
     // Data range - place formula in first cell
     // The formula will spill to adjacent cells automatically
-    sheet.getRange(startRow + 1, startCol).setFormula(formula);
+    sheet.getRange(dataStartRow, startCol).setFormula(formula);
     
     // Format numbers based on expected rows
     // Format all columns with numbers except first (category name)
     if (numCols > 1) {
-      sheet.getRange(startRow + 1, startCol + 1, expectedRows, numCols - 1).setNumberFormat('#,##0');
+      sheet.getRange(dataStartRow, startCol + 1, expectedRows, numCols - 1).setNumberFormat('#,##0');
     }
     
     // Format percentage column if exists
     if (hasPercentage && numCols > 1) {
-      sheet.getRange(startRow + 1, startCol + numCols - 1, expectedRows, 1).setNumberFormat('0.0%');
+      sheet.getRange(dataStartRow, startCol + numCols - 1, expectedRows, 1).setNumberFormat('0.0%');
     }
     
-    // Border around actual table area (header + expected rows)
-    sheet.getRange(startRow, startCol, expectedRows + 1, numCols)
+    // Border around actual table area (header + sub-headers + expected rows)
+    const totalHeight = (subHeaders ? 2 : 1) + expectedRows;
+    sheet.getRange(startRow, startCol, totalHeight, numCols)
       .setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
     
-    // Return actual height (header + data rows)
-    return expectedRows + 1;
+    // Return actual height
+    return totalHeight;
   },
   
   _renderPayables(sheet, startRow, startCol) {
@@ -749,15 +767,14 @@ const DashboardManager = {
       .setFontColor('#FFFFFF');
     sheet.setRowHeight(startRow, 35);
     
-    const headerRow = startRow + 1;
-    const dataStart = startRow + 2;
+    const dataStart = startRow + 1;
     
-    // Use custom function to get yearly data
-    sheet.getRange(dataStart, 1).setFormula(`=hffsYearly(${currentYear})`);
+    // Use custom function to get yearly data (uses current year by default)
+    sheet.getRange(dataStart, 1).setFormula('=hffsYearly()');
     
     // Format
     sheet.getRange(dataStart, 2, 12, 8).setNumberFormat('#,##0');
-    sheet.getRange(headerRow, 1, 13, 9).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
+    sheet.getRange(dataStart, 1, 13, 9).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
   },
   
   _createChart(sheet) {
