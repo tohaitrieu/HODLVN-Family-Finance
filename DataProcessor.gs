@@ -225,21 +225,6 @@ function addDebt(data) {
     const emptyRow = findEmptyRow(sheet, 2);
     const stt = getNextSTT(sheet, 2);
     
-    const loanDate = new Date(data.loanDate);
-    const debtName = data.debtName.toString();
-    const debtType = data.debtType || (debtName.toLowerCase().includes('margin') ? 'Margin chứng khoán' : 'Khác');
-    const amount = parseFloat(data.amount);
-    const interestRate = parseFloat(data.interestRate) || 0;
-    const term = parseInt(data.term) || 12;
-    const note = data.note || data.purpose || '';
-    
-    const dueDate = new Date(loanDate);
-    dueDate.setMonth(dueDate.getMonth() + term);
-    
-    // Phần 1: Cột A-J (STT đến Đã trả lãi) - 10 cột
-    const rowDataPart1 = [
-    if (!sheet) return { success: false, message: 'Sheet QUẢN LÝ NỢ chưa tạo' };
-    
     const emptyRow = findEmptyRow(sheet, 2);
     const stt = getNextSTT(sheet, 2);
     
@@ -247,13 +232,13 @@ function addDebt(data) {
     
     const dataObj = {
       stt: stt,
-      name: data.name,
-      type: data.type,
+      name: data.debtName,
+      type: data.debtType,
       principal: principal,
-      rate: (parseFloat(data.rate) || 0) / 100,
+      rate: (parseFloat(data.interestRate) || 0) / 100,
       term: parseInt(data.term) || 0,
-      startDate: new Date(data.startDate),
-      endDate: new Date(data.endDate),
+      startDate: new Date(data.loanDate),
+      endDate: new Date(data.loanDate).setMonth(new Date(data.loanDate).getMonth() + parseInt(data.term)),
       paidPrincipal: 0,
       paidInterest: 0,
       remaining: '', // Formula
@@ -266,10 +251,8 @@ function addDebt(data) {
     
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
-    // K: Còn nợ = D - I
-    sheet.getRange(emptyRow, 11).setFormula(`=IFERROR(D${emptyRow}-I${emptyRow}, 0)`);
-    
     formatNewRow(sheet, emptyRow, {
+      2: 'dd/mm/yyyy',
       4: '#,##0',
       5: '0.00%',
       7: 'dd/mm/yyyy',
