@@ -107,7 +107,10 @@ const DashboardManager = {
     sheet.getRange('A3').setValue('Quý').setFontWeight('bold');
     sheet.getRange('A4').setValue('Tháng').setFontWeight('bold');
     
+    
     const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    const currentQuarter = Math.ceil(currentMonth / 3); // 1-4
     
     // FIX 1: Apply Text format ONLY to B3:B4. Leave B2 (Year) as Automatic/Number.
     sheet.getRange('B3:B4').setNumberFormat('@');
@@ -127,10 +130,10 @@ const DashboardManager = {
     sheet.getRange('B3').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Tất cả', 'Quý 1', 'Quý 2', 'Quý 3', 'Quý 4']).build());
     sheet.getRange('B4').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(monthList).build());
     
-    // Set Values
-    sheet.getRange('B2').setValue(currentYear); // Set NUMBER
-    sheet.getRange('B3').setValue('Tất cả');
-    sheet.getRange('B4').setValue('Tất cả');
+    // Set Default Values to Current Period
+    sheet.getRange('B2').setValue(currentYear); // Current year
+    sheet.getRange('B3').setValue(`Quý ${currentQuarter}`); // Current quarter
+    sheet.getRange('B4').setValue(`Tháng ${currentMonth}`); // Current month
     
     // Chart Data Headers (E2:H2)
     sheet.getRange('F2').setValue('Thu nhập').setFontWeight('bold').setHorizontalAlignment('center');

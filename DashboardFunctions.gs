@@ -156,15 +156,26 @@ function hffsExpense() {
       }
     }
     
-    // Get budget data
+    // Get budget data and apply multiplier based on filter
     const budgetData = {};
+    let budgetMultiplier = 1; // Default for month
+    
     if (budgetSheet) {
+      // Determine multiplier based on filter
+      if (filters.month && filters.month !== 'Tất cả') {
+        budgetMultiplier = 1; // Month filter
+      } else if (filters.quarter && filters.quarter !== 'Tất cả') {
+        budgetMultiplier = 3; // Quarter filter (3 months)
+      } else {
+        budgetMultiplier = 12; // Year filter (12 months)
+      }
+      
       const budgetValues = budgetSheet.getDataRange().getValues();
       for (let i = 1; i < budgetValues.length; i++) {
         const cat = budgetValues[i][0]; // Column A: Category
-        const budget = parseFloat(budgetValues[i][2]) || 0; // Column C: Ngân sách (Budget)
-        if (cat && budget > 0) {
-          budgetData[cat] = budget;
+        const monthlyBudget = parseFloat(budgetValues[i][2]) || 0; // Column C: Ngân sách (monthly)
+        if (cat && monthlyBudget > 0) {
+          budgetData[cat] = monthlyBudget * budgetMultiplier;
         }
       }
     }
