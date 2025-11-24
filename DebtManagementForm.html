@@ -208,7 +208,13 @@
     document.getElementById('debtName').addEventListener('input', function () {
       const name = this.value.toLowerCase();
       if (name.includes('margin')) {
-        document.getElementById('debtType').value = 'Margin chứng khoán';
+        // Margin thường là trả lãi hàng tháng (INTEREST_ONLY)
+        const select = document.getElementById('debtType');
+        // Kiểm tra xem option có tồn tại không trước khi set
+        const options = Array.from(select.options).map(opt => opt.value);
+        if (options.includes('INTEREST_ONLY')) {
+          select.value = 'INTEREST_ONLY';
+        }
       }
     });
 
