@@ -49,3 +49,8 @@ Thumbs.db
 
 # Ignore misc
 *.txt
+# Ignore all .claude unless purposely tracked
+.repomixignore
+*.claude
+.opencode
+plans/

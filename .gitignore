@@ -133,3 +133,8 @@ clasprc.b64
 
 # Ignore all .txt unless purposely tracked
 *.txt
+# Ignore all .claude unless purposely tracked
+.repomixignore
+*.claude
+.opencode
+plans/
