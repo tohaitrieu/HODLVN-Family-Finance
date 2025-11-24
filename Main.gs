@@ -296,12 +296,11 @@ function onOpen() {
     
   // === MENU 3: ĐẦU TƯ ===
   ui.createMenu('💼 Đầu tư')
-    .addSubMenu(ui.createMenu('➕ Nhập đầu tư')
-      .addItem('📈 Giao dịch Chứng khoán', 'showStockForm')
-      .addItem('📊 Nhập Cổ tức', 'showDividendForm')
-      .addItem('🪙 Giao dịch Vàng', 'showGoldForm')
-      .addItem('₿ Giao dịch Crypto', 'showCryptoForm')
-      .addItem('💼 Giao dịch Đầu tư khác', 'showOtherInvestmentForm'))
+    .addItem('📈 Giao dịch Chứng khoán', 'showStockForm')
+    .addItem('📊 Nhập Cổ tức', 'showDividendForm')
+    .addItem('🪙 Giao dịch Vàng', 'showGoldForm')
+    .addItem('₿ Giao dịch Crypto', 'showCryptoForm')
+    .addItem('💼 Giao dịch Đầu tư khác', 'showOtherInvestmentForm')
     .addSeparator()
     .addItem('🤝 Cho vay', 'showLendingForm')
     .addItem('💰 Thu hồi nợ', 'showLendingPaymentForm')
