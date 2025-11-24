@@ -238,77 +238,151 @@ function addDebt(data) {
     
     // Phần 1: Cột A-J (STT đến Đã trả lãi) - 10 cột
     const rowDataPart1 = [
-      stt,                    // A: STT
-      debtName,               // B: Tên khoản nợ
-      debtType,               // C: Loại hình (NEW)
-      amount,                 // D: Gốc
-      interestRate / 100,     // E: Lãi suất
-      term,                   // F: Kỳ hạn
-      loanDate,               // G: Ngày vay
-      dueDate,                // H: Đáo hạn
-      0,                      // I: Đã trả gốc
-      0                       // J: Đã trả lãi
-    ];
+    if (!sheet) return { success: false, message: 'Sheet QUẢN LÝ NỢ chưa tạo' };
     
-    const transactionId = Utilities.getUuid();
+    const emptyRow = findEmptyRow(sheet, 2);
+    const stt = getNextSTT(sheet, 2);
     
-    // Phần 2: Cột L-M (Trạng thái và Ghi chú) - 2 cột
-    // Col N: TransactionID
-    const rowDataPart2 = [
-      'Chưa trả',             // L: Trạng thái
-      note,                   // M: Ghi chú
-      transactionId           // N: TransactionID
-    ];
+    const principal = parseFloat(data.principal);
     
-    // Insert Phần 1
-    sheet.getRange(emptyRow, 1, 1, rowDataPart1.length).setValues([rowDataPart1]);
+    const dataObj = {
+      stt: stt,
+      name: data.name,
+      type: data.type,
+      principal: principal,
+      rate: (parseFloat(data.rate) || 0) / 100,
+      term: parseInt(data.term) || 0,
+      startDate: new Date(data.startDate),
+      endDate: new Date(data.endDate),
+      paidPrincipal: 0,
+      paidInterest: 0,
+      remaining: '', // Formula
+      status: 'Chưa trả',
+      note: data.note || '',
+      transactionId: Utilities.getUuid()
+    };
     
-    // Insert Phần 2 (Bỏ qua cột K)
-    sheet.getRange(emptyRow, 12, 1, rowDataPart2.length).setValues([rowDataPart2]);
+    const rowData = SheetUtils.dataToRow('DEBT_MANAGEMENT', dataObj);
+    
+    sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+    
+    // K: Còn nợ = D - I
+    sheet.getRange(emptyRow, 11).setFormula(`=IFERROR(D${emptyRow}-I${emptyRow}, 0)`);
     
     formatNewRow(sheet, emptyRow, {
-      4: '#,##0',           // D: Gốc
-      5: '0.00"%"',         // E: Lãi suất
-      6: '0',               // F: Kỳ hạn (Number)
-      7: 'dd/mm/yyyy',      // G: Ngày vay
-      8: 'dd/mm/yyyy',      // H: Đáo hạn
-      9: '#,##0',           // I: Đã trả gốc
-      10: '#,##0',          // J: Đã trả lãi
-      11: '#,##0'           // K: Còn nợ
+      4: '#,##0',
+      5: '0.00%',
+      7: 'dd/mm/yyyy',
+      8: 'dd/mm/yyyy',
+      11: '#,##0'
     });
     
-    let incomeSource = 'Khác';
-    const nameLower = debtName.toLowerCase();
-    const typeLower = (data.debtType || '').toLowerCase();
+    // Add Income record
+    // Map Debt Type to Income Category
+    let incomeCategory = 'Khác';
+    if (data.type === 'BANK_LOAN' || data.type === 'CREDIT_CARD') incomeCategory = 'Vay ngân hàng';
+    else if (data.type === 'PERSONAL_LOAN') incomeCategory = 'Vay cá nhân';
     
-    if (nameLower.includes('margin') || typeLower.includes('margin') || typeLower.includes('ngân hàng')) {
-      incomeSource = 'Vay ngân hàng';
-    } else if (typeLower.includes('cá nhân')) {
-      incomeSource = 'Vay cá nhân';
+    // Verify if category exists in INCOME list, if not default to 'Khác'
+    if (!APP_CONFIG.CATEGORIES.INCOME.includes(incomeCategory)) {
+        incomeCategory = 'Khác';
     }
 
-    const incomeResult = addIncome({
-      date: loanDate,
-      amount: amount,
-      source: incomeSource,
-      note: `Vay ${debtName}. ${note}`,
-      transactionId: transactionId // Link ID
+    addIncome({
+      date: data.startDate,
+      amount: principal,
+      category: incomeCategory,
+      note: `Giải ngân khoản vay: ${data.name}`
     });
     
-    if (!incomeResult.success) {
-      Logger.log('Cảnh báo: Không thể tạo khoản thu tự động cho nợ');
+    return { success: true, message: '✅ Đã thêm khoản nợ mới' };
+    
+  } catch (error) {
+    return { success: false, message: 'Lỗi: ' + error.message };
+  }
+}
+
+/**
+ * Thêm khoản trả nợ
+ * @param {Object} data - {date, debtName, principal, interest, note}
+ * @return {Object} {success, message}
+ */
+function addDebtPayment(data) {
+  try {
+    if (!data.date || !data.debtName || (!data.principal && !data.interest)) {
+      return {
+        success: false,
+        message: '❌ Vui lòng nhập ngày, khoản nợ và số tiền!'
+      };
     }
     
-    Logger.log(`Đã thêm khoản nợ: ${debtName} - ${formatCurrency(amount)}`);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_PAYMENT);
+    
+    if (!sheet) {
+      return {
+        success: false,
+        message: '❌ Sheet TRẢ NỢ chưa được khởi tạo!'
+      };
+    }
+    
+    const emptyRow = findEmptyRow(sheet, 2);
+    const stt = getNextSTT(sheet, 2);
+    
+    const principal = parseFloat(data.principal) || 0;
+    const interest = parseFloat(data.interest) || 0;
+    
+    const dataObj = {
+      stt: stt,
+      date: new Date(data.date),
+      debtName: data.debtName,
+      principal: principal,
+      interest: interest,
+      total: '', // Formula will handle this
+      note: data.note || '',
+      transactionId: Utilities.getUuid()
+    };
+    
+    const rowData = SheetUtils.dataToRow('DEBT_PAYMENT', dataObj);
+    
+    sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+    
+    // Formula re-application is handled by SheetInitializer/SheetUtils now, 
+    // but for specific row formulas that depend on relative references, we might need to set them if not using ArrayFormula.
+    // However, SheetUtils.applySheetFormat sets formulas for the whole column range (Row 2 to LastRow).
+    // Since we just added a row, we might need to extend the formula or set it for this row.
+    // For safety, let's set the formula for this specific row as well, using the logic from Config.
+    
+    // F: Tổng trả = D + E
+    sheet.getRange(emptyRow, 6).setFormula(`=IFERROR(D${emptyRow}+E${emptyRow}, 0)`);
+    
+    formatNewRow(sheet, emptyRow, {
+      2: 'dd/mm/yyyy',
+      4: '#,##0',
+      5: '#,##0',
+      6: '#,##0'
+    });
+    
+    // Update Debt Management status
+    DebtManagementHandler.updateDebtStatus(data.debtName, principal, interest);
+    
+    // Add Expense record
+    addExpense({
+      date: data.date,
+      amount: principal + interest,
+      category: 'Trả nợ',
+      subcategory: data.debtName,
+      note: `Trả nợ: ${data.debtName} (Gốc: ${formatCurrency(principal)}, Lãi: ${formatCurrency(interest)})`,
+      transactionId: Utilities.getUuid()
+    });
     
     return {
       success: true,
-      message: `✅ Đã ghi nhận khoản nợ ${debtName}: ${formatCurrency(amount)}!\n` +
-               `📅 Hạn thanh toán: ${formatDate(dueDate)}`
+      message: `✅ Đã ghi nhận trả nợ: ${data.debtName}\n💰 Tổng: ${formatCurrency(principal + interest)}`
     };
     
   } catch (error) {
-    Logger.log('Error in addDebt: ' + error.message);
+    Logger.log('Error in addDebtPayment: ' + error.message);
     return {
       success: false,
       message: `❌ Lỗi: ${error.message}`
@@ -317,165 +391,127 @@ function addDebt(data) {
 }
 
 /**
- * Trả nợ
- * @param {Object} data - {date, debtName, principalAmount, interestAmount, note}
- * @return {Object} {success, message}
+ * Thêm khoản cho vay mới
+ * @param {Object} data
  */
-function addDebtPayment(data) {
+function addLending(data) {
   try {
-    if (!data.date || !data.debtName || !data.principalAmount) {
-      return {
-        success: false,
-        message: '❌ Vui lòng điền đầy đủ thông tin bắt buộc!'
-      };
-    }
-    
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const paymentSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_PAYMENT);
-    const debtSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
+    const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.LENDING);
     
-    if (!paymentSheet || !debtSheet) {
-      return {
-        success: false,
-        message: '❌ Các sheet liên quan chưa được khởi tạo!'
-      };
-    }
+    if (!sheet) return { success: false, message: 'Sheet CHO VAY chưa tạo' };
     
-    const emptyRow = findEmptyRow(paymentSheet, 2);
-    const stt = getNextSTT(paymentSheet, 2);
+    const emptyRow = findEmptyRow(sheet, 2);
+    const stt = getNextSTT(sheet, 2);
     
-    const date = new Date(data.date);
-    const debtName = data.debtName.toString();
-    const principalAmount = parseFloat(data.principalAmount);
-    const interestAmount = parseFloat(data.interestAmount) || 0;
-    const totalAmount = principalAmount + interestAmount;
-    const note = data.note || '';
+    const principal = parseFloat(data.principal);
     
-    // 1. Find Parent Debt & ID
-    let parentId = '';
-    const debtData = debtSheet.getRange(2, 1, debtSheet.getLastRow() - 1, 14).getValues(); // Read up to Col N (14)
+    const dataObj = {
+      stt: stt,
+      name: data.name,
+      type: data.type,
+      principal: principal,
+      rate: (parseFloat(data.rate) || 0) / 100,
+      term: parseInt(data.term) || 0,
+      startDate: new Date(data.startDate),
+      endDate: new Date(data.endDate),
+      paidPrincipal: 0,
+      paidInterest: 0,
+      remaining: '', // Formula
+      status: 'Đang vay',
+      note: data.note || '',
+      transactionId: Utilities.getUuid()
+    };
     
-    for (let i = 0; i < debtData.length; i++) {
-      if (debtData[i][1] === debtName) { // Col B: Name
-        parentId = debtData[i][13]; // Col N: TransactionID (Index 13)
-        break;
-      }
-    }
+    const rowData = SheetUtils.dataToRow('LENDING', dataObj);
     
-    if (!parentId) {
-      // Fallback if no ID found (old data): Generate one on the fly based on name/date? 
-      // Or just use UUID. Better to use UUID fallback to avoid collision if logic fails.
-      parentId = Utilities.getUuid(); 
-    }
+    sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
-    // 2. Count existing payments for this Parent ID to generate Suffix
-    // Read Debt Payment sheet to count
-    const paymentData = paymentSheet.getRange(2, 8, paymentSheet.getLastRow() - 1, 1).getValues(); // Col H: TransactionID
-    let count = 0;
-    paymentData.forEach(row => {
-      if (row[0] && row[0].toString().startsWith(parentId)) {
-        count++;
-      }
+    // K: Còn lại = D - I
+    sheet.getRange(emptyRow, 11).setFormula(`=IFERROR(D${emptyRow}-I${emptyRow}, 0)`);
+    
+    formatNewRow(sheet, emptyRow, {
+      4: '#,##0',
+      5: '0.00%',
+      7: 'dd/mm/yyyy',
+      8: 'dd/mm/yyyy',
+      11: '#,##0'
     });
     
-    // 3. Generate New ID
-    const transactionId = IDGenerator.generateSuffix(parentId, count);
+    // Add Expense record (Money out)
+    addExpense({
+      date: data.startDate,
+      amount: principal,
+      category: 'Đầu tư',
+      subcategory: 'Cho vay',
+      note: `Cho vay: ${data.name}`,
+      transactionId: Utilities.getUuid()
+    });
+    
+    return { success: true, message: '✅ Đã thêm khoản cho vay mới' };
+    
+  } catch (error) {
+    return { success: false, message: 'Lỗi: ' + error.message };
+  }
+}
 
-    const rowData = [
-      stt,
-      date,
-      debtName,
-      principalAmount,
-      interestAmount,
-      totalAmount,
-      note,
-      transactionId // Col H: TransactionID
-    ];
+/**
+ * Thêm giao dịch thu nợ
+ * @param {Object} data
+ */
+function addLendingRepayment(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.LENDING_REPAYMENT);
     
-    paymentSheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+    if (!sheet) return { success: false, message: 'Sheet THU NỢ chưa tạo' };
     
-    formatNewRow(paymentSheet, emptyRow, {
+    const emptyRow = findEmptyRow(sheet, 2);
+    const stt = getNextSTT(sheet, 2);
+    
+    const principal = parseFloat(data.principal) || 0;
+    const interest = parseFloat(data.interest) || 0;
+    
+    const dataObj = {
+      stt: stt,
+      date: new Date(data.date),
+      borrower: data.borrower,
+      principal: principal,
+      interest: interest,
+      total: '', // Formula
+      note: data.note || '',
+      transactionId: Utilities.getUuid()
+    };
+    
+    const rowData = SheetUtils.dataToRow('LENDING_REPAYMENT', dataObj);
+    
+    sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+    
+    // F: Tổng thu = D + E
+    sheet.getRange(emptyRow, 6).setFormula(`=IFERROR(D${emptyRow}+E${emptyRow}, 0)`);
+    
+    formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
       4: '#,##0',
       5: '#,##0',
       6: '#,##0'
     });
     
-    // Update Debt Sheet
-    const debtEmptyRow = findEmptyRow(debtSheet, 2);
-    const debtDataRows = debtEmptyRow - 2;
+    // Update Lending Status
+    DebtManagementHandler.updateLendingStatus(data.borrower, principal, interest);
     
-    if (debtDataRows > 0) {
-      // Read Col B (Name) to Col L (Status)
-      // B(1), C(2), D(3), E(4), F(5), G(6), H(7), I(8), J(9), K(10), L(11)
-      // Indices in values: 0=B, ..., 10=L
-      // Re-read to be safe or use previous read
-      
-      for (let i = 0; i < debtData.length; i++) {
-        const rowDebtName = debtData[i][1]; // Col B
-        
-        if (rowDebtName === debtName) {
-          const row = i + 2;
-          
-          // Get current Paid Principal (Col I) & Interest (Col J)
-          const paidPrinCell = debtSheet.getRange(row, 9); // Col I
-          const paidIntCell = debtSheet.getRange(row, 10); // Col J
-          
-          const currentPaidPrin = paidPrinCell.getValue() || 0;
-          const currentPaidInt = paidIntCell.getValue() || 0;
-          
-          paidPrinCell.setValue(currentPaidPrin + principalAmount);
-          paidIntCell.setValue(currentPaidInt + interestAmount);
-          
-          // Check Remaining (Col K - 11)
-          // Remaining is calculated by formula: D - I
-          // We can check if Paid Principal >= Original Principal (Col D)
-          const originalPrincipal = parseFloat(debtData[i][3]); // Col D (Index 3 in range A-N)
-          
-          if (currentPaidPrin + principalAmount >= originalPrincipal) {
-            debtSheet.getRange(row, 12).setValue('Đã thanh toán'); // Col L
-          }
-          
-          break;
-        }
-      }
-    }
-    
-    // [NEW] Add to Expense Sheet (Sync)
-    const expenseResult = addExpense({
-      date: date,
-      amount: totalAmount,
-      category: 'Trả nợ',
-      subcategory: `Trả nợ: ${debtName}`,
-      note: note,
-      transactionId: transactionId // Link ID
+    // Add Income record
+    addIncome({
+      date: data.date,
+      amount: principal + interest,
+      category: 'Thu nợ',
+      note: `Thu nợ từ: ${data.borrower} (Gốc: ${formatCurrency(principal)}, Lãi: ${formatCurrency(interest)})`
     });
     
-    if (!expenseResult.success) {
-      Logger.log('Cảnh báo: Không thể tự động thêm chi phí cho khoản trả nợ');
-    } else {
-      Logger.log('✅ Đã tự động thêm chi phí: Trả nợ ' + debtName);
-    }
-    
-    BudgetManager.updateDebtBudget();
-    
-    Logger.log(`Đã trả nợ: ${debtName} - Gốc: ${formatCurrency(principalAmount)}, Lãi: ${formatCurrency(interestAmount)} (ID: ${transactionId})`);
-    
-    return {
-      success: true,
-      message: `✅ Đã ghi nhận trả nợ ${debtName}!\n` +
-               `💰 Gốc: ${formatCurrency(principalAmount)}\n` +
-               `📊 Lãi: ${formatCurrency(interestAmount)}\n` +
-               `💵 Tổng: ${formatCurrency(totalAmount)}\n` +
-               `🆔 ID: ${transactionId}`
-    };
+    return { success: true, message: '✅ Đã ghi nhận thu nợ' };
     
   } catch (error) {
-    Logger.log('Error in payDebt: ' + error.message);
-    return {
-      success: false,
-      message: `❌ Lỗi: ${error.message}`
-    };
+    return { success: false, message: 'Lỗi: ' + error.message };
   }
 }
 
@@ -483,36 +519,16 @@ function addDebtPayment(data) {
 
 /**
  * Thêm giao dịch chứng khoán
- * @param {Object} data - {date, type, stockCode, quantity, price, fee, useMargin, marginAmount, marginRate, note}
+ * @param {Object} data - {date, type, ticker, quantity, price, fee, note}
  * @return {Object} {success, message}
  */
 function addStock(data) {
   try {
-    // ✅ v3.5.1: Sửa validation + hỗ trợ cả symbol và stockCode
-    Logger.log('addStock received data: ' + JSON.stringify(data));
-    
-    // Hỗ trợ cả 2 tên parameter: symbol (từ form) và stockCode (từ code cũ)
-    const stockCode = data.stockCode || data.symbol;
-    
-    if (!data.date) {
-      Logger.log('Missing date');
-      return { success: false, message: '❌ Thiếu ngày giao dịch!' };
-    }
-    if (!data.type) {
-      Logger.log('Missing type');
-      return { success: false, message: '❌ Thiếu loại giao dịch!' };
-    }
-    if (!stockCode) {
-      Logger.log('Missing stockCode/symbol');
-      return { success: false, message: '❌ Thiếu mã cổ phiếu!' };
-    }
-    if (!data.quantity) {
-      Logger.log('Missing quantity');
-      return { success: false, message: '❌ Thiếu số lượng!' };
-    }
-    if (data.price === undefined || data.price === null || data.price === '') {
-      Logger.log('Missing price');
-      return { success: false, message: '❌ Thiếu giá!' };
+    if (!data.date || !data.type || !data.ticker || !data.quantity || !data.price) {
+      return {
+        success: false,
+        message: '❌ Vui lòng điền đầy đủ thông tin bắt buộc!'
+      };
     }
     
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -530,46 +546,57 @@ function addStock(data) {
     
     const date = new Date(data.date);
     const type = data.type.toString();
-    // ✅ Dùng biến stockCode đã được định nghĩa ở trên (hỗ trợ cả symbol và stockCode)
-    const stockCodeUpper = stockCode.toString().toUpperCase();
-    const quantity = parseInt(data.quantity);
+    const ticker = data.ticker.toString().toUpperCase();
+    const quantity = parseFloat(data.quantity);
     const price = parseFloat(data.price);
     const fee = parseFloat(data.fee) || 0;
-    const total = (quantity * price) + fee;
-    const note = data.note || '';
     
-    // ✅ v3.5.1: Ghi đúng 16 cột - KHÔNG GHI ĐÈ công thức
-    // Chỉ ghi dữ liệu vào cột A-J và P, bỏ qua K-O (để công thức tự động)
-    const rowData = [
-      stt,           // A: STT
-      date,          // B: Ngày
-      type,          // C: Loại GD
-      stockCodeUpper,     // D: Mã CK
-      quantity,      // E: Số lượng
-      price,         // F: Giá gốc
-      fee,           // G: Phí
-      total,         // H: Tổng vốn
-      0,             // I: Cổ tức TM (khởi tạo = 0)
-      0              // J: Cổ tức CP (khởi tạo = 0)
-    ];
+    // Calculate Total Cost
+    let totalCost = 0;
+    if (type === 'Mua') {
+      totalCost = (quantity * price) + fee;
+    } else if (type === 'Bán') {
+      totalCost = (quantity * price) - fee; // Net proceeds
+    }
     
-    // Ghi dữ liệu vào cột A-J (10 cột đầu)
-    sheet.getRange(emptyRow, 1, 1, 10).setValues([rowData]);
+    const dataObj = {
+      stt: stt,
+      date: date,
+      type: type,
+      ticker: ticker,
+      quantity: quantity,
+      price: price,
+      fee: fee,
+      totalCost: totalCost,
+      divCash: 0,
+      divStock: 0,
+      adjPrice: '', // Formula
+      marketPrice: '', // Formula
+      marketValue: '', // Formula
+      profit: '', // Formula
+      profitPercent: '', // Formula
+      note: data.note || ''
+    };
     
-    // Ghi ghi chú vào cột P (cột 16)
-    sheet.getRange(emptyRow, 16).setValue(note);
+    const rowData = SheetUtils.dataToRow('STOCK', dataObj);
     
-    // ✅ SET CÔNG THỨC cho cột K-O
-    // K: Giá điều chỉnh = (Tổng vốn - Cổ tức TM) / Số lượng
+    sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
+    
+    // Set Formulas
+    // K: Giá ĐC = (Tổng vốn - Cổ tức TM) / (Số lượng + Cổ tức CP) -> Simplified: (H-I)/(E+J) ? No, formula in Config is: (H-I)/E (Assuming J is 0 for now or handled differently)
+    // Config Formula: =IF(RC[-6]>0, (RC[-3]-RC[-2])/RC[-6], 0) -> (TotalCost - DivCash) / Quantity
     sheet.getRange(emptyRow, 11).setFormula(`=IF(E${emptyRow}>0, (H${emptyRow}-I${emptyRow})/E${emptyRow}, 0)`);
     
-    // M: Giá trị HT = Số lượng × Giá HT
+    // L: Giá HT = MPRICE(Ticker)
+    sheet.getRange(emptyRow, 12).setFormula(`=IF(D${emptyRow}<>"", MPRICE(D${emptyRow}), 0)`);
+    
+    // M: Giá trị HT = Quantity * MarketPrice
     sheet.getRange(emptyRow, 13).setFormula(`=IF(AND(E${emptyRow}>0, L${emptyRow}>0), E${emptyRow}*L${emptyRow}, 0)`);
     
-    // N: Lãi/Lỗ = Giá trị HT - (Tổng vốn - Cổ tức TM)
+    // N: Lãi/Lỗ = MarketValue - (TotalCost - DivCash)
     sheet.getRange(emptyRow, 14).setFormula(`=IF(M${emptyRow}>0, M${emptyRow}-(H${emptyRow}-I${emptyRow}), 0)`);
     
-    // O: % L/L = Lãi/Lỗ / (Tổng vốn - Cổ tức TM)
+    // O: % Lãi/Lỗ
     sheet.getRange(emptyRow, 15).setFormula(`=IF(AND(N${emptyRow}<>0, (H${emptyRow}-I${emptyRow})>0), N${emptyRow}/(H${emptyRow}-I${emptyRow}), 0)`);
     
     formatNewRow(sheet, emptyRow, {
@@ -577,7 +604,6 @@ function addStock(data) {
       6: '#,##0',
       7: '#,##0',
       8: '#,##0',
-      9: '#,##0',
       11: '#,##0',
       12: '#,##0',
       13: '#,##0',
@@ -585,45 +611,25 @@ function addStock(data) {
       15: '0.00%'
     });
     
-    if (data.useMargin && data.marginAmount > 0) {
-      const marginDebt = {
-        loanDate: date,
-        debtName: `Margin ${stockCodeUpper}`,
-        amount: parseFloat(data.marginAmount),
-        interestRate: parseFloat(data.marginRate) || 8.5,
-        term: 3,
-        purpose: `Vay margin mua ${stockCodeUpper}`,
-        note: 'Tự động từ giao dịch chứng khoán'
-      };
-      
-      addDebt(marginDebt);
-    }
+    BudgetManager.updateInvestmentBudget('Chứng khoán', totalCost);
     
-    BudgetManager.updateInvestmentBudget('Chứng khoán', total);
-    
-    // [NEW] Tự động ghi nhận Chi phí Đầu tư khi MUA
+    // Auto-add Expense for Buy
     if (type === 'Mua') {
-      const expenseResult = addExpense({
+      addExpense({
         date: date,
-        amount: total,
+        amount: totalCost,
         category: 'Đầu tư',
-        subcategory: `Mua CK: ${stockCodeUpper}`,
-        note: `Mua ${quantity} CP ${stockCodeUpper} giá ${formatCurrency(price)}`,
-        transactionId: Utilities.getUuid() // New ID for expense
+        subcategory: `Mua CK: ${ticker}`,
+        note: `Mua ${quantity} ${ticker} giá ${formatCurrency(price)}`,
+        transactionId: Utilities.getUuid()
       });
-      
-      if (expenseResult.success) {
-        Logger.log('✅ Đã tự động thêm chi phí đầu tư chứng khoán');
-      }
     }
-    
-    Logger.log(`Đã thêm giao dịch CK: ${type} ${quantity} ${stockCodeUpper} @ ${formatCurrency(price)}`);
     
     return {
       success: true,
-      message: `✅ Đã ghi nhận ${type} ${quantity} CP ${stockCodeUpper}!\n` +
-               `💰 Giá: ${formatCurrency(price)}/CP\n` +
-               `💵 Tổng: ${formatCurrency(total)}`
+      message: `✅ Đã ghi nhận ${type} ${quantity} ${ticker}!\n` +
+               `💰 Giá: ${formatCurrency(price)}\n` +
+               `💵 Tổng: ${formatCurrency(totalCost)}`
     };
     
   } catch (error) {
@@ -637,11 +643,6 @@ function addStock(data) {
 
 // ==================== VÀNG ====================
 
-/**
- * Thêm giao dịch vàng
- * @param {Object} data - {date, type, goldType, unit, quantity, price, note}
- * @return {Object} {success, message}
- */
 /**
  * Thêm giao dịch vàng
  * @param {Object} data - {date, type, goldType, unit, quantity, price, note}
@@ -670,37 +671,32 @@ function addGold(data) {
     const stt = getNextSTT(sheet, 2);
     
     const date = new Date(data.date);
-    const type = data.type.toString();
-    const goldType = data.goldType.toString();
-    const unit = data.unit || 'Lượng';
     const quantity = parseFloat(data.quantity);
     const price = parseFloat(data.price);
     const total = quantity * price;
-    const note = data.note || '';
     
-    // [NEW] Structure: 
-    // A: STT, B: Ngày, C: Tài sản (GOLD), D: Loại GD, E: Loại vàng, F: Số lượng, G: Đơn vị, 
-    // H: Giá vốn, I: Tổng vốn, J-M: Formulas, N: Ghi chú
+    const dataObj = {
+      stt: stt,
+      date: date,
+      assetName: 'GOLD',
+      type: data.type,
+      goldType: data.goldType,
+      quantity: quantity,
+      unit: data.unit || 'Lượng',
+      price: price,
+      totalCost: total,
+      marketPrice: '', // Formula
+      marketValue: '', // Formula
+      profit: '', // Formula
+      profitPercent: '', // Formula
+      note: data.note || ''
+    };
     
-    const rowData = [
-      stt,
-      date,
-      'GOLD',
-      type,
-      goldType,
-      quantity,
-      unit,
-      price,
-      total
-    ];
+    const rowData = SheetUtils.dataToRow('GOLD', dataObj);
     
-    // Write A-I (9 columns)
-    sheet.getRange(emptyRow, 1, 1, 9).setValues([rowData]);
+    sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
-    // Write Note to N (Column 14)
-    sheet.getRange(emptyRow, 14).setValue(note);
-    
-    // Set Formulas for J-M
+    // Set Formulas
     // J: Giá HT = GPRICE(Loại vàng - Cột E)
     sheet.getRange(emptyRow, 10).setFormula(`=IF(E${emptyRow}<>"", GPRICE(E${emptyRow}), 0)`);
     
@@ -715,39 +711,30 @@ function addGold(data) {
     
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
-      8: '#,##0', // Giá vốn
-      9: '#,##0', // Tổng vốn
-      10: '#,##0', // Giá HT
-      11: '#,##0', // Giá trị HT
-      12: '#,##0', // Lãi/Lỗ
-      13: '0.00%'  // % Lãi/Lỗ
+      8: '#,##0',
+      9: '#,##0',
+      10: '#,##0',
+      11: '#,##0',
+      12: '#,##0',
+      13: '0.00%'
     });
     
     BudgetManager.updateInvestmentBudget('Vàng', total);
     
-    // [NEW] Tự động ghi nhận Chi phí Đầu tư khi MUA
-    if (type === 'Mua') {
-      const expenseResult = addExpense({
+    if (data.type === 'Mua') {
+      addExpense({
         date: date,
         amount: total,
         category: 'Đầu tư',
-        subcategory: `Mua Vàng: ${goldType}`,
-        note: `Mua ${quantity} ${unit} ${goldType} giá ${formatCurrency(price)}`,
+        subcategory: `Mua Vàng: ${data.goldType}`,
+        note: `Mua ${quantity} ${data.unit} ${data.goldType} giá ${formatCurrency(price)}`,
         transactionId: Utilities.getUuid()
       });
-      
-      if (expenseResult.success) {
-        Logger.log('✅ Đã tự động thêm chi phí đầu tư vàng');
-      }
     }
-    
-    Logger.log(`Đã thêm giao dịch vàng: ${type} ${quantity} ${unit} ${goldType}`);
     
     return {
       success: true,
-      message: `✅ Đã ghi nhận ${type} ${quantity} ${unit} ${goldType}!\n` +
-               `💰 Giá: ${formatCurrency(price)}/${unit}\n` +
-               `💵 Tổng: ${formatCurrency(total)}`
+      message: `✅ Đã ghi nhận ${data.type} ${quantity} ${data.unit} ${data.goldType}!`
     };
     
   } catch (error) {
@@ -761,11 +748,6 @@ function addGold(data) {
 
 // ==================== CRYPTO ====================
 
-/**
- * Thêm giao dịch crypto
- * @param {Object} data - {date, type, coin, quantity, price, fee, note}
- * @return {Object} {success, message}
- */
 /**
  * Thêm giao dịch crypto
  * @param {Object} data - {date, type, coin, quantity, price, fee, note}
@@ -794,47 +776,41 @@ function addCrypto(data) {
     const stt = getNextSTT(sheet, 2);
     
     const date = new Date(data.date);
-    const type = data.type.toString();
-    const coin = data.coin.toString().toUpperCase();
     const quantity = parseFloat(data.quantity);
-    const priceUSD = parseFloat(data.priceUSD); // Corrected key from form
-    
-    const rate = parseFloat(data.exchangeRate) || 25300; // Corrected key from form
-    
-    const priceVND = priceUSD * rate;
-    const fee = parseFloat(data.fee) || 0; 
+    const priceUSD = parseFloat(data.priceUSD);
+    const rate = parseFloat(data.exchangeRate) || 25300;
+    const fee = parseFloat(data.fee) || 0;
     
     const totalUSD = (quantity * priceUSD) + fee;
     const totalVND = totalUSD * rate;
+    const priceVND = priceUSD * rate;
     
-    const note = data.note || '';
-    const san = data.exchange || ''; // Corrected key from form
-    const vi = data.wallet || '';   // Corrected key from form
+    const dataObj = {
+      stt: stt,
+      date: date,
+      type: data.type,
+      coin: data.coin.toString().toUpperCase(),
+      quantity: quantity,
+      priceUSD: priceUSD,
+      rate: rate,
+      priceVND: priceVND,
+      totalCost: totalVND,
+      marketPriceUSD: '', // Formula
+      marketValueUSD: '', // Formula
+      marketPriceVND: '', // Formula
+      marketValueVND: '', // Formula
+      profit: '', // Formula
+      profitPercent: '', // Formula
+      exchange: data.exchange || '',
+      wallet: data.wallet || '',
+      note: data.note || ''
+    };
     
-    // [NEW] Structure:
-    // A: STT, B: Ngày, C: Loại GD, D: Coin, E: Số lượng, F: Giá (USD), G: Tỷ giá, H: Giá (VND), I: Tổng vốn
-    // J-O: Formulas
-    // P: Sàn, Q: Ví, R: Ghi chú
+    const rowData = SheetUtils.dataToRow('CRYPTO', dataObj);
     
-    const rowData = [
-      stt,
-      date,
-      type,
-      coin,
-      quantity,
-      priceUSD,
-      rate,
-      priceVND,
-      totalVND
-    ];
+    sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
-    // Write A-I (9 columns)
-    sheet.getRange(emptyRow, 1, 1, 9).setValues([rowData]);
-    
-    // Write P-R (3 columns)
-    sheet.getRange(emptyRow, 16, 1, 3).setValues([[san, vi, note]]);
-    
-    // Set Formulas for J-O
+    // Set Formulas
     // J: Giá HT (USD)
     sheet.getRange(emptyRow, 10).setFormula(`=IF(D${emptyRow}<>"", CPRICE(D${emptyRow}&"USD"), 0)`);
     
@@ -855,43 +831,34 @@ function addCrypto(data) {
     
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
-      6: '#,##0.00', // Giá USD
-      7: '#,##0',    // Tỷ giá
-      8: '#,##0',    // Giá VND
-      9: '#,##0',    // Tổng vốn
-      10: '#,##0.00', // Giá HT USD
-      11: '#,##0.00', // Giá trị HT USD
-      12: '#,##0',    // Giá HT VND
-      13: '#,##0',    // Giá trị HT VND
-      14: '#,##0',    // Lãi/Lỗ
-      15: '0.00%'     // % Lãi/Lỗ
+      6: '#,##0.00',
+      7: '#,##0',
+      8: '#,##0',
+      9: '#,##0',
+      10: '#,##0.00',
+      11: '#,##0.00',
+      12: '#,##0',
+      13: '#,##0',
+      14: '#,##0',
+      15: '0.00%'
     });
     
     BudgetManager.updateInvestmentBudget('Crypto', totalVND);
     
-    // [NEW] Tự động ghi nhận Chi phí Đầu tư khi MUA
-    if (type === 'Mua') {
-      const expenseResult = addExpense({
+    if (data.type === 'Mua') {
+      addExpense({
         date: date,
         amount: totalVND,
         category: 'Đầu tư',
-        subcategory: `Mua Crypto: ${coin}`,
-        note: `Mua ${quantity} ${coin} giá $${formatCurrency(priceUSD)}`,
+        subcategory: `Mua Crypto: ${data.coin}`,
+        note: `Mua ${quantity} ${data.coin} giá $${formatCurrency(priceUSD)}`,
         transactionId: Utilities.getUuid()
       });
-      
-      if (expenseResult.success) {
-        Logger.log('✅ Đã tự động thêm chi phí đầu tư crypto');
-      }
     }
-    
-    Logger.log(`Đã thêm giao dịch crypto: ${type} ${quantity} ${coin}`);
     
     return {
       success: true,
-      message: `✅ Đã ghi nhận ${type} ${quantity} ${coin}!\n` +
-               `💰 Giá: $${formatCurrency(priceUSD)}\n` +
-               `💵 Tổng: ${formatCurrency(totalVND)}`
+      message: `✅ Đã ghi nhận ${data.type} ${quantity} ${data.coin}!`
     };
     
   } catch (error) {
@@ -906,8 +873,8 @@ function addCrypto(data) {
 // ==================== ĐẦU TƯ KHÁC ====================
 
 /**
- * Thêm giao dịch đầu tư khác
- * @param {Object} data - {date, investmentType, amount, note}
+ * Thêm đầu tư khác
+ * @param {Object} data - {date, investmentType, amount, roi, term, note}
  * @return {Object} {success, message}
  */
 function addOtherInvestment(data) {
@@ -932,28 +899,26 @@ function addOtherInvestment(data) {
     const emptyRow = findEmptyRow(sheet, 2);
     const stt = getNextSTT(sheet, 2);
     
-    const date = new Date(data.date);
-    const investmentType = data.investmentType.toString();
     const amount = parseFloat(data.amount);
     const roi = parseFloat(data.roi) || 0;
     const term = parseFloat(data.term) || 0;
-    const note = data.note || '';
     
-    // Calculate Expected Return (Simple Interest)
-    // Formula: Amount + (Amount * ROI% * Term/12)
+    // Calculate Expected Return
     const interest = amount * (roi / 100) * (term / 12);
     const expectedReturn = amount + interest;
     
-    const rowData = [
-      stt,
-      date,
-      investmentType,
-      amount,
-      roi / 100, // Store as decimal for % format
-      term,
-      expectedReturn,
-      note
-    ];
+    const dataObj = {
+      stt: stt,
+      date: new Date(data.date),
+      type: data.investmentType,
+      amount: amount,
+      rate: roi / 100,
+      term: term,
+      expectedReturn: expectedReturn,
+      note: data.note || ''
+    };
+    
+    const rowData = SheetUtils.dataToRow('OTHER_INVESTMENT', dataObj);
     
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
@@ -967,26 +932,18 @@ function addOtherInvestment(data) {
     
     BudgetManager.updateInvestmentBudget('Đầu tư khác', amount);
     
-    // [NEW] Tự động ghi nhận Chi phí Đầu tư
-    // Đầu tư khác mặc định là chi tiền ra để đầu tư
-    const expenseResult = addExpense({
-      date: date,
+    addExpense({
+      date: data.date,
       amount: amount,
       category: 'Đầu tư',
-      subcategory: `Đầu tư: ${investmentType}`,
-      note: note,
+      subcategory: `Đầu tư khác: ${data.investmentType}`,
+      note: `Đầu tư ${data.investmentType}: ${formatCurrency(amount)}`,
       transactionId: Utilities.getUuid()
     });
     
-    if (expenseResult.success) {
-      Logger.log('✅ Đã tự động thêm chi phí đầu tư khác');
-    }
-    
-    Logger.log(`Đã thêm đầu tư khác: ${investmentType} - ${formatCurrency(amount)}`);
-    
     return {
       success: true,
-      message: `✅ Đã ghi nhận đầu tư ${investmentType} với số tiền ${formatCurrency(amount)}!`
+      message: `✅ Đã thêm đầu tư: ${data.investmentType} - ${formatCurrency(amount)}`
     };
     
   } catch (error) {

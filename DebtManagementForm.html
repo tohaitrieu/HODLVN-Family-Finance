@@ -186,6 +186,24 @@
     // Set ngày mặc định là hôm nay
     document.getElementById('date').valueAsDate = new Date();
 
+    // Load configuration
+    google.script.run.withSuccessHandler(function (config) {
+      const loanTypes = config.LOAN_TYPES;
+      const select = document.getElementById('debtType');
+      select.innerHTML = '<option value="">-- Chọn loại nợ --</option>';
+
+      if (loanTypes) {
+        Object.keys(loanTypes).forEach(key => {
+          const type = loanTypes[key];
+          const option = document.createElement('option');
+          option.value = key;
+          option.text = type.debtLabel;
+          select.appendChild(option);
+        });
+      }
+    }).getAppConfig();
+
+
     // Auto-select "Margin chứng khoán" khi nhập tên có chứa "margin"
     document.getElementById('debtName').addEventListener('input', function () {
       const name = this.value.toLowerCase();

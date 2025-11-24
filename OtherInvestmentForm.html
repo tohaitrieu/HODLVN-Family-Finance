@@ -120,13 +120,7 @@
       <label for="investmentType">Loại đầu tư <span class="required">*</span></label>
       <select id="investmentType" required>
         <option value="">-- Chọn loại đầu tư --</option>
-        <option value="Quỹ tiết kiệm">Quỹ tiết kiệm</option>
-        <option value="Bất động sản">Bất động sản</option>
-        <option value="P2P Lending">P2P Lending</option>
-        <option value="Staking">Staking</option>
-        <option value="Trái phiếu">Trái phiếu</option>
-        <option value="Quỹ mở">Quỹ mở</option>
-        <option value="Khác">Khác</option>
+        <option value="">⏳ Đang tải...</option>
       </select>
     </div>
 
@@ -168,6 +162,20 @@
 
   <script>
     document.getElementById('date').valueAsDate = new Date();
+
+    // Load configuration
+    google.script.run.withSuccessHandler(function (config) {
+      const types = config.OTHER_INVESTMENT_TYPES || ['Gửi tiết kiệm', 'Quỹ đầu tư', 'Bất động sản', 'Trái phiếu', 'P2P Lending', 'Khác'];
+      const select = document.getElementById('investmentType');
+      select.innerHTML = '<option value="">-- Chọn loại đầu tư --</option>';
+
+      types.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.text = type;
+        select.appendChild(option);
+      });
+    }).getAppConfig();
 
     // Tính tự động dự kiến thu về
     function calculateExpectedReturn() {

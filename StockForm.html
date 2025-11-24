@@ -122,13 +122,9 @@
 
     <div class="form-group">
       <label>Loại giao dịch <span class="required">*</span></label>
-      <div class="radio-group">
-        <label>
-          <input type="radio" name="type" value="Mua" checked> 📈 Mua
-        </label>
-        <label>
-          <input type="radio" name="type" value="Bán"> 📉 Bán
-        </label>
+      <div class="radio-group" id="type-container">
+        <!-- Loaded dynamically -->
+        <label><input type="radio" name="type" value="Mua" checked> ⏳ Đang tải...</label>
       </div>
     </div>
 
@@ -171,6 +167,31 @@
 
   <script>
     document.getElementById('date').valueAsDate = new Date();
+
+    // Load configuration
+    google.script.run.withSuccessHandler(function (config) {
+      const types = config.STOCK_TRANSACTION_TYPES || ['Mua', 'Bán', 'Thưởng'];
+      const container = document.getElementById('type-container');
+      container.innerHTML = '';
+
+      types.forEach((type, index) => {
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'type';
+        input.value = type;
+        if (index === 0) input.checked = true;
+
+        let icon = '';
+        if (type === 'Mua') icon = '📈 ';
+        else if (type === 'Bán') icon = '📉 ';
+        else if (type === 'Thưởng') icon = '🎁 ';
+
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(icon + type));
+        container.appendChild(label);
+      });
+    }).getAppConfig();
 
     // Tính tự động tổng giá trị
     function calculateTotal() {

@@ -128,13 +128,9 @@
 
     <div class="form-group">
       <label>Loại giao dịch <span class="required">*</span></label>
-      <div class="radio-group">
-        <label>
-          <input type="radio" name="type" value="Mua" checked> 🪙 Mua
-        </label>
-        <label>
-          <input type="radio" name="type" value="Bán"> 💰 Bán
-        </label>
+      <div class="radio-group" id="type-container">
+        <!-- Loaded dynamically -->
+        <label><input type="radio" name="type" value="Mua" checked> ⏳ Đang tải...</label>
       </div>
     </div>
 
@@ -195,6 +191,55 @@
 
   <script>
     document.getElementById('date').valueAsDate = new Date();
+
+    // Load configuration
+    google.script.run.withSuccessHandler(function (config) {
+      // 1. Transaction Types
+      const types = config.GOLD_TRANSACTION_TYPES || ['Mua', 'Bán'];
+      const typeContainer = document.getElementById('type-container');
+      typeContainer.innerHTML = '';
+
+      types.forEach((type, index) => {
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'type';
+        input.value = type;
+        if (index === 0) input.checked = true;
+
+        let icon = '';
+        if (type === 'Mua') icon = '🪙 ';
+        else if (type === 'Bán') icon = '💰 ';
+
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(icon + type));
+        typeContainer.appendChild(label);
+      });
+
+      // 2. Gold Types
+      const goldTypes = config.GOLD_TYPES || ['SJC', '24K', '18K', '14K', '10K', 'Khác'];
+      const goldTypeSelect = document.getElementById('goldType');
+      goldTypeSelect.innerHTML = '<option value="">-- Chọn loại vàng --</option>';
+      goldTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.text = type;
+        goldTypeSelect.appendChild(option);
+      });
+
+      // 3. Units
+      const units = config.GOLD_UNITS || ['chỉ', 'lượng', 'cây', 'gram'];
+      const unitSelect = document.getElementById('unit');
+      unitSelect.innerHTML = '<option value="">-- Đơn vị --</option>';
+      units.forEach(unit => {
+        const option = document.createElement('option');
+        option.value = unit;
+        // Capitalize first letter
+        option.text = unit.charAt(0).toUpperCase() + unit.slice(1);
+        unitSelect.appendChild(option);
+      });
+
+    }).getAppConfig();
 
     // Tính tự động tổng giá trị
     function calculateTotal() {

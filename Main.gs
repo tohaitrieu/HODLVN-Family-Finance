@@ -104,7 +104,21 @@ const APP_CONFIG = {
     ],
     INVESTMENT: [
       'Chứng khoán', 'Vàng', 'Crypto', 'Đầu tư khác'
-    ]
+    ],
+    
+    // [NEW] Centralized Transaction Types & Statuses
+    STOCK_TRANSACTION_TYPES: ['Mua', 'Bán', 'Thưởng'],
+    
+    GOLD_TRANSACTION_TYPES: ['Mua', 'Bán'],
+    GOLD_TYPES: ['SJC', '24K', '18K', '14K', '10K', 'Khác'],
+    GOLD_UNITS: ['chỉ', 'lượng', 'cây', 'gram'],
+    
+    CRYPTO_TRANSACTION_TYPES: ['Mua', 'Bán', 'Swap', 'Stake', 'Unstake'],
+    
+    OTHER_INVESTMENT_TYPES: ['Gửi tiết kiệm', 'Quỹ đầu tư', 'Bất động sản', 'Trái phiếu', 'P2P Lending', 'Khác'],
+    
+    DEBT_STATUS: ['Chưa trả', 'Đang trả', 'Đã thanh toán', 'Quá hạn'],
+    LENDING_STATUS: ['Đang vay', 'Đã tất toán', 'Quá hạn', 'Khó đòi']
   }
 };
 
@@ -512,7 +526,10 @@ function getBudgetConfig() {
  * ✅ NEW: Lấy cấu hình toàn cục (cho client-side)
  */
 function getAppConfig() {
-  return APP_CONFIG;
+  // Merge LOAN_TYPES into APP_CONFIG for client-side usage
+  const config = JSON.parse(JSON.stringify(APP_CONFIG));
+  config.LOAN_TYPES = LOAN_TYPES;
+  return config;
 }
 
 // ==================== SETUP WIZARD - NEW IN v3.2 ====================

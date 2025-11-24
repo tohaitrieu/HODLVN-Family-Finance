@@ -185,6 +185,23 @@
         // Set ngày mặc định là hôm nay
         document.getElementById('date').valueAsDate = new Date();
 
+        // Load configuration
+        google.script.run.withSuccessHandler(function (config) {
+            const loanTypes = config.LOAN_TYPES;
+            const select = document.getElementById('lendingType');
+            select.innerHTML = '<option value="">-- Chọn loại --</option>';
+
+            if (loanTypes) {
+                Object.keys(loanTypes).forEach(key => {
+                    const type = loanTypes[key];
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.text = type.lendingLabel;
+                    select.appendChild(option);
+                });
+            }
+        }).getAppConfig();
+
         // Submit form
         document.getElementById('lendingForm').addEventListener('submit', function (e) {
             e.preventDefault();
