@@ -211,7 +211,7 @@ function addExpense(data) {
  */
 function addDebt(data) {
   try {
-    if (!data.loanDate || !data.debtName || !data.amount) {
+    if (!data.loanDate || !data.debtName || !data.principal) {
       return {
         success: false,
         message: '❌ Vui lòng điền đầy đủ thông tin bắt buộc!'
