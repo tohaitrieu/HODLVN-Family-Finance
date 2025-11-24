@@ -3,191 +3,416 @@
 
 <head>
   <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
       padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      min-height: calc(100vh - 40px);
+    }
+
+    .header {
+      background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+      position: relative;
+    }
+
+    .logo {
+      width: 120px;
+      height: auto;
+      margin-bottom: 15px;
+      filter: brightness(0) invert(1);
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 300;
       margin: 0;
     }
 
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 500px;
+    }
+
+    .form-section {
+      padding: 40px;
+    }
+
+    .rules-section {
+      background: #f8f9fa;
+      padding: 40px;
+      border-left: 1px solid #e9ecef;
+    }
+
     .form-group {
-      margin-bottom: 15px;
+      margin-bottom: 25px;
     }
 
     label {
       display: block;
-      font-weight: bold;
-      margin-bottom: 5px;
-      color: #333;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #2c3e50;
+      font-size: 14px;
     }
 
     input,
     select,
     textarea {
       width: 100%;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      box-sizing: border-box;
-      font-size: 14px;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 2px solid #e1e8ed;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      background: #fff;
     }
 
     input:focus,
     select:focus,
     textarea:focus {
       outline: none;
-      border-color: #F39C12;
+      border-color: #FFC107;
+      box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1);
     }
 
     .btn {
-      background-color: #F39C12;
+      background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
       color: white;
-      padding: 12px 24px;
+      padding: 16px 24px;
       border: none;
-      border-radius: 4px;
+      border-radius: 10px;
       cursor: pointer;
       font-size: 16px;
-      font-weight: bold;
+      font-weight: 600;
       width: 100%;
-      margin-top: 10px;
+      margin-top: 20px;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     .btn:hover {
-      background-color: #E67E22;
+      background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     }
 
     .btn:disabled {
-      background-color: #ccc;
+      background: #bdc3c7;
       cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
     .message {
-      padding: 10px;
-      margin-top: 15px;
-      border-radius: 4px;
+      padding: 16px;
+      margin-top: 20px;
+      border-radius: 10px;
       display: none;
+      font-weight: 500;
     }
 
     .message.success {
       background-color: #d4edda;
       color: #155724;
-      border: 1px solid #c3e6cb;
+      border: 2px solid #FFC107;
     }
 
     .message.error {
       background-color: #f8d7da;
       color: #721c24;
-      border: 1px solid #f5c6cb;
+      border: 2px solid #e74c3c;
     }
 
     .required {
-      color: red;
-    }
-
-    input[readonly] {
-      background-color: #f0f0f0;
+      color: #e74c3c;
     }
 
     .radio-group {
       display: flex;
       gap: 20px;
+      margin-top: 8px;
     }
 
     .radio-group label {
       display: inline-flex;
       align-items: center;
       font-weight: normal;
+      margin-bottom: 0;
+      cursor: pointer;
+      padding: 8px 12px;
+      border: 2px solid #e1e8ed;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .radio-group label:hover {
+      border-color: #FFC107;
+      background-color: #f8f9fa;
     }
 
     .radio-group input[type="radio"] {
       width: auto;
-      margin-right: 5px;
+      margin-right: 8px;
+      margin-bottom: 0;
+      padding: 0;
     }
 
-    .total-display {
-      font-size: 18px;
-      font-weight: bold;
-      color: #F39C12;
+    .radio-group input[type="radio"]:checked + span {
+      color: #FFC107;
+      font-weight: 600;
+    }
+
+    .radio-group label:has(input[type="radio"]:checked) {
+      border-color: #FFC107;
+      background-color: rgba(255, 193, 7, 0.05);
+    }
+
+    input[readonly] {
+      background-color: #f8f9fa;
+      border-color: #e9ecef;
+      font-weight: 600;
+      color: #FFC107;
       text-align: right;
     }
 
     .inline-group {
       display: grid;
       grid-template-columns: 2fr 1fr;
-      gap: 10px;
+      gap: 15px;
+    }
+
+    .rules-section h2 {
+      color: #2c3e50;
+      font-size: 24px;
+      margin-bottom: 25px;
+      font-weight: 600;
+    }
+
+    .rule-item {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border-left: 4px solid #FFC107;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .rule-item h3 {
+      color: #FFC107;
+      font-size: 16px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .rule-item p {
+      color: #5a6c7d;
+      line-height: 1.6;
+      margin: 8px 0;
+    }
+
+    .rule-item ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+
+    .rule-item li {
+      color: #5a6c7d;
+      margin: 5px 0;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+      
+      .rules-section {
+        border-left: none;
+        border-top: 1px solid #e9ecef;
+      }
+      
+      .form-section, .rules-section {
+        padding: 20px;
+      }
+      
+      .header {
+        padding: 20px;
+      }
+      
+      .logo {
+        width: 80px;
+      }
+      
+      .header h1 {
+        font-size: 22px;
+      }
+
+      .radio-group {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .inline-group {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
     }
   </style>
 </head>
 
 <body>
-  <form id="goldForm">
-    <div class="form-group">
-      <label for="date">Ngày <span class="required">*</span></label>
-      <input type="date" id="date" required>
+  <div class="container">
+    <div class="header">
+      <img src="https://hodl.vn/wp-content/uploads/2024/05/hodlvn-logo-2024.svg" alt="HODL Vietnam" class="logo" onerror="this.style.display='none'">
+      <h1>🪙 Giao Dịch Vàng</h1>
     </div>
+    
+    <div class="content">
+      <div class="form-section">
+        <form id="goldForm">
+          <div class="form-group">
+            <label for="date">Ngày <span class="required">*</span></label>
+            <input type="date" id="date" required>
+          </div>
 
-    <div class="form-group">
-      <label>Loại giao dịch <span class="required">*</span></label>
-      <div class="radio-group" id="type-container">
-        <!-- Loaded dynamically -->
-        <label><input type="radio" name="type" value="Mua" checked> ⏳ Đang tải...</label>
+          <div class="form-group">
+            <label>Loại giao dịch <span class="required">*</span></label>
+            <div class="radio-group" id="type-container">
+              <!-- Loaded dynamically -->
+              <label><input type="radio" name="type" value="Mua" checked> <span>⏳ Đang tải...</span></label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="goldType">Loại vàng <span class="required">*</span></label>
+            <select id="goldType" required>
+              <option value="">-- Chọn loại vàng --</option>
+              <option value="SJC">SJC</option>
+              <option value="PNJ">PNJ</option>
+              <option value="DOJI">DOJI</option>
+              <option value="Nhẫn">Nhẫn</option>
+              <option value="Miếng">Miếng</option>
+              <option value="Khác">Khác</option>
+            </select>
+          </div>
+
+          <div class="inline-group">
+            <div class="form-group">
+              <label for="quantity">Số lượng <span class="required">*</span></label>
+              <input type="number" id="quantity" required min="0.01" step="0.01" placeholder="VD: 1, 0.5, 2.5...">
+            </div>
+
+            <div class="form-group">
+              <label for="unit">Đơn vị <span class="required">*</span></label>
+              <select id="unit" required>
+                <option value="">-- Đơn vị --</option>
+                <option value="Chỉ">Chỉ</option>
+                <option value="Lượng">Lượng</option>
+                <option value="Cây">Cây</option>
+                <option value="Gram">Gram</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="price">Giá <span class="required">*</span></label>
+            <input type="number" id="price" required min="0" step="1000" placeholder="Giá theo đơn vị đã chọn">
+          </div>
+
+          <div class="form-group">
+            <label for="total">Tổng giá trị</label>
+            <input type="text" id="total" readonly value="0">
+          </div>
+
+          <div class="form-group">
+            <label for="note">Ghi chú</label>
+            <textarea id="note" rows="3" placeholder="Thêm ghi chú (không bắt buộc)"></textarea>
+          </div>
+
+          <button type="submit" class="btn" id="submitBtn">
+            🪙 Thêm giao dịch
+          </button>
+        </form>
+
+        <div id="message" class="message"></div>
+      </div>
+      
+      <div class="rules-section">
+        <h2>📋 Hướng Dẫn Vàng</h2>
+        
+        <div class="rule-item">
+          <h3>🎯 Thông tin bắt buộc</h3>
+          <ul>
+            <li><strong>Ngày:</strong> Ngày thực hiện giao dịch</li>
+            <li><strong>Loại giao dịch:</strong> Mua hoặc Bán vàng</li>
+            <li><strong>Loại vàng:</strong> SJC, PNJ, DOJI, nhẫn, miếng...</li>
+            <li><strong>Số lượng:</strong> Số lượng vàng giao dịch</li>
+            <li><strong>Đơn vị:</strong> Chỉ, lượng, cây, gram</li>
+            <li><strong>Giá:</strong> Giá theo đơn vị đã chọn (VND)</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>💡 Các loại vàng</h3>
+          <ul>
+            <li><strong>🪙 SJC:</strong> Vàng miếng SJC chuẩn</li>
+            <li><strong>💍 Nhẫn:</strong> Nhẫn vàng tây, ta</li>
+            <li><strong>🏅 Miếng:</strong> Vàng miếng các loại</li>
+            <li><strong>🏪 PNJ/DOJI:</strong> Vàng từ các thương hiệu</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>⚖️ Đơn vị đo lường</h3>
+          <ul>
+            <li><strong>Chỉ:</strong> 1 chỉ = 3.75g (đơn vị phổ biến)</li>
+            <li><strong>Lượng:</strong> 1 lượng = 10 chỉ = 37.5g</li>
+            <li><strong>Cây:</strong> 1 cây = 0.1 chỉ (nhẫn nhỏ)</li>
+            <li><strong>Gram:</strong> Theo trọng lượng thực tế</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>⚠️ Lưu ý quan trọng</h3>
+          <ul>
+            <li><strong>Tổng giá trị:</strong> Tự động tính = Số lượng × Giá</li>
+            <li><strong>Giao dịch Mua:</strong> Sẽ tự động ghi chi tiền tương ứng</li>
+            <li><strong>Giao dịch Bán:</strong> Sẽ tự động ghi thu tiền tương ứng</li>
+            <li><strong>Giá:</strong> Nhập giá theo đơn vị đã chọn</li>
+            <li>Ghi chú giúp phân biệt các loại vàng chi tiết hơn</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>🔄 Sau khi thêm</h3>
+          <p>Giao dịch sẽ cập nhật vào portfolio vàng và tự động tính toán P&L. Form sẽ được reset để tiếp tục nhập liệu.</p>
+        </div>
       </div>
     </div>
-
-    <div class="form-group">
-      <label for="goldType">Loại vàng <span class="required">*</span></label>
-      <select id="goldType" required>
-        <option value="">-- Chọn loại vàng --</option>
-        <option value="SJC">SJC</option>
-        <option value="PNJ">PNJ</option>
-        <option value="DOJI">DOJI</option>
-        <option value="Nhẫn">Nhẫn</option>
-        <option value="Miếng">Miếng</option>
-        <option value="Khác">Khác</option>
-      </select>
-    </div>
-
-    <div class="inline-group">
-      <div class="form-group">
-        <label for="quantity">Số lượng <span class="required">*</span></label>
-        <input type="number" id="quantity" required min="0.01" step="0.01" placeholder="VD: 1, 0.5, 2.5...">
-      </div>
-
-      <div class="form-group">
-        <label for="unit">Đơn vị <span class="required">*</span></label>
-        <select id="unit" required>
-          <option value="">-- Đơn vị --</option>
-          <option value="Chỉ">Chỉ</option>
-          <option value="Lượng">Lượng</option>
-          <option value="Cây">Cây</option>
-          <option value="Gram">Gram</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label for="price">Giá <span class="required">*</span></label>
-      <input type="number" id="price" required min="0" step="1000" placeholder="Giá theo đơn vị đã chọn">
-    </div>
-
-    <div class="form-group">
-      <label for="total">Tổng giá trị</label>
-      <input type="text" id="total" readonly class="total-display" value="0">
-    </div>
-
-
-
-    <div class="form-group">
-      <label for="note">Ghi chú</label>
-      <textarea id="note" rows="3" placeholder="Thêm ghi chú (không bắt buộc)"></textarea>
-    </div>
-
-    <button type="submit" class="btn" id="submitBtn">
-      🪙 Thêm giao dịch
-    </button>
-  </form>
-
-  <div id="message" class="message"></div>
+  </div>
 
   <script>
     document.getElementById('date').valueAsDate = new Date();
@@ -202,6 +427,8 @@
       types.forEach((type, index) => {
         const label = document.createElement('label');
         const input = document.createElement('input');
+        const span = document.createElement('span');
+        
         input.type = 'radio';
         input.name = 'type';
         input.value = type;
@@ -211,8 +438,10 @@
         if (type === 'Mua') icon = '🪙 ';
         else if (type === 'Bán') icon = '💰 ';
 
+        span.textContent = icon + type;
+        
         label.appendChild(input);
-        label.appendChild(document.createTextNode(icon + type));
+        label.appendChild(span);
         typeContainer.appendChild(label);
       });
 
@@ -274,7 +503,6 @@
         quantity: document.getElementById('quantity').value,
         unit: document.getElementById('unit').value,
         price: document.getElementById('price').value,
-
         note: document.getElementById('note').value
       };
 
@@ -286,9 +514,10 @@
             document.getElementById('date').valueAsDate = new Date();
             document.querySelector('input[name="type"][value="Mua"]').checked = true;
             calculateTotal();
-            setTimeout(function () {
-              google.script.host.close();
-            }, 1500);
+            // REMOVED: Form no longer closes automatically
+            // setTimeout(function () {
+            //   google.script.host.close();
+            // }, 1500);
           } else {
             showMessage(result.message, 'error');
           }
@@ -310,7 +539,7 @@
       messageDiv.style.display = 'block';
       setTimeout(function () {
         messageDiv.style.display = 'none';
-      }, 5000);
+      }, 8000); // Extended display time
     }
   </script>
 </body>

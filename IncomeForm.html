@@ -3,149 +3,330 @@
 
 <head>
   <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
       padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      min-height: calc(100vh - 40px);
+    }
+
+    .header {
+      background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+      position: relative;
+    }
+
+    .logo {
+      width: 120px;
+      height: auto;
+      margin-bottom: 15px;
+      filter: brightness(0) invert(1);
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 300;
       margin: 0;
     }
 
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 500px;
+    }
+
+    .form-section {
+      padding: 40px;
+    }
+
+    .rules-section {
+      background: #f8f9fa;
+      padding: 40px;
+      border-left: 1px solid #e9ecef;
+    }
+
     .form-group {
-      margin-bottom: 15px;
+      margin-bottom: 25px;
     }
 
     label {
       display: block;
-      font-weight: bold;
-      margin-bottom: 5px;
-      color: #333;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #2c3e50;
+      font-size: 14px;
     }
 
     input,
     select,
     textarea {
       width: 100%;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      box-sizing: border-box;
-      font-size: 14px;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 2px solid #e1e8ed;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      background: #fff;
     }
 
     input:focus,
     select:focus,
     textarea:focus {
       outline: none;
-      border-color: #4472C4;
+      border-color: #4CAF50;
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
     }
 
     .btn {
-      background-color: #70AD47;
+      background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
       color: white;
-      padding: 12px 24px;
+      padding: 16px 24px;
       border: none;
-      border-radius: 4px;
+      border-radius: 10px;
       cursor: pointer;
       font-size: 16px;
-      font-weight: bold;
+      font-weight: 600;
       width: 100%;
-      margin-top: 10px;
+      margin-top: 20px;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     .btn:hover {
-      background-color: #5a8c39;
+      background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     }
 
     .btn:disabled {
-      background-color: #ccc;
+      background: #bdc3c7;
       cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
     .message {
-      padding: 10px;
-      margin-top: 15px;
-      border-radius: 4px;
+      padding: 16px;
+      margin-top: 20px;
+      border-radius: 10px;
       display: none;
+      font-weight: 500;
     }
 
     .message.success {
       background-color: #d4edda;
       color: #155724;
-      border: 1px solid #c3e6cb;
+      border: 2px solid #4CAF50;
     }
 
     .message.error {
       background-color: #f8d7da;
       color: #721c24;
-      border: 1px solid #f5c6cb;
+      border: 2px solid #e74c3c;
     }
 
     .required {
-      color: red;
+      color: #e74c3c;
+    }
+
+    .rules-section h2 {
+      color: #2c3e50;
+      font-size: 24px;
+      margin-bottom: 25px;
+      font-weight: 600;
+    }
+
+    .rule-item {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border-left: 4px solid #4CAF50;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .rule-item h3 {
+      color: #4CAF50;
+      font-size: 16px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .rule-item p {
+      color: #5a6c7d;
+      line-height: 1.6;
+      margin: 8px 0;
+    }
+
+    .rule-item ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+
+    .rule-item li {
+      color: #5a6c7d;
+      margin: 5px 0;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+      
+      .rules-section {
+        border-left: none;
+        border-top: 1px solid #e9ecef;
+      }
+      
+      .form-section, .rules-section {
+        padding: 20px;
+      }
+      
+      .header {
+        padding: 20px;
+      }
+      
+      .logo {
+        width: 80px;
+      }
+      
+      .header h1 {
+        font-size: 22px;
+      }
     }
   </style>
 </head>
 
 <body>
-  <form id="incomeForm">
-    <div class="form-group">
-      <label for="date">Ngày <span class="required">*</span></label>
-      <input type="date" id="date" required>
+  <div class="container">
+    <div class="header">
+      <img src="https://hodl.vn/wp-content/uploads/2024/05/hodlvn-logo-2024.svg" alt="HODL Vietnam" class="logo" onerror="this.style.display='none'">
+      <h1>💰 Thêm Thu Nhập</h1>
     </div>
+    
+    <div class="content">
+      <div class="form-section">
+        <form id="incomeForm">
+          <div class="form-group">
+            <label for="date">Ngày <span class="required">*</span></label>
+            <input type="date" id="date" required>
+          </div>
 
-    <div class="form-group">
-      <label for="amount">Số tiền <span class="required">*</span></label>
-      <input type="number" id="amount" required min="0" step="1000" placeholder="Nhập số tiền">
+          <div class="form-group">
+            <label for="amount">Số tiền <span class="required">*</span></label>
+            <input type="number" id="amount" required min="0" step="1000" placeholder="Nhập số tiền">
+          </div>
+
+          <div class="form-group">
+            <label for="source">Nguồn thu <span class="required">*</span></label>
+            <select id="source" required>
+              <option value="">-- Đang tải nguồn thu... --</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="note">Ghi chú</label>
+            <textarea id="note" rows="3" placeholder="Thêm ghi chú (không bắt buộc)"></textarea>
+          </div>
+
+          <button type="submit" class="btn" id="submitBtn">
+            💰 Thêm thu nhập
+          </button>
+        </form>
+
+        <div id="message" class="message"></div>
+      </div>
+      
+      <div class="rules-section">
+        <h2>📋 Hướng Dẫn Nhập Thu Nhập</h2>
+        
+        <div class="rule-item">
+          <h3>🎯 Thông tin bắt buộc</h3>
+          <ul>
+            <li><strong>Ngày:</strong> Ngày thực tế nhận được tiền</li>
+            <li><strong>Số tiền:</strong> Số tiền chính xác (VND)</li>
+            <li><strong>Nguồn thu:</strong> Chọn từ danh sách có sẵn</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>💡 Các loại thu nhập</h3>
+          <ul>
+            <li><strong>Lương:</strong> Lương tháng, thưởng hiệu quả</li>
+            <li><strong>MMO:</strong> Thu nhập từ các hoạt động online</li>
+            <li><strong>Đầu tư:</strong> Lãi tiền gửi, cổ tức, lãi vay</li>
+            <li><strong>Bán tài sản:</strong> Bán chứng khoán, vàng, crypto</li>
+            <li><strong>Vay:</strong> Tiền vay ngân hàng, cá nhân</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>⚠️ Lưu ý quan trọng</h3>
+          <ul>
+            <li>Chỉ ghi nhận thu nhập đã thực tế nhận được</li>
+            <li>Thu nhập từ bán tài sản ghi rõ nguồn</li>
+            <li>Tiền vay cũng được tính như thu nhập để cân đối</li>
+            <li>Ghi chú giúp theo dõi chi tiết hơn</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>🔄 Sau khi thêm</h3>
+          <p>Dữ liệu sẽ tự động cập nhật vào Dashboard và các báo cáo. Form sẽ được reset để tiếp tục nhập liệu.</p>
+        </div>
+      </div>
     </div>
-
-    <div class="form-group">
-      <label for="source">Nguồn thu <span class="required">*</span></label>
-      <select id="source" required>
-        <option value="">-- Đang tải nguồn thu... --</option>
-      </select>
-    </div>
-
-    <script>
-      // Load categories on startup
-      window.onload = function () {
-        google.script.run
-          .withSuccessHandler(function (config) {
-            const select = document.getElementById('source');
-            select.innerHTML = '<option value="">-- Chọn nguồn --</option>';
-
-            if (config && config.CATEGORIES && config.CATEGORIES.INCOME) {
-              config.CATEGORIES.INCOME.forEach(function (cat) {
-                const option = document.createElement('option');
-                option.value = cat;
-                option.textContent = cat;
-                select.appendChild(option);
-              });
-            }
-          })
-          .withFailureHandler(function (error) {
-            console.error('Lỗi tải danh mục:', error);
-            const select = document.getElementById('source');
-            select.innerHTML = '<option value="">Lỗi tải danh mục</option>';
-          })
-          .getAppConfig();
-      };
-    </script>
-    </div>
-
-    <div class="form-group">
-      <label for="note">Ghi chú</label>
-      <textarea id="note" rows="3" placeholder="Thêm ghi chú (không bắt buộc)"></textarea>
-    </div>
-
-    <button type="submit" class="btn" id="submitBtn">
-      ➕ Thêm thu nhập
-    </button>
-  </form>
-
-  <div id="message" class="message"></div>
+  </div>
 
   <script>
+    // Set default date and load categories
     document.getElementById('date').valueAsDate = new Date();
+    
+    // Load categories on startup
+    window.onload = function () {
+      google.script.run
+        .withSuccessHandler(function (config) {
+          const select = document.getElementById('source');
+          select.innerHTML = '<option value="">-- Chọn nguồn --</option>';
+
+          if (config && config.CATEGORIES && config.CATEGORIES.INCOME) {
+            config.CATEGORIES.INCOME.forEach(function (cat) {
+              const option = document.createElement('option');
+              option.value = cat;
+              option.textContent = cat;
+              select.appendChild(option);
+            });
+          }
+        })
+        .withFailureHandler(function (error) {
+          console.error('Lỗi tải danh mục:', error);
+          const select = document.getElementById('source');
+          select.innerHTML = '<option value="">Lỗi tải danh mục</option>';
+        })
+        .getAppConfig();
+    };
 
     document.getElementById('incomeForm').addEventListener('submit', function (e) {
       e.preventDefault();
@@ -169,19 +350,20 @@
             showMessage(result.message, 'success');
             document.getElementById('incomeForm').reset();
             document.getElementById('date').valueAsDate = new Date();
-            setTimeout(function () {
-              google.script.host.close();
-            }, 1500);
+            // REMOVED: Form no longer closes automatically
+            // setTimeout(function () {
+            //   google.script.host.close();
+            // }, 1500);
           } else {
             showMessage(result.message, 'error');
           }
           submitBtn.disabled = false;
-          submitBtn.textContent = '➕ Thêm thu nhập';
+          submitBtn.textContent = '💰 Thêm thu nhập';
         })
         .withFailureHandler(function (error) {
           showMessage('Lỗi: ' + error.message, 'error');
           submitBtn.disabled = false;
-          submitBtn.textContent = '➕ Thêm thu nhập';
+          submitBtn.textContent = '💰 Thêm thu nhập';
         })
         .addIncome(data);
     });
@@ -193,7 +375,7 @@
       messageDiv.style.display = 'block';
       setTimeout(function () {
         messageDiv.style.display = 'none';
-      }, 5000);
+      }, 8000); // Extended display time
     }
   </script>
 </body>

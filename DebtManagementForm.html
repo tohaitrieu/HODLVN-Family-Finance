@@ -3,187 +3,396 @@
 
 <head>
   <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
+    * {
+      box-sizing: border-box;
       margin: 0;
-      background-color: #f5f5f5;
+      padding: 0;
     }
 
-    h2 {
-      color: #4472C4;
-      margin-top: 0;
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      min-height: calc(100vh - 40px);
+    }
+
+    .header {
+      background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+      color: white;
+      padding: 30px;
       text-align: center;
+      position: relative;
+    }
+
+    .logo {
+      width: 120px;
+      height: auto;
+      margin-bottom: 15px;
+      filter: brightness(0) invert(1);
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 300;
+      margin: 0;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 500px;
+    }
+
+    .form-section {
+      padding: 40px;
+    }
+
+    .rules-section {
+      background: #f8f9fa;
+      padding: 40px;
+      border-left: 1px solid #e9ecef;
     }
 
     .form-group {
-      margin-bottom: 15px;
+      margin-bottom: 25px;
+    }
+
+    .inline-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
     }
 
     label {
       display: block;
-      font-weight: bold;
-      margin-bottom: 5px;
-      color: #333;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #2c3e50;
+      font-size: 14px;
     }
 
     input,
     select,
     textarea {
       width: 100%;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      box-sizing: border-box;
-      font-size: 14px;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 2px solid #e1e8ed;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      background: #fff;
     }
 
     input:focus,
     select:focus,
     textarea:focus {
       outline: none;
-      border-color: #4472C4;
+      border-color: #FF9800;
+      box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
     }
 
     .btn {
-      background-color: #4472C4;
+      background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
       color: white;
-      padding: 12px 24px;
+      padding: 16px 24px;
       border: none;
-      border-radius: 4px;
+      border-radius: 10px;
       cursor: pointer;
       font-size: 16px;
-      font-weight: bold;
+      font-weight: 600;
       width: 100%;
-      margin-top: 10px;
+      margin-top: 20px;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     .btn:hover {
-      background-color: #365899;
+      background: linear-gradient(135deg, #F57C00 0%, #E65100 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     }
 
     .btn:disabled {
-      background-color: #ccc;
+      background: #bdc3c7;
       cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
     .message {
-      padding: 10px;
-      margin-top: 15px;
-      border-radius: 4px;
+      padding: 16px;
+      margin-top: 20px;
+      border-radius: 10px;
       display: none;
+      font-weight: 500;
     }
 
     .message.success {
       background-color: #d4edda;
       color: #155724;
-      border: 1px solid #c3e6cb;
+      border: 2px solid #4CAF50;
     }
 
     .message.error {
       background-color: #f8d7da;
       color: #721c24;
-      border: 1px solid #f5c6cb;
+      border: 2px solid #e74c3c;
     }
 
     .required {
-      color: red;
+      color: #e74c3c;
+    }
+
+    .info-box {
+      background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+      border: 2px solid #FF9800;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .info-box h3 {
+      color: #FF9800;
+      font-size: 16px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .info-box p {
+      color: #5a6c7d;
+      line-height: 1.6;
+      margin: 5px 0;
+      font-size: 14px;
     }
 
     .hint {
       font-size: 12px;
       color: #666;
-      margin-top: 3px;
+      margin-top: 5px;
+      font-style: italic;
     }
 
-    .inline-group {
-      display: flex;
-      gap: 10px;
+    .rules-section h2 {
+      color: #2c3e50;
+      font-size: 24px;
+      margin-bottom: 25px;
+      font-weight: 600;
     }
 
-    .inline-group .form-group {
-      flex: 1;
+    .rule-item {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border-left: 4px solid #FF9800;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
 
-    .info-box {
-      background-color: #fff3cd;
-      border: 1px solid #ffc107;
-      border-radius: 4px;
-      padding: 10px;
-      margin-bottom: 15px;
+    .rule-item h3 {
+      color: #FF9800;
+      font-size: 16px;
+      margin-bottom: 10px;
+      font-weight: 600;
     }
 
-    .info-box p {
+    .rule-item p {
+      color: #5a6c7d;
+      line-height: 1.6;
+      margin: 8px 0;
+    }
+
+    .rule-item ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+
+    .rule-item li {
+      color: #5a6c7d;
       margin: 5px 0;
-      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+      
+      .inline-group {
+        grid-template-columns: 1fr;
+      }
+      
+      .rules-section {
+        border-left: none;
+        border-top: 1px solid #e9ecef;
+      }
+      
+      .form-section, .rules-section {
+        padding: 20px;
+      }
+      
+      .header {
+        padding: 20px;
+      }
+      
+      .logo {
+        width: 80px;
+      }
+      
+      .header h1 {
+        font-size: 22px;
+      }
     }
   </style>
 </head>
 
 <body>
-  <h2>💳 Thêm Khoản Nợ Mới</h2>
+  <div class="container">
+    <div class="header">
+      <img src="https://hodl.vn/wp-content/uploads/2024/05/hodlvn-logo-2024.svg" alt="HODL Vietnam" class="logo" onerror="this.style.display='none'">
+      <h1>💳 Thêm Khoản Nợ Mới</h1>
+    </div>
+    
+    <div class="content">
+      <div class="form-section">
+        <div class="info-box">
+          <h3>💡 Lưu ý quan trọng</h3>
+          <p>• Khi thêm khoản nợ, hệ thống sẽ <strong>TỰ ĐỘNG</strong> thêm khoản thu vào sheet THU</p>
+          <p>• Ví dụ: Vay ngân hàng 100 triệu → Tự động ghi nhận thu "Vay ngân hàng" 100 triệu</p>
+          <p>• Điều này phản ánh đúng thực tế: <strong>Vay nợ = Tiền mặt tăng</strong></p>
+        </div>
 
-  <div class="info-box">
-    <p><strong>💡 Lưu ý:</strong></p>
-    <p>• Khi thêm khoản nợ, hệ thống sẽ <strong>TỰ ĐỘNG</strong> thêm khoản thu vào sheet THU</p>
-    <p>• Ví dụ: Vay ngân hàng 100 triệu → Tự động ghi nhận thu "Vay Vay ngân hàng" 100 triệu</p>
-    <p>• Điều này phản ánh đúng thực tế: <strong>Vay nợ = Tiền mặt tăng</strong></p>
+        <form id="debtForm">
+          <div class="form-group">
+            <label for="date">Ngày vay <span class="required">*</span></label>
+            <input type="date" id="date" required>
+          </div>
+
+          <div class="form-group">
+            <label for="debtName">Tên khoản nợ <span class="required">*</span></label>
+            <input type="text" id="debtName" required placeholder="VD: Vay ngân hàng Vietcombank, Margin SSI">
+            <div class="hint">Nhập từ khóa "Margin" nếu đây là nợ margin chứng khoán</div>
+          </div>
+
+          <div class="form-group">
+            <label for="debtType">Loại nợ <span class="required">*</span></label>
+            <select id="debtType" required>
+              <option value="">-- Chọn loại nợ --</option>
+              <option value="INTEREST_ONLY">Nợ ngân hàng (Trả lãi hàng tháng)</option>
+              <option value="EQUAL_PRINCIPAL">Vay trả góp (Gốc đều, lãi giảm dần)</option>
+              <option value="EQUAL_PRINCIPAL_UPFRONT_FEE">Trả góp qua thẻ (Phí ban đầu)</option>
+              <option value="INTEREST_FREE">Trả góp miễn lãi (Chỉ trả gốc)</option>
+              <option value="OTHER">Khác</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="principal">Số tiền gốc <span class="required">*</span></label>
+            <input type="number" id="principal" required min="0" step="1000" placeholder="Số tiền vay">
+          </div>
+
+          <div class="inline-group">
+            <div class="form-group">
+              <label for="interestRate">Lãi suất (%/năm) <span class="required">*</span></label>
+              <input type="number" id="interestRate" required min="0" step="0.1" placeholder="VD: 8.5">
+            </div>
+
+            <div class="form-group">
+              <label for="term">Kỳ hạn (tháng) <span class="required">*</span></label>
+              <input type="number" id="term" required min="1" step="1" placeholder="VD: 12">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="note">Ghi chú</label>
+            <textarea id="note" rows="3" placeholder="Thông tin bổ sung về khoản nợ..."></textarea>
+          </div>
+
+          <button type="submit" class="btn" id="submitBtn">💳 Thêm khoản nợ</button>
+        </form>
+
+        <div id="message" class="message"></div>
+      </div>
+      
+      <div class="rules-section">
+        <h2>📋 Hướng Dẫn Quản Lý Nợ</h2>
+        
+        <div class="rule-item">
+          <h3>🎯 Thông tin bắt buộc</h3>
+          <ul>
+            <li><strong>Ngày vay:</strong> Ngày nhận tiền thực tế</li>
+            <li><strong>Tên khoản nợ:</strong> Tên rõ ràng, dễ nhận biết</li>
+            <li><strong>Loại nợ:</strong> Chọn đúng hình thức trả nợ</li>
+            <li><strong>Số tiền gốc:</strong> Tổng số tiền vay ban đầu</li>
+            <li><strong>Lãi suất:</strong> Tỷ lệ % theo năm</li>
+            <li><strong>Kỳ hạn:</strong> Số tháng trả nợ</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>💡 Các loại hình nợ</h3>
+          <ul>
+            <li><strong>Nợ ngân hàng:</strong> Trả lãi hàng tháng, gốc cuối kỳ</li>
+            <li><strong>Vay trả góp:</strong> Trả gốc đều + lãi giảm dần hàng tháng</li>
+            <li><strong>Trả góp qua thẻ (phí ban đầu):</strong> Phí trả trước, gốc chia đều</li>
+            <li><strong>Trả góp miễn lãi:</strong> Chỉ trả gốc, không có lãi</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>🔍 Tính năng thông minh</h3>
+          <ul>
+            <li>Tự động nhận diện <strong>Margin</strong> trong tên</li>
+            <li>Tự động thêm khoản thu tương ứng</li>
+            <li>Tính toán lịch trả nợ tự động</li>
+            <li>Theo dõi số dư nợ còn lại</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>⚠️ Lưu ý quan trọng</h3>
+          <ul>
+            <li>Lãi suất nhập theo %/năm (VD: 8.5 cho 8.5%)</li>
+            <li>Kỳ hạn tính theo số tháng</li>
+            <li>Hệ thống tự động tạo thu nhập tương ứng</li>
+            <li>Có thể chỉnh sửa thông tin sau khi thêm</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>📊 Báo cáo & theo dõi</h3>
+          <p>Sau khi thêm, khoản nợ sẽ xuất hiện trong Dashboard với:</p>
+          <ul>
+            <li>Lịch trả nợ tự động</li>
+            <li>Tính toán lãi và gốc hàng tháng</li>
+            <li>Cảnh báo đến hạn trả</li>
+            <li>Theo dõi tổng dư nợ</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>🔄 Sau khi thêm</h3>
+          <p>Form sẽ được reset để tiếp tục thêm khoản nợ mới. Dữ liệu sẽ tự động cập nhật vào tất cả báo cáo.</p>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <form id="debtForm">
-    <div class="form-group">
-      <label for="date">Ngày vay <span class="required">*</span></label>
-      <input type="date" id="date" required>
-    </div>
-
-    <div class="form-group">
-      <label for="debtName">Tên khoản nợ <span class="required">*</span></label>
-      <input type="text" id="debtName" required placeholder="VD: Vay ngân hàng Vietcombank, Margin SSI">
-      <div class="hint">Nhập từ khóa "Margin" nếu đây là nợ margin chứng khoán</div>
-    </div>
-
-    <div class="form-group">
-      <label for="debtType">Loại nợ <span class="required">*</span></label>
-      <select id="debtType" required>
-        <option value="">-- Chọn loại nợ --</option>
-        <option value="INTEREST_ONLY">Nợ ngân hàng (Trả lãi hàng tháng)</option>
-        <option value="EQUAL_PRINCIPAL">Vay trả góp (Gốc đều, lãi giảm dần)</option>
-        <option value="EQUAL_PRINCIPAL_UPFRONT_FEE">Trả góp qua thẻ (Phí ban đầu)</option>
-        <option value="INTEREST_FREE">Trả góp miễn lãi (Chỉ trả gốc)</option>
-        <option value="OTHER">Khác</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="principal">Số tiền gốc <span class="required">*</span></label>
-      <input type="number" id="principal" required min="0" step="1000" placeholder="Số tiền vay">
-    </div>
-
-    <div class="inline-group">
-      <div class="form-group">
-        <label for="interestRate">Lãi suất (%/năm) <span class="required">*</span></label>
-        <input type="number" id="interestRate" required min="0" step="0.1" placeholder="VD: 8.5">
-      </div>
-
-      <div class="form-group">
-        <label for="term">Kỳ hạn (tháng) <span class="required">*</span></label>
-        <input type="number" id="term" required min="1" step="1" placeholder="VD: 12">
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label for="note">Ghi chú</label>
-      <textarea id="note" rows="3" placeholder="Thông tin bổ sung về khoản nợ..."></textarea>
-    </div>
-
-    <button type="submit" class="btn" id="submitBtn">Thêm khoản nợ</button>
-  </form>
-
-  <div id="message" class="message"></div>
-
   <script>
-    // Set ngày mặc định là hôm nay
+    // Set default date and load config
     document.getElementById('date').valueAsDate = new Date();
 
     // Load configuration
@@ -202,7 +411,6 @@
         });
       }
     }).getAppConfig();
-
 
     // Auto-select "Margin chứng khoán" khi nhập tên có chứa "margin"
     document.getElementById('debtName').addEventListener('input', function () {
@@ -227,7 +435,7 @@
 
       // Disable button
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Đang xử lý...';
+      submitBtn.textContent = '⏳ Đang xử lý...';
 
       // Prepare data
       const data = {
@@ -244,36 +452,37 @@
       google.script.run
         .withSuccessHandler(function (result) {
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Thêm khoản nợ';
+          submitBtn.textContent = '💳 Thêm khoản nợ';
 
           if (result.success) {
-            messageDiv.className = 'message success';
-            messageDiv.textContent = result.message;
-            messageDiv.style.display = 'block';
+            showMessage(result.message, 'success');
 
             // Reset form
             document.getElementById('debtForm').reset();
             document.getElementById('date').valueAsDate = new Date();
 
-            // Hide message after 3 seconds
-            setTimeout(function () {
-              messageDiv.style.display = 'none';
-            }, 3000);
+            // REMOVED: Form no longer closes automatically
           } else {
-            messageDiv.className = 'message error';
-            messageDiv.textContent = result.message;
-            messageDiv.style.display = 'block';
+            showMessage(result.message, 'error');
           }
         })
         .withFailureHandler(function (error) {
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Thêm khoản nợ';
-          messageDiv.className = 'message error';
-          messageDiv.textContent = '❌ Lỗi: ' + error.message;
-          messageDiv.style.display = 'block';
+          submitBtn.textContent = '💳 Thêm khoản nợ';
+          showMessage('❌ Lỗi: ' + error.message, 'error');
         })
         .addDebtManagement(data);
     });
+
+    function showMessage(text, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.textContent = text;
+      messageDiv.className = 'message ' + type;
+      messageDiv.style.display = 'block';
+      setTimeout(function () {
+        messageDiv.style.display = 'none';
+      }, 8000); // Extended display time
+    }
   </script>
 </body>
 

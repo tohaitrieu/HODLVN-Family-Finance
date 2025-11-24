@@ -3,167 +3,377 @@
 
 <head>
   <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
       padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      min-height: calc(100vh - 40px);
+    }
+
+    .header {
+      background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+      position: relative;
+    }
+
+    .logo {
+      width: 120px;
+      height: auto;
+      margin-bottom: 15px;
+      filter: brightness(0) invert(1);
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 300;
       margin: 0;
     }
 
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 500px;
+    }
+
+    .form-section {
+      padding: 40px;
+    }
+
+    .rules-section {
+      background: #f8f9fa;
+      padding: 40px;
+      border-left: 1px solid #e9ecef;
+    }
+
     .form-group {
-      margin-bottom: 15px;
+      margin-bottom: 25px;
     }
 
     label {
       display: block;
-      font-weight: bold;
-      margin-bottom: 5px;
-      color: #333;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #2c3e50;
+      font-size: 14px;
     }
 
     input,
     select,
     textarea {
       width: 100%;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      box-sizing: border-box;
-      font-size: 14px;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 2px solid #e1e8ed;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      background: #fff;
     }
 
     input:focus,
     select:focus,
     textarea:focus {
       outline: none;
-      border-color: #4472C4;
+      border-color: #9C27B0;
+      box-shadow: 0 0 0 3px rgba(156, 39, 176, 0.1);
     }
 
     .btn {
-      background-color: #3498DB;
+      background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
       color: white;
-      padding: 12px 24px;
+      padding: 16px 24px;
       border: none;
-      border-radius: 4px;
+      border-radius: 10px;
       cursor: pointer;
       font-size: 16px;
-      font-weight: bold;
+      font-weight: 600;
       width: 100%;
-      margin-top: 10px;
+      margin-top: 20px;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     .btn:hover {
-      background-color: #2980B9;
+      background: linear-gradient(135deg, #7B1FA2 0%, #6A1B9A 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     }
 
     .btn:disabled {
-      background-color: #ccc;
+      background: #bdc3c7;
       cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
     .message {
-      padding: 10px;
-      margin-top: 15px;
-      border-radius: 4px;
+      padding: 16px;
+      margin-top: 20px;
+      border-radius: 10px;
       display: none;
+      font-weight: 500;
     }
 
     .message.success {
       background-color: #d4edda;
       color: #155724;
-      border: 1px solid #c3e6cb;
+      border: 2px solid #9C27B0;
     }
 
     .message.error {
       background-color: #f8d7da;
       color: #721c24;
-      border: 1px solid #f5c6cb;
+      border: 2px solid #e74c3c;
     }
 
     .required {
-      color: red;
-    }
-
-    input[readonly] {
-      background-color: #f0f0f0;
+      color: #e74c3c;
     }
 
     .radio-group {
       display: flex;
       gap: 20px;
+      margin-top: 8px;
     }
 
     .radio-group label {
       display: inline-flex;
       align-items: center;
       font-weight: normal;
+      margin-bottom: 0;
+      cursor: pointer;
+      padding: 8px 12px;
+      border: 2px solid #e1e8ed;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .radio-group label:hover {
+      border-color: #9C27B0;
+      background-color: #f8f9fa;
     }
 
     .radio-group input[type="radio"] {
       width: auto;
-      margin-right: 5px;
+      margin-right: 8px;
+      margin-bottom: 0;
+      padding: 0;
     }
 
-    .total-display {
-      font-size: 18px;
-      font-weight: bold;
-      color: #3498DB;
+    .radio-group input[type="radio"]:checked + span {
+      color: #9C27B0;
+      font-weight: 600;
+    }
+
+    .radio-group label:has(input[type="radio"]:checked) {
+      border-color: #9C27B0;
+      background-color: rgba(156, 39, 176, 0.05);
+    }
+
+    input[readonly] {
+      background-color: #f8f9fa;
+      border-color: #e9ecef;
+      font-weight: 600;
+      color: #9C27B0;
       text-align: right;
+    }
+
+    .rules-section h2 {
+      color: #2c3e50;
+      font-size: 24px;
+      margin-bottom: 25px;
+      font-weight: 600;
+    }
+
+    .rule-item {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border-left: 4px solid #9C27B0;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .rule-item h3 {
+      color: #9C27B0;
+      font-size: 16px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .rule-item p {
+      color: #5a6c7d;
+      line-height: 1.6;
+      margin: 8px 0;
+    }
+
+    .rule-item ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+
+    .rule-item li {
+      color: #5a6c7d;
+      margin: 5px 0;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+      
+      .rules-section {
+        border-left: none;
+        border-top: 1px solid #e9ecef;
+      }
+      
+      .form-section, .rules-section {
+        padding: 20px;
+      }
+      
+      .header {
+        padding: 20px;
+      }
+      
+      .logo {
+        width: 80px;
+      }
+      
+      .header h1 {
+        font-size: 22px;
+      }
+
+      .radio-group {
+        flex-direction: column;
+        gap: 10px;
+      }
     }
   </style>
 </head>
 
 <body>
-  <form id="stockForm">
-    <div class="form-group">
-      <label for="date">Ngày <span class="required">*</span></label>
-      <input type="date" id="date" required>
+  <div class="container">
+    <div class="header">
+      <img src="https://hodl.vn/wp-content/uploads/2024/05/hodlvn-logo-2024.svg" alt="HODL Vietnam" class="logo" onerror="this.style.display='none'">
+      <h1>📈 Giao Dịch Chứng Khoán</h1>
     </div>
+    
+    <div class="content">
+      <div class="form-section">
+        <form id="stockForm">
+          <div class="form-group">
+            <label for="date">Ngày <span class="required">*</span></label>
+            <input type="date" id="date" required>
+          </div>
 
-    <div class="form-group">
-      <label>Loại giao dịch <span class="required">*</span></label>
-      <div class="radio-group" id="type-container">
-        <!-- Loaded dynamically -->
-        <label><input type="radio" name="type" value="Mua" checked> ⏳ Đang tải...</label>
+          <div class="form-group">
+            <label>Loại giao dịch <span class="required">*</span></label>
+            <div class="radio-group" id="type-container">
+              <!-- Loaded dynamically -->
+              <label><input type="radio" name="type" value="Mua" checked> <span>⏳ Đang tải...</span></label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="symbol">Mã chứng khoán <span class="required">*</span></label>
+            <input type="text" id="symbol" required placeholder="VD: VNM, VIC, FPT..." style="text-transform: uppercase;">
+          </div>
+
+          <div class="form-group">
+            <label for="quantity">Số lượng (CP) <span class="required">*</span></label>
+            <input type="number" id="quantity" required min="1" step="1" placeholder="Số lượng cổ phiếu">
+          </div>
+
+          <div class="form-group">
+            <label for="price">Giá (/CP) <span class="required">*</span></label>
+            <input type="number" id="price" required min="0" step="100" placeholder="Giá mỗi cổ phiếu">
+          </div>
+
+          <div class="form-group">
+            <label for="total">Tổng giá trị</label>
+            <input type="text" id="total" readonly value="0">
+          </div>
+
+          <div class="form-group">
+            <label for="fee">Phí giao dịch</label>
+            <input type="number" id="fee" min="0" step="1000" value="0" placeholder="Phí môi giới, thuế...">
+          </div>
+
+          <div class="form-group">
+            <label for="note">Ghi chú</label>
+            <textarea id="note" rows="3" placeholder="Thêm ghi chú (không bắt buộc)"></textarea>
+          </div>
+
+          <button type="submit" class="btn" id="submitBtn">
+            📈 Thêm giao dịch
+          </button>
+        </form>
+
+        <div id="message" class="message"></div>
+      </div>
+      
+      <div class="rules-section">
+        <h2>📋 Hướng Dẫn Chứng Khoán</h2>
+        
+        <div class="rule-item">
+          <h3>🎯 Thông tin bắt buộc</h3>
+          <ul>
+            <li><strong>Ngày:</strong> Ngày thực hiện giao dịch</li>
+            <li><strong>Loại giao dịch:</strong> Mua, Bán, hoặc Thưởng cổ phiếu</li>
+            <li><strong>Mã chứng khoán:</strong> Mã CK (VNM, VIC, FPT...)</li>
+            <li><strong>Số lượng:</strong> Số cổ phiếu giao dịch</li>
+            <li><strong>Giá:</strong> Giá trên mỗi cổ phiếu (VND)</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>💡 Các loại giao dịch</h3>
+          <ul>
+            <li><strong>📈 Mua:</strong> Mua cổ phiếu mới (tăng tài sản)</li>
+            <li><strong>📉 Bán:</strong> Bán cổ phiếu đã có (giảm tài sản)</li>
+            <li><strong>🎁 Thưởng:</strong> Cổ phiếu thưởng từ công ty</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>⚠️ Lưu ý quan trọng</h3>
+          <ul>
+            <li><strong>Tổng giá trị:</strong> Tự động tính = Số lượng × Giá</li>
+            <li><strong>Phí giao dịch:</strong> Bao gồm phí môi giới, thuế (nếu có)</li>
+            <li><strong>Mã CK:</strong> Tự động chuyển thành chữ hoa</li>
+            <li><strong>Giao dịch Mua:</strong> Sẽ tự động ghi chi tiền tương ứng</li>
+            <li><strong>Giao dịch Bán:</strong> Sẽ tự động ghi thu tiền tương ứng</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>🔄 Sau khi thêm</h3>
+          <p>Giao dịch sẽ cập nhật vào portfolio chứng khoán và tự động tính toán P&L. Form sẽ được reset để tiếp tục nhập liệu.</p>
+        </div>
       </div>
     </div>
-
-    <div class="form-group">
-      <label for="symbol">Mã chứng khoán <span class="required">*</span></label>
-      <input type="text" id="symbol" required placeholder="VD: VNM, VIC, FPT..." style="text-transform: uppercase;">
-    </div>
-
-    <div class="form-group">
-      <label for="quantity">Số lượng (CP) <span class="required">*</span></label>
-      <input type="number" id="quantity" required min="1" step="1" placeholder="Số lượng cổ phiếu">
-    </div>
-
-    <div class="form-group">
-      <label for="price">Giá (/CP) <span class="required">*</span></label>
-      <input type="number" id="price" required min="0" step="100" placeholder="Giá mỗi cổ phiếu">
-    </div>
-
-    <div class="form-group">
-      <label for="total">Tổng giá trị</label>
-      <input type="text" id="total" readonly class="total-display" value="0">
-    </div>
-
-    <div class="form-group">
-      <label for="fee">Phí giao dịch</label>
-      <input type="number" id="fee" min="0" step="1000" value="0" placeholder="Phí môi giới, thuế...">
-    </div>
-
-    <div class="form-group">
-      <label for="note">Ghi chú</label>
-      <textarea id="note" rows="3" placeholder="Thêm ghi chú (không bắt buộc)"></textarea>
-    </div>
-
-    <button type="submit" class="btn" id="submitBtn">
-      📈 Thêm giao dịch
-    </button>
-  </form>
-
-  <div id="message" class="message"></div>
+  </div>
 
   <script>
     document.getElementById('date').valueAsDate = new Date();
@@ -177,6 +387,8 @@
       types.forEach((type, index) => {
         const label = document.createElement('label');
         const input = document.createElement('input');
+        const span = document.createElement('span');
+        
         input.type = 'radio';
         input.name = 'type';
         input.value = type;
@@ -187,8 +399,10 @@
         else if (type === 'Bán') icon = '📉 ';
         else if (type === 'Thưởng') icon = '🎁 ';
 
+        span.textContent = icon + type;
+        
         label.appendChild(input);
-        label.appendChild(document.createTextNode(icon + type));
+        label.appendChild(span);
         container.appendChild(label);
       });
     }).getAppConfig();
@@ -243,9 +457,10 @@
             document.getElementById('fee').value = '0';
             document.querySelector('input[name="type"][value="Mua"]').checked = true;
             calculateTotal();
-            setTimeout(function () {
-              google.script.host.close();
-            }, 1500);
+            // REMOVED: Form no longer closes automatically
+            // setTimeout(function () {
+            //   google.script.host.close();
+            // }, 1500);
           } else {
             showMessage(result.message, 'error');
           }
@@ -267,7 +482,7 @@
       messageDiv.style.display = 'block';
       setTimeout(function () {
         messageDiv.style.display = 'none';
-      }, 5000);
+      }, 8000); // Extended display time
     }
   </script>
 </body>

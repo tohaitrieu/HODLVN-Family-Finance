@@ -2,263 +2,424 @@
 <html>
 
 <head>
-    <base target="_top">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            margin: 0;
-            background-color: #f5f5f5;
-        }
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        h2 {
-            color: #4472C4;
-            margin-top: 0;
-            text-align: center;
-        }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
 
-        .form-group {
-            margin-bottom: 15px;
-        }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      min-height: calc(100vh - 40px);
+    }
 
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #333;
-        }
+    .header {
+      background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+      position: relative;
+    }
 
-        input,
-        select,
-        textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 14px;
-        }
+    .logo {
+      width: 120px;
+      height: auto;
+      margin-bottom: 15px;
+      filter: brightness(0) invert(1);
+    }
 
-        input:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: #4472C4;
-        }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 300;
+      margin: 0;
+    }
 
-        .btn {
-            background-color: #4472C4;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            width: 100%;
-            margin-top: 10px;
-        }
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 500px;
+    }
 
-        .btn:hover {
-            background-color: #365899;
-        }
+    .form-section {
+      padding: 40px;
+    }
 
-        .btn:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
+    .rules-section {
+      background: #f8f9fa;
+      padding: 40px;
+      border-left: 1px solid #e9ecef;
+    }
 
-        .message {
-            padding: 10px;
-            margin-top: 15px;
-            border-radius: 4px;
-            display: none;
-        }
+    .form-group {
+      margin-bottom: 25px;
+    }
 
-        .message.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #2c3e50;
+      font-size: 14px;
+    }
 
-        .message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 2px solid #e1e8ed;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      background: #fff;
+    }
 
-        .required {
-            color: red;
-        }
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #2196F3;
+      box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    }
 
-        .hint {
-            font-size: 12px;
-            color: #666;
-            margin-top: 3px;
-        }
+    .btn {
+      background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+      color: white;
+      padding: 16px 24px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      width: 100%;
+      margin-top: 20px;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
 
-        .inline-group {
-            display: flex;
-            gap: 10px;
-        }
+    .btn:hover {
+      background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
 
-        .inline-group .form-group {
-            flex: 1;
-        }
+    .btn:disabled {
+      background: #bdc3c7;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
 
-        .info-box {
-            background-color: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 4px;
-            padding: 10px;
-            margin-bottom: 15px;
-        }
+    .message {
+      padding: 16px;
+      margin-top: 20px;
+      border-radius: 10px;
+      display: none;
+      font-weight: 500;
+    }
 
-        .info-box p {
-            margin: 5px 0;
-            font-size: 13px;
-        }
-    </style>
+    .message.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 2px solid #2196F3;
+    }
+
+    .message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 2px solid #e74c3c;
+    }
+
+    .required {
+      color: #e74c3c;
+    }
+
+    .inline-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .inline-group .form-group {
+      flex: 1;
+    }
+
+    .rules-section h2 {
+      color: #2c3e50;
+      font-size: 24px;
+      margin-bottom: 25px;
+      font-weight: 600;
+    }
+
+    .rule-item {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border-left: 4px solid #2196F3;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .rule-item h3 {
+      color: #2196F3;
+      font-size: 16px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .rule-item p {
+      color: #5a6c7d;
+      line-height: 1.6;
+      margin: 8px 0;
+    }
+
+    .rule-item ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+
+    .rule-item li {
+      color: #5a6c7d;
+      margin: 5px 0;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+      
+      .rules-section {
+        border-left: none;
+        border-top: 1px solid #e9ecef;
+      }
+      
+      .form-section, .rules-section {
+        padding: 20px;
+      }
+      
+      .header {
+        padding: 20px;
+      }
+      
+      .logo {
+        width: 80px;
+      }
+      
+      .header h1 {
+        font-size: 22px;
+      }
+
+      .inline-group {
+        flex-direction: column;
+        gap: 0;
+      }
+    }
+  </style>
 </head>
 
 <body>
-    <h2>🤝 Thêm Khoản Cho Vay Mới</h2>
-
-    <div class="info-box">
-        <p><strong>💡 Lưu ý:</strong></p>
-        <p>• Khi thêm khoản cho vay, hệ thống sẽ <strong>TỰ ĐỘNG</strong> thêm khoản chi vào sheet CHI</p>
-        <p>• Ví dụ: Cho bạn vay 10 triệu → Tự động ghi nhận chi "Cho vay" 10 triệu</p>
-        <p>• Điều này phản ánh đúng thực tế: <strong>Cho vay = Tiền mặt giảm</strong></p>
+  <div class="container">
+    <div class="header">
+      <img src="https://hodl.vn/wp-content/uploads/2024/05/hodlvn-logo-2024.svg" alt="HODL Vietnam" class="logo" onerror="this.style.display='none'">
+      <h1>🤝 Thêm Khoản Cho Vay</h1>
     </div>
-
-    <form id="lendingForm">
-        <div class="form-group">
+    
+    <div class="content">
+      <div class="form-section">
+        <form id="lendingForm">
+          <div class="form-group">
             <label for="date">Ngày cho vay <span class="required">*</span></label>
             <input type="date" id="date" required>
-        </div>
+          </div>
 
-        <div class="form-group">
+          <div class="form-group">
             <label for="borrowerName">Tên người vay <span class="required">*</span></label>
             <input type="text" id="borrowerName" required placeholder="VD: Nguyễn Văn A, Công ty B">
-        </div>
+          </div>
 
-        <div class="form-group">
+          <div class="form-group">
             <label for="lendingType">Loại cho vay <span class="required">*</span></label>
             <select id="lendingType" required>
-                <option value="">-- Chọn loại --</option>
-                <option value="BULLET">Cho vay tất toán (Gốc + lãi cuối kỳ)</option>
-                <option value="INTEREST_ONLY">Cho vay trả lãi định kỳ</option>
-                <option value="EQUAL_PRINCIPAL">Cho vay trả góp (Gốc đều, lãi giảm dần)</option>
-                <option value="INTEREST_FREE">Cho vay miễn lãi (Chỉ thu gốc)</option>
-                <option value="OTHER">Khác</option>
+              <option value="">-- Chọn loại --</option>
+              <option value="BULLET">Cho vay tất toán (Gốc + lãi cuối kỳ)</option>
+              <option value="INTEREST_ONLY">Cho vay trả lãi định kỳ</option>
+              <option value="EQUAL_PRINCIPAL">Cho vay trả góp (Gốc đều, lãi giảm dần)</option>
+              <option value="INTEREST_FREE">Cho vay miễn lãi (Chỉ thu gốc)</option>
+              <option value="OTHER">Khác</option>
             </select>
-        </div>
+          </div>
 
-        <div class="form-group">
+          <div class="form-group">
             <label for="principal">Số tiền gốc <span class="required">*</span></label>
             <input type="number" id="principal" required min="0" step="1000" placeholder="Số tiền cho vay">
-        </div>
+          </div>
 
-        <div class="inline-group">
+          <div class="inline-group">
             <div class="form-group">
-                <label for="interestRate">Lãi suất (%/năm) <span class="required">*</span></label>
-                <input type="number" id="interestRate" required min="0" step="0.1" placeholder="VD: 12.0">
+              <label for="interestRate">Lãi suất (%/năm) <span class="required">*</span></label>
+              <input type="number" id="interestRate" required min="0" step="0.1" placeholder="VD: 12.0">
             </div>
 
             <div class="form-group">
-                <label for="term">Kỳ hạn (tháng) <span class="required">*</span></label>
-                <input type="number" id="term" required min="1" step="1" placeholder="VD: 6">
+              <label for="term">Kỳ hạn (tháng) <span class="required">*</span></label>
+              <input type="number" id="term" required min="1" step="1" placeholder="VD: 6">
             </div>
-        </div>
+          </div>
 
-        <div class="form-group">
+          <div class="form-group">
             <label for="note">Ghi chú</label>
             <textarea id="note" rows="3" placeholder="Thông tin bổ sung..."></textarea>
+          </div>
+
+          <button type="submit" class="btn" id="submitBtn">
+            🤝 Thêm khoản cho vay
+          </button>
+        </form>
+
+        <div id="message" class="message"></div>
+      </div>
+      
+      <div class="rules-section">
+        <h2>📋 Hướng Dẫn Cho Vay</h2>
+        
+        <div class="rule-item">
+          <h3>🎯 Thông tin bắt buộc</h3>
+          <ul>
+            <li><strong>Ngày cho vay:</strong> Ngày thực tế giải ngân</li>
+            <li><strong>Tên người vay:</strong> Tên đầy đủ hoặc tên công ty</li>
+            <li><strong>Loại cho vay:</strong> Phương thức trả nợ</li>
+            <li><strong>Số tiền gốc:</strong> Số tiền cho vay (VND)</li>
+            <li><strong>Lãi suất:</strong> %/năm (có thể để 0 nếu miễn lãi)</li>
+            <li><strong>Kỳ hạn:</strong> Thời gian vay (tháng)</li>
+          </ul>
         </div>
+        
+        <div class="rule-item">
+          <h3>💡 Các loại cho vay</h3>
+          <ul>
+            <li><strong>Tất toán:</strong> Trả một lần gốc + lãi cuối kỳ</li>
+            <li><strong>Trả lãi định kỳ:</strong> Trả lãi hàng tháng, gốc cuối kỳ</li>
+            <li><strong>Trả góp:</strong> Trả đều hàng tháng (gốc + lãi)</li>
+            <li><strong>Miễn lãi:</strong> Chỉ thu gốc, không tính lãi</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>⚠️ Lưu ý quan trọng</h3>
+          <ul>
+            <li><strong>Tự động ghi nhận chi tiền:</strong> Hệ thống sẽ tự động thêm khoản chi tương ứng vào sheet CHI</li>
+            <li>Điều này phản ánh đúng thực tế: Cho vay = Tiền mặt giảm</li>
+            <li>Lãi suất tính theo năm (365 ngày)</li>
+            <li>Ghi chú giúp theo dõi thêm thông tin quan trọng</li>
+          </ul>
+        </div>
+        
+        <div class="rule-item">
+          <h3>🔄 Sau khi thêm</h3>
+          <p>Khoản cho vay sẽ được theo dõi riêng để tính toán lãi và quản lý thu hồi nợ. Form sẽ được reset để tiếp tục nhập liệu.</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        <button type="submit" class="btn" id="submitBtn">Thêm khoản cho vay</button>
-    </form>
+  <script>
+    // Set ngày mặc định là hôm nay
+    document.getElementById('date').valueAsDate = new Date();
 
-    <div id="message" class="message"></div>
+    // Load configuration
+    google.script.run.withSuccessHandler(function (config) {
+      const loanTypes = config.LOAN_TYPES;
+      const select = document.getElementById('lendingType');
+      select.innerHTML = '<option value="">-- Chọn loại --</option>';
 
-    <script>
-        // Set ngày mặc định là hôm nay
-        document.getElementById('date').valueAsDate = new Date();
-
-        // Load configuration
-        google.script.run.withSuccessHandler(function (config) {
-            const loanTypes = config.LOAN_TYPES;
-            const select = document.getElementById('lendingType');
-            select.innerHTML = '<option value="">-- Chọn loại --</option>';
-
-            if (loanTypes) {
-                Object.keys(loanTypes).forEach(key => {
-                    const type = loanTypes[key];
-                    const option = document.createElement('option');
-                    option.value = key;
-                    option.text = type.lendingLabel;
-                    select.appendChild(option);
-                });
-            }
-        }).getAppConfig();
-
-        // Submit form
-        document.getElementById('lendingForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const submitBtn = document.getElementById('submitBtn');
-            const messageDiv = document.getElementById('message');
-
-            // Disable button
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Đang xử lý...';
-
-            // Prepare data
-            const data = {
-                date: document.getElementById('date').value,
-                borrowerName: document.getElementById('borrowerName').value,
-                lendingType: document.getElementById('lendingType').value,
-                principal: document.getElementById('principal').value,
-                interestRate: document.getElementById('interestRate').value,
-                term: document.getElementById('term').value,
-                note: document.getElementById('note').value
-            };
-
-            // Call server function
-            google.script.run
-                .withSuccessHandler(function (result) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Thêm khoản cho vay';
-
-                    if (result.success) {
-                        messageDiv.className = 'message success';
-                        messageDiv.textContent = result.message;
-                        messageDiv.style.display = 'block';
-
-                        // Reset form
-                        document.getElementById('lendingForm').reset();
-                        document.getElementById('date').valueAsDate = new Date();
-
-                        // Hide message after 3 seconds
-                        setTimeout(function () {
-                            messageDiv.style.display = 'none';
-                        }, 3000);
-                    } else {
-                        messageDiv.className = 'message error';
-                        messageDiv.textContent = result.message;
-                        messageDiv.style.display = 'block';
-                    }
-                })
-                .withFailureHandler(function (error) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Thêm khoản cho vay';
-                    messageDiv.className = 'message error';
-                    messageDiv.textContent = '❌ Lỗi: ' + error.message;
-                    messageDiv.style.display = 'block';
-                })
-                .processLendingForm(data);
+      if (loanTypes) {
+        Object.keys(loanTypes).forEach(key => {
+          const type = loanTypes[key];
+          const option = document.createElement('option');
+          option.value = key;
+          option.text = type.lendingLabel;
+          select.appendChild(option);
         });
-    </script>
+      }
+    }).getAppConfig();
+
+    // Submit form
+    document.getElementById('lendingForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const submitBtn = document.getElementById('submitBtn');
+      const messageDiv = document.getElementById('message');
+
+      // Disable button
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Đang xử lý...';
+
+      // Prepare data
+      const data = {
+        date: document.getElementById('date').value,
+        borrowerName: document.getElementById('borrowerName').value,
+        lendingType: document.getElementById('lendingType').value,
+        principal: document.getElementById('principal').value,
+        interestRate: document.getElementById('interestRate').value,
+        term: document.getElementById('term').value,
+        note: document.getElementById('note').value
+      };
+
+      // Call server function
+      google.script.run
+        .withSuccessHandler(function (result) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = '🤝 Thêm khoản cho vay';
+
+          if (result.success) {
+            showMessage(result.message, 'success');
+
+            // Reset form
+            document.getElementById('lendingForm').reset();
+            document.getElementById('date').valueAsDate = new Date();
+
+            // REMOVED: Form no longer closes automatically
+            // setTimeout(function () {
+            //   google.script.host.close();
+            // }, 1500);
+          } else {
+            showMessage(result.message, 'error');
+          }
+        })
+        .withFailureHandler(function (error) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = '🤝 Thêm khoản cho vay';
+          showMessage('❌ Lỗi: ' + error.message, 'error');
+        })
+        .processLendingForm(data);
+    });
+
+    function showMessage(text, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.textContent = text;
+      messageDiv.className = 'message ' + type;
+      messageDiv.style.display = 'block';
+      setTimeout(function () {
+        messageDiv.style.display = 'none';
+      }, 8000); // Extended display time
+    }
+  </script>
 </body>
 
 </html>
