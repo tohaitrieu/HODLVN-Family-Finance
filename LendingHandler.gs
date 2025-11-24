@@ -5,11 +5,11 @@
  */
 
 /**
- * Thêm khoản cho vay mới vào sheet CHO VAY
+ * Xử lý form thêm khoản cho vay mới
  * @param {Object} data - Dữ liệu khoản cho vay
  * @returns {Object} {success: boolean, message: string}
  */
-function addLending(data) {
+function processLendingForm(data) {
   try {
     // Validation
     if (!data.date || !data.borrowerName || !data.principal || !data.interestRate || !data.term) {
