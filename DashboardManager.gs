@@ -808,88 +808,249 @@ const DashboardManager = {
   },
   
   _createChart(sheet) {
-    // 1. Cấu hình vị trí Chart
-    const chartStartRow = 36;
+    // 1. Cấu hình vị trí Chart với padding tốt hơn
+    const chartStartRow = 38; // Moved down for better spacing
     const chartStartCol = 11; // Column K
+    const chartOffsetX = 10; // Add horizontal padding
+    const chartOffsetY = 10; // Add vertical padding
 
-    // 2. Calculate data source positions
-    // With custom functions, we use fixed positions for totals
-    // Income: Last row of hffsIncome() output (varies by categories)
-    // Expense: Last row of hffsExpense() output
-    // Debt: Last row of hffsDebt() output  
-    // Assets: Last row of hffsAssets() output
+    // 2. Tạo dữ liệu chart chính xác với SUMIF functions
+    // Sử dụng SUMIF thay vì INDEX/MATCH để tính tổng chính xác
     
-    // Since custom functions auto-fill, we use INDEX to get last row values
-    // Or we can use fixed cells if we know the max rows
+    // Clear any existing chart data
+    sheet.getRange('F3:I3').clearContent();
     
-    const cfg = this.CONFIG.LAYOUT;
-    const startRow = cfg.START_ROW;
+    // Set up chart data with current month filter
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+    const firstDayOfMonth = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
+    const lastDayOfMonth = new Date(currentYear, currentMonth, 0);
+    const lastDay = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${lastDayOfMonth.getDate()}`;
     
-    // For now, use simple SUMs to aggregate the custom function outputs
-    // Income Total: Sum column B (amounts) where data exists
-    sheet.getRange('F3').setFormula(`=IFERROR(INDEX(A:C, MATCH("TỔNG THU NHẬP", A:A, 0), 2), 0)`);
+    // Thu nhập tháng hiện tại
+    sheet.getRange('F3').setFormula(
+      `=IFERROR(SUMIFS('${APP_CONFIG.SHEETS.INCOME}'!C:C,'${APP_CONFIG.SHEETS.INCOME}'!B:B,">="&DATE(YEAR(TODAY()),MONTH(TODAY()),1),'${APP_CONFIG.SHEETS.INCOME}'!B:B,"<="&EOMONTH(TODAY(),0)),0)`
+    );
     
-    // Expense Total: Sum column F (amounts) in expense table
-    sheet.getRange('G3').setFormula(`=IFERROR(INDEX(E:I, MATCH("TỔNG CHI PHÍ", E:E, 0), 2), 0)`);
+    // Chi phí tháng hiện tại
+    sheet.getRange('G3').setFormula(
+      `=IFERROR(SUMIFS('${APP_CONFIG.SHEETS.EXPENSE}'!C:C,'${APP_CONFIG.SHEETS.EXPENSE}'!B:B,">="&DATE(YEAR(TODAY()),MONTH(TODAY()),1),'${APP_CONFIG.SHEETS.EXPENSE}'!B:B,"<="&EOMONTH(TODAY(),0)),0)`
+    );
     
-    // Debt Total: Sum column B in debt table  
-    const row2Start = startRow + 23; // Approximate based on row1 height
-    sheet.getRange('H3').setFormula(`=IFERROR(INDEX(A:C, MATCH("TỔNG NỢ", A:A, 0), 2), 0)`);
+    // Tổng nợ còn lại (tất cả khoản nợ đang có)
+    sheet.getRange('H3').setFormula(
+      `=IFERROR(SUMIF('${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!L:L,"Chưa trả",'${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!K:K)+SUMIF('${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!L:L,"Đang trả",'${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!K:K),0)`
+    );
     
-    // Assets Total: Sum column H in assets table
-    sheet.getRange('I3').setFormula(`=IFERROR(INDEX(E:I, MATCH("TỔNG TÀI SẢN", E:E, 0), 4), 0)`);
+    // Tổng tài sản đầu tư (portfolio hiện tại)
+    sheet.getRange('I3').setFormula(
+      `=IFERROR((SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Mua",'${APP_CONFIG.SHEETS.STOCK}'!M:M)-SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Bán",'${APP_CONFIG.SHEETS.STOCK}'!M:M))+SUMIF('${APP_CONFIG.SHEETS.GOLD}'!D:D,"Mua",'${APP_CONFIG.SHEETS.GOLD}'!K:K)+SUMIF('${APP_CONFIG.SHEETS.CRYPTO}'!C:C,"Mua",'${APP_CONFIG.SHEETS.CRYPTO}'!M:M)+SUM('${APP_CONFIG.SHEETS.OTHER_INVESTMENT}'!D:D),0)`
+    );
 
-    // Format F3:I3
-    sheet.getRange('F3:I3').setNumberFormat('#,##0');
+    // Format data cells với định dạng tiền tệ Việt Nam
+    sheet.getRange('F3:I3').setNumberFormat('#,##0 "₫"');
     
-    // 4. TẠO BIỂU ĐỒ
+    // Add data labels for clarity
+    sheet.getRange('F4').setValue('(Thu nhập tháng này)').setFontSize(9).setFontColor('#666666');
+    sheet.getRange('G4').setValue('(Chi phí tháng này)').setFontSize(9).setFontColor('#666666');
+    sheet.getRange('H4').setValue('(Tổng nợ còn lại)').setFontSize(9).setFontColor('#666666');
+    sheet.getRange('I4').setValue('(Giá trị tài sản)').setFontSize(9).setFontColor('#666666');
+    
+    // 3. TẠO BIỂU ĐỒ với cải thiện về visual và padding
     const chart = sheet.newChart()
         .setChartType(Charts.ChartType.COLUMN)
         
-        // --- FIX: Sử dụng range F2:I3 (Headers + Data) ---
+        // Sử dụng range F2:I3 (Headers + Data)
         .addRange(sheet.getRange('F2:I3')) 
         
-        .setPosition(chartStartRow, chartStartCol, 0, 0)
-        .setOption('title', 'TỔNG QUAN TÀI CHÍNH')
-        .setOption('titleTextStyle', { fontSize: 14, bold: true, color: '#333333' })
-        .setOption('width', 720)
-        .setOption('height', 420)
+        .setPosition(chartStartRow, chartStartCol, chartOffsetY, chartOffsetX)
         
-        // --- FIX: Transpose = false (Mỗi cột là 1 series) ---
-        // F2:I2 là Header, F3:I3 là Data
+        // Chart styling với padding và fonts tốt hơn
+        .setOption('title', '📊 TỔNG QUAN TÀI CHÍNH THÁNG ' + currentMonth + '/' + currentYear)
+        .setOption('titleTextStyle', { 
+          fontSize: 16, 
+          bold: true, 
+          color: '#333333',
+          fontName: 'Arial'
+        })
+        
+        // Tăng kích thước để dễ đọc hơn
+        .setOption('width', 800)
+        .setOption('height', 480)
+        
+        // Không transpose để mỗi cột là một series
         .setTransposeRowsAndColumns(false) 
         
-        .setOption('legend', { position: 'bottom', textStyle: { fontSize: 11 } })
+        // Legend với styling tốt hơn
+        .setOption('legend', { 
+          position: 'bottom', 
+          textStyle: { 
+            fontSize: 12, 
+            fontName: 'Arial',
+            color: '#333333'
+          },
+          alignment: 'center'
+        })
         
-        // --- FIX: Màu sắc cho từng Series ---
+        // Màu sắc đậm và dễ phân biệt
         .setOption('series', {
-            0: { color: '#4CAF50' }, // Thu nhập
-            1: { color: '#F44336' }, // Chi phí
-            2: { color: '#FF9800' }, // Nợ
-            3: { color: '#2196F3' }  // Tài sản
+            0: { 
+              color: '#4CAF50', 
+              dataLabel: { 
+                color: '#333333', 
+                fontSize: 11, 
+                fontName: 'Arial' 
+              }
+            }, // Thu nhập - Xanh lá
+            1: { 
+              color: '#F44336', 
+              dataLabel: { 
+                color: '#333333', 
+                fontSize: 11, 
+                fontName: 'Arial' 
+              }
+            }, // Chi phí - Đỏ
+            2: { 
+              color: '#FF9800', 
+              dataLabel: { 
+                color: '#333333', 
+                fontSize: 11, 
+                fontName: 'Arial' 
+              }
+            }, // Nợ - Cam
+            3: { 
+              color: '#2196F3', 
+              dataLabel: { 
+                color: '#333333', 
+                fontSize: 11, 
+                fontName: 'Arial' 
+              }
+            }  // Tài sản - Xanh dương
         })
         
+        // Trục Y với format tiền Việt Nam
         .setOption('vAxis', { 
-            format: 'short',
-            gridlines: { count: 5 }
+          format: '#,##0₫',
+          textStyle: {
+            fontSize: 11,
+            fontName: 'Arial',
+            color: '#333333'
+          },
+          titleTextStyle: {
+            fontSize: 12,
+            fontName: 'Arial',
+            color: '#333333'
+          },
+          gridlines: { 
+            count: 6,
+            color: '#E0E0E0'
+          },
+          minorGridlines: {
+            count: 0
+          }
         })
-        // Ẩn trục ngang (vì chỉ có 1 nhóm dữ liệu, không cần nhãn trục X)
-        .setOption('hAxis', { textPosition: 'none' }) 
         
-        .setOption('chartArea', { width: '85%', height: '70%' })
+        // Trục X ẩn vì chỉ có 1 nhóm dữ liệu
+        .setOption('hAxis', { 
+          textPosition: 'none',
+          gridlines: {
+            color: 'transparent'
+          }
+        }) 
+        
+        // Chart area với padding lớn hơn
+        .setOption('chartArea', { 
+          left: 80, 
+          top: 60, 
+          width: '75%', 
+          height: '65%'
+        })
+        
+        // Background và border
+        .setOption('backgroundColor', '#FAFAFA')
+        
+        // Animation
+        .setOption('animation', {
+          duration: 1000,
+          easing: 'out',
+          startup: true
+        })
+        
         .build();
       
     sheet.insertChart(chart);
+    
+    Logger.log('✅ Chart created with improved formatting and padding');
   },
   
   _formatSheet(sheet) {
     // Hide gridlines
     sheet.setHiddenGridlines(true);
     
-    // Set tất cả column widths = 120
-    for (let col = 1; col <= 20; col++) {
-      sheet.setColumnWidth(col, 120);
+    // Set column widths for better layout
+    // Columns A-D: Data tables (wider for content)
+    for (let col = 1; col <= 4; col++) {
+      sheet.setColumnWidth(col, 140);
     }
+    
+    // Columns E-I: Chart data and spacing
+    for (let col = 5; col <= 9; col++) {
+      sheet.setColumnWidth(col, 130);
+    }
+    
+    // Column J: Spacer between data and chart
+    sheet.setColumnWidth(10, 20);
+    
+    // Columns K-P: Chart area (wider for chart visibility)
+    for (let col = 11; col <= 16; col++) {
+      sheet.setColumnWidth(col, 100);
+    }
+    
+    // Set row heights for better spacing
+    // Header rows
+    sheet.setRowHeight(1, 35); // Title row
+    sheet.setRowHeight(2, 25); // Dropdown row
+    sheet.setRowHeight(3, 25); // Chart headers row
+    sheet.setRowHeight(4, 20); // Chart labels row
+    sheet.setRowHeight(5, 15); // Spacer
+    
+    // Data table rows - standard height
+    for (let row = 6; row <= 35; row++) {
+      sheet.setRowHeight(row, 22);
+    }
+    
+    // Chart area rows - taller for better chart display
+    for (let row = 36; row <= 60; row++) {
+      sheet.setRowHeight(row, 25);
+    }
+    
+    // Add border around chart data area for clarity
+    sheet.getRange('F2:I4').setBorder(
+      true, true, true, true, true, true, 
+      '#4472C4', SpreadsheetApp.BorderStyle.SOLID
+    );
+    
+    // Format chart headers with background
+    sheet.getRange('F2:I2')
+      .setBackground('#4472C4')
+      .setFontColor('#FFFFFF')
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center');
+    
+    // Format chart data with light background
+    sheet.getRange('F3:I3')
+      .setBackground('#F8F9FA')
+      .setHorizontalAlignment('center')
+      .setFontWeight('bold');
+    
+    // Format chart labels
+    sheet.getRange('F4:I4')
+      .setBackground('#F0F0F0')
+      .setHorizontalAlignment('center')
+      .setFontStyle('italic');
+    
+    Logger.log('✅ Sheet formatting completed with improved spacing for chart');
   },
   
   _setupTriggers() {
