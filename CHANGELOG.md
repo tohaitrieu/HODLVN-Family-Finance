@@ -38,6 +38,17 @@ Mọi thay đổi đáng chú ý của dự án sẽ được ghi lại trong fi
 - ✅ **UI**: Viền bảng nhạt hơn để dễ nhìn.
 - ✅ **UI**: Di chuyển Biểu đồ xuống L39, trục Y chia theo nghìn đồng, Nợ màu Đỏ.
 
+## [3.5.8] - 2025-11-24
+### Fixed
+- **Dashboard Data Accuracy**:
+  - Updated "12-Month Statistics" formulas for Investment columns (CK, Gold, Crypto) to show **Total Invested Capital** instead of Profit/Loss.
+  - Updated "Other Investment" column to sum **Principal Amount** + **Lending Principal**.
+  - Fixed "Other Investment" data entry bug where Note was overwriting Interest Rate.
+  - Fixed "Gold" price lookup formula to use correct Gold Type column.
+  - Fixed "Crypto" price lookup formula to correctly append "USD" for Yahoo Finance.
+- **System Stability**:
+  - Removed pre-filled formulas in Investment sheets to prevent new data from being added at row 1000+. Formulas are now automatically applied to new rows.
+
 ## [3.5.1] - 2025-11-23
 ### Tinh chỉnh Ngân sách & Đồng bộ
 - ✅ **UPDATE**: Di chuyển nhóm "Trả nợ" xuống sau "Đầu tư" trong sheet Budget.

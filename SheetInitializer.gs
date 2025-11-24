@@ -580,12 +580,13 @@ const SheetInitializer = {
     sheet.getRange('N2:N').setNumberFormat('#,##0');
     sheet.getRange('O2:O').setNumberFormat('0.00%');
     
-    // Formulas
-    sheet.getRange('K2:K1000').setFormula('=IF(E2>0, (H2-I2)/E2, 0)');
-    sheet.getRange('L2:L1000').setFormula('=IF(D2<>"", MPRICE(D2), 0)');
-    sheet.getRange('M2:M1000').setFormula('=IF(AND(E2>0, L2>0), E2*L2, 0)');
-    sheet.getRange('N2:N1000').setFormula('=IF(M2>0, M2-(H2-I2), 0)');
-    sheet.getRange('O2:O1000').setFormula('=IF(AND(N2<>0, (H2-I2)>0), N2/(H2-I2), 0)');
+    // Formulas - REMOVED PRE-FILL to avoid getLastRow issues
+    // Formulas are now set dynamically by DataProcessor.gs
+    // sheet.getRange('K2:K1000').setFormula('=IF(E2>0, (H2-I2)/E2, 0)');
+    // sheet.getRange('L2:L1000').setFormula('=IF(D2<>"", MPRICE(D2), 0)');
+    // sheet.getRange('M2:M1000').setFormula('=IF(AND(E2>0, L2>0), E2*L2, 0)');
+    // sheet.getRange('N2:N1000').setFormula('=IF(M2>0, M2-(H2-I2), 0)');
+    // sheet.getRange('O2:O1000').setFormula('=IF(AND(N2<>0, (H2-I2)>0), N2/(H2-I2), 0)');
     
     // Conditional Formatting
     sheet.clearConditionalFormatRules();
@@ -659,20 +660,19 @@ const SheetInitializer = {
     sheet.getRange('H2:L').setNumberFormat('#,##0'); // Giá vốn -> Lãi/Lỗ
     sheet.getRange('M2:M').setNumberFormat('0.00%');
     
-    // Formulas
-    // J: Giá HT = GPRICE(Tài sản - Cột C)
-    sheet.getRange('J2:J1000').setFormula('=IF(C2<>"", GPRICE(C2), 0)');
+    // Formulas - REMOVED PRE-FILL
+    // Formulas are now set dynamically by DataProcessor.gs
+    // J: Giá HT = GPRICE(Loại vàng - Cột E)
+    // sheet.getRange('J2:J1000').setFormula('=IF(E2<>"", GPRICE(E2), 0)');
     
     // K: Giá trị HT = Số lượng * Giá HT
-    // Lưu ý: GPRICE trả về giá VND (thường là cho 1 lượng/chỉ tùy loại). 
-    // Giả định Số lượng và Giá HT tương thích đơn vị.
-    sheet.getRange('K2:K1000').setFormula('=IF(AND(F2>0, J2>0), F2*J2, 0)');
+    // sheet.getRange('K2:K1000').setFormula('=IF(AND(F2>0, J2>0), F2*J2, 0)');
     
     // L: Lãi/Lỗ = Giá trị HT - Tổng vốn
-    sheet.getRange('L2:L1000').setFormula('=IF(K2>0, K2-I2, 0)');
+    // sheet.getRange('L2:L1000').setFormula('=IF(K2>0, K2-I2, 0)');
     
     // M: % Lãi/Lỗ
-    sheet.getRange('M2:M1000').setFormula('=IF(I2>0, L2/I2, 0)');
+    // sheet.getRange('M2:M1000').setFormula('=IF(I2>0, L2/I2, 0)');
     
     // Conditional Formatting for Profit/Loss
     sheet.clearConditionalFormatRules();
@@ -753,25 +753,25 @@ const SheetInitializer = {
     sheet.getRange('L2:N').setNumberFormat('#,##0');    // Giá HT VND -> Lãi/Lỗ
     sheet.getRange('O2:O').setNumberFormat('0.00%');    // % Lãi/Lỗ
     
-    // Formulas
-    // J: Giá HT (USD) = CPRICE(Coin)
-    // User tự nhập mã (VD: BTC-USD, ETH-USD) hoặc mã Yahoo Finance
-    sheet.getRange('J2:J1000').setFormula('=IF(D2<>"", CPRICE(D2), 0)');
+    // Formulas - REMOVED PRE-FILL
+    // Formulas are now set dynamically by DataProcessor.gs
+    // J: Giá HT (USD) = CPRICE(Coin + "USD")
+    // sheet.getRange('J2:J1000').setFormula('=IF(D2<>"", CPRICE(D2&"USD"), 0)');
     
     // K: Giá trị HT (USD) = Số lượng * Giá HT (USD)
-    sheet.getRange('K2:K1000').setFormula('=IF(AND(E2>0, J2>0), E2*J2, 0)');
+    // sheet.getRange('K2:K1000').setFormula('=IF(AND(E2>0, J2>0), E2*J2, 0)');
     
     // L: Giá HT (VND) = Giá HT (USD) * Tỷ giá (Cột G)
-    sheet.getRange('L2:L1000').setFormula('=IF(AND(J2>0, G2>0), J2*G2, 0)');
+    // sheet.getRange('L2:L1000').setFormula('=IF(AND(J2>0, G2>0), J2*G2, 0)');
     
     // M: Giá trị HT (VND) = Giá trị HT (USD) * Tỷ giá
-    sheet.getRange('M2:M1000').setFormula('=IF(AND(K2>0, G2>0), K2*G2, 0)');
+    // sheet.getRange('M2:M1000').setFormula('=IF(AND(K2>0, G2>0), K2*G2, 0)');
     
     // N: Lãi/Lỗ = Giá trị HT (VND) - Tổng vốn
-    sheet.getRange('N2:N1000').setFormula('=IF(M2>0, M2-I2, 0)');
+    // sheet.getRange('N2:N1000').setFormula('=IF(M2>0, M2-I2, 0)');
     
     // O: % Lãi/Lỗ
-    sheet.getRange('O2:O1000').setFormula('=IF(I2>0, N2/I2, 0)');
+    // sheet.getRange('O2:O1000').setFormula('=IF(I2>0, N2/I2, 0)');
     
     // Conditional Formatting
     sheet.clearConditionalFormatRules();

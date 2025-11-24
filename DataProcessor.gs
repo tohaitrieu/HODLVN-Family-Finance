@@ -701,8 +701,8 @@ function addGold(data) {
     sheet.getRange(emptyRow, 14).setValue(note);
     
     // Set Formulas for J-M
-    // J: Giá HT = GPRICE(Tài sản - Cột C)
-    sheet.getRange(emptyRow, 10).setFormula(`=IF(C${emptyRow}<>"", GPRICE(C${emptyRow}), 0)`);
+    // J: Giá HT = GPRICE(Loại vàng - Cột E)
+    sheet.getRange(emptyRow, 10).setFormula(`=IF(E${emptyRow}<>"", GPRICE(E${emptyRow}), 0)`);
     
     // K: Giá trị HT = Số lượng * Giá HT
     sheet.getRange(emptyRow, 11).setFormula(`=IF(AND(F${emptyRow}>0, J${emptyRow}>0), F${emptyRow}*J${emptyRow}, 0)`);
@@ -935,13 +935,23 @@ function addOtherInvestment(data) {
     const date = new Date(data.date);
     const investmentType = data.investmentType.toString();
     const amount = parseFloat(data.amount);
+    const roi = parseFloat(data.roi) || 0;
+    const term = parseFloat(data.term) || 0;
     const note = data.note || '';
+    
+    // Calculate Expected Return (Simple Interest)
+    // Formula: Amount + (Amount * ROI% * Term/12)
+    const interest = amount * (roi / 100) * (term / 12);
+    const expectedReturn = amount + interest;
     
     const rowData = [
       stt,
       date,
       investmentType,
       amount,
+      roi / 100, // Store as decimal for % format
+      term,
+      expectedReturn,
       note
     ];
     
@@ -949,7 +959,10 @@ function addOtherInvestment(data) {
     
     formatNewRow(sheet, emptyRow, {
       2: 'dd/mm/yyyy',
-      4: '#,##0'
+      4: '#,##0',
+      5: '0.00%',
+      6: '0',
+      7: '#,##0'
     });
     
     BudgetManager.updateInvestmentBudget('Đầu tư khác', amount);

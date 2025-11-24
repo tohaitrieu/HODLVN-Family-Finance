@@ -809,14 +809,14 @@ const DashboardManager = {
       // Nợ (Gốc + Lãi)
       sheet.getRange(r, 4).setFormula(`=IFERROR(SUMIFS('TRẢ NỢ'!D:D, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${m},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0) + IFERROR(SUMIFS('TRẢ NỢ'!E:E, 'TRẢ NỢ'!B:B, ">="&DATE(${currentYear},${m},1), 'TRẢ NỢ'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
       
-      // CK (Profit)
-      sheet.getRange(r, 5).setFormula(`=IFERROR(SUMIFS('CHỨNG KHOÁN'!N:N, 'CHỨNG KHOÁN'!B:B, ">="&DATE(${currentYear},${m},1), 'CHỨNG KHOÁN'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
-      // Vàng (Profit)
-      sheet.getRange(r, 6).setFormula(`=IFERROR(SUMIFS('VÀNG'!L:L, 'VÀNG'!B:B, ">="&DATE(${currentYear},${m},1), 'VÀNG'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
-      // Crypto (Profit)
-      sheet.getRange(r, 7).setFormula(`=IFERROR(SUMIFS('CRYPTO'!N:N, 'CRYPTO'!B:B, ">="&DATE(${currentYear},${m},1), 'CRYPTO'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
-      // ĐT khác (Profit)
-      sheet.getRange(r, 8).setFormula(`=IFERROR(SUMIFS('ĐẦU TƯ KHÁC'!H:H, 'ĐẦU TƯ KHÁC'!B:B, ">="&DATE(${currentYear},${m},1), 'ĐẦU TƯ KHÁC'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      // CK (Tổng vốn - Col H)
+      sheet.getRange(r, 5).setFormula(`=IFERROR(SUMIFS('CHỨNG KHOÁN'!H:H, 'CHỨNG KHOÁN'!B:B, ">="&DATE(${currentYear},${m},1), 'CHỨNG KHOÁN'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      // Vàng (Tổng vốn - Col I)
+      sheet.getRange(r, 6).setFormula(`=IFERROR(SUMIFS('VÀNG'!I:I, 'VÀNG'!B:B, ">="&DATE(${currentYear},${m},1), 'VÀNG'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      // Crypto (Tổng vốn - Col I)
+      sheet.getRange(r, 7).setFormula(`=IFERROR(SUMIFS('CRYPTO'!I:I, 'CRYPTO'!B:B, ">="&DATE(${currentYear},${m},1), 'CRYPTO'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
+      // ĐT khác (Tổng vốn ĐT Khác Col D + Cho vay Col D)
+      sheet.getRange(r, 8).setFormula(`=IFERROR(SUMIFS('ĐẦU TƯ KHÁC'!D:D, 'ĐẦU TƯ KHÁC'!B:B, ">="&DATE(${currentYear},${m},1), 'ĐẦU TƯ KHÁC'!B:B, "<"&DATE(${currentYear},${m}+1,1)), 0) + IFERROR(SUMIFS('CHO VAY'!D:D, 'CHO VAY'!G:G, ">="&DATE(${currentYear},${m},1), 'CHO VAY'!G:G, "<"&DATE(${currentYear},${m}+1,1)), 0)`);
       
       // Dòng tiền = Thu - Chi - Nợ (Gốc+Lãi)
       sheet.getRange(r, 9).setFormula(`=R[0]C[-7] - R[0]C[-6] - R[0]C[-5]`);
