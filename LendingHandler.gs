@@ -22,7 +22,7 @@ function addLending(data) {
     // Parse dữ liệu
     const date = new Date(data.date);
     const borrowerName = data.borrowerName.trim();
-    const lendingType = data.lendingType || 'Khác';
+    const lendingType = data.lendingType || 'OTHER';
     const principal = parseFloat(data.principal);
     const interestRate = parseFloat(data.interestRate);
     const term = parseInt(data.term);
@@ -50,115 +50,30 @@ function addLending(data) {
       };
     }
     
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    
     // ============================================
-    // BƯỚC 1: THÊM VÀO SHEET CHO VAY
+    // DELEGATE TO DataProcessor.addLending() - SINGLE SOURCE OF TRUTH
     // ============================================
-    const lendingSheet = ss.getSheetByName(APP_CONFIG.SHEETS.LENDING);
-    
-    if (!lendingSheet) {
-      return {
-        success: false,
-        message: '❌ Không tìm thấy sheet CHO VAY. Vui lòng khởi tạo sheet trước!'
-      };
-    }
-    
-    // Tính toán
-    const maturityDate = new Date(date);
-    maturityDate.setMonth(maturityDate.getMonth() + term);
-    
-    // Tìm dòng trống
-    const emptyRow = findEmptyRow(lendingSheet, 2);
-    const stt = getNextSTT(lendingSheet, 2);
-    
-    // Phần 1: Cột A-J (STT đến Lãi đã thu) - 10 cột
-    // 'STT', 'Tên người vay', 'Loại hình', 'Số tiền gốc', 'Lãi suất (%/năm)', 
-    // 'Kỳ hạn (tháng)', 'Ngày vay', 'Ngày đến hạn', 'Gốc đã thu', 'Lãi đã thu'
-    const rowDataPart1 = [
-      stt,                    // A: STT
-      borrowerName,           // B: Tên người vay
-      lendingType,            // C: Loại hình (NEW)
-      principal,              // D: Gốc
-      interestRate / 100,     // E: Lãi suất
-      term,                   // F: Kỳ hạn
-      date,                   // G: Ngày vay
-      maturityDate,           // H: Đáo hạn
-      0,                      // I: Gốc đã thu
-      0                       // J: Lãi đã thu
-    ];
-    
-    const transactionId = Utilities.getUuid();
-    
-    // Phần 2: Cột L-M (Trạng thái và Ghi chú) - 2 cột
-    // Col N: TransactionID
-    const rowDataPart2 = [
-      'Đang vay',             // L: Trạng thái
-      note,                   // M: Ghi chú
-      transactionId           // N: TransactionID
-    ];
-    
-    // Insert Phần 1
-    lendingSheet.getRange(emptyRow, 1, 1, rowDataPart1.length).setValues([rowDataPart1]);
-    
-    // Insert Phần 2 (Bỏ qua cột K - Còn lại)
-    lendingSheet.getRange(emptyRow, 12, 1, rowDataPart2.length).setValues([rowDataPart2]);
-    
-    // Format
-    formatNewRow(lendingSheet, emptyRow, {
-      4: '#,##0',           // D: Gốc
-      5: '0.00"%"',         // E: Lãi suất
-      6: '0',               // F: Kỳ hạn (Number)
-      7: 'dd/mm/yyyy',      // G: Ngày vay
-      8: 'dd/mm/yyyy',      // H: Đáo hạn
-      9: '#,##0',           // I: Gốc đã thu
-      10: '#,##0',          // J: Lãi đã thu
-      11: '#,##0'           // K: Còn lại
+    const result = addLending({
+      date: date,
+      borrowerName: borrowerName,
+      lendingType: lendingType,
+      principal: principal,
+      interestRate: interestRate,
+      term: term,
+      note: note
     });
     
-    // ============================================
-    // BƯỚC 2: TỰ ĐỘNG THÊM KHOẢN CHI
-    // ============================================
-    let autoExpenseMessage = '';
-    
-    const expenseSheet = ss.getSheetByName(APP_CONFIG.SHEETS.EXPENSE);
-    
-    if (!expenseSheet) {
-      autoExpenseMessage = '\n⚠️ Không tìm thấy sheet CHI. Không thể tự động thêm khoản chi!';
-    } else {
-      const expenseEmptyRow = findEmptyRow(expenseSheet, 2);
-      const expenseStt = getNextSTT(expenseSheet, 2);
-      
-      // Columns: STT | Ngày | Số tiền | Danh mục | Chi tiết | Ghi chú | TransactionID
-      const expenseRowData = [
-        expenseStt,
-        date,
-        principal,
-        'Cho vay',
-        `Cho vay: ${borrowerName}`,
-        `Loại: ${lendingType}`,
-        transactionId // Link ID
-      ];
-      
-      expenseSheet.getRange(expenseEmptyRow, 1, 1, expenseRowData.length).setValues([expenseRowData]);
-      
-      // Format
-      formatNewRow(expenseSheet, expenseEmptyRow, {
-        2: 'dd/mm/yyyy',
-        3: '#,##0'
-      });
-      
-      autoExpenseMessage = `\n✅ Đã TỰ ĐỘNG thêm khoản chi "Cho vay" vào sheet CHI`;
+    if (!result.success) {
+      return result;
     }
     
     // ============================================
-    // BƯỚC 3: TRẢ VỀ KẾT QUẢ
+    // Enhanced result message for UI
     // ============================================
     const resultMessage = `✅ Đã thêm khoản cho vay: ${borrowerName}\n` +
-               `💰 Số tiền: ${principal.toLocaleString('vi-VN')}\n` +
-               `📅 Kỳ hạn: ${term} tháng\n` +
-               `📊 Trạng thái: Đang vay` +
-               autoExpenseMessage;
+                `💰 Số tiền: ${principal.toLocaleString('vi-VN')}\n` +
+                `📅 Kỳ hạn: ${term} tháng\n` +
+                `📊 Trạng thái: Đang vay\n✅ Đã tạo khoản chi: Cho vay`;
     
     return {
       success: true,

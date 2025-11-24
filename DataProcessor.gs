@@ -291,7 +291,10 @@ function addDebt(data) {
     // STEP 2: For installment loans, ALSO record EXPENSE (spending cash on purchase)
     const isInstallmentLoan = ['EQUAL_PRINCIPAL', 'EQUAL_PRINCIPAL_UPFRONT_FEE', 'INTEREST_FREE'].includes(data.debtType);
     
+    Logger.log(`Debt Type: ${data.debtType}, isInstallmentLoan: ${isInstallmentLoan}`);
+    
     if (isInstallmentLoan) {
+      Logger.log(`Creating EXPENSE for installment loan: ${data.debtName}`);
       addExpense({
         date: data.loanDate,
         amount: principal,
@@ -300,6 +303,8 @@ function addDebt(data) {
         note: `Mua trả góp: ${data.debtName}`,
         transactionId: Utilities.getUuid()
       });
+    } else {
+      Logger.log(`NOT creating EXPENSE for bank loan: ${data.debtName}`);
     }
     
     // Trigger dashboard refresh

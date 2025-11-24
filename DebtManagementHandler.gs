@@ -26,7 +26,7 @@ function addDebtManagement(data) {
     // Parse dữ liệu
     const date = new Date(data.date);
     const debtName = data.debtName.trim();
-    const debtType = data.debtType || 'Khác';
+    const debtType = data.debtType || 'OTHER';
     const principal = parseFloat(data.principal);
     const interestRate = parseFloat(data.interestRate);
     const term = parseInt(data.term);
@@ -54,147 +54,35 @@ function addDebtManagement(data) {
       };
     }
     
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    
     // ============================================
-    // BƯỚC 1: THÊM VÀO SHEET QUẢN LÝ NỢ
+    // DELEGATE TO addDebt() - SINGLE SOURCE OF TRUTH
     // ============================================
-    const debtSheet = ss.getSheetByName('QUẢN LÝ NỢ');
-    
-    if (!debtSheet) {
-      return {
-        success: false,
-        message: '❌ Không tìm thấy sheet QUẢN LÝ NỢ. Vui lòng khởi tạo sheet trước!'
-      };
-    }
-    
-    // Tính toán
-    const maturityDate = new Date(date);
-    maturityDate.setMonth(maturityDate.getMonth() + term);
-    
-    // ✅ FIX: Sử dụng findEmptyRow() thay vì getLastRow()
-    // Cột 2 (B) = Tên khoản nợ - cột dữ liệu thực
-    const emptyRow = findEmptyRow(debtSheet, 2);
-    const stt = getNextSTT(debtSheet, 2);
-    
-    Logger.log('QUẢN LÝ NỢ - Dòng trống tìm được: ' + emptyRow);
-    Logger.log('QUẢN LÝ NỢ - STT: ' + stt);
-    
-    // ============================================
-    // CRITICAL FIX v3.3.2: Chia làm 2 phần để KHÔNG ghi đè công thức cột K (Mới)
-    // ============================================
-    
-    // Phần 1: Cột A-J (STT đến Đã trả lãi) - 10 cột
-    // STT, Name, Type, Principal, Rate, Term, Date, Maturity, PaidPrin, PaidInt
-    const rowDataPart1 = [
-      stt,                    // A: STT
-      debtName,               // B: Tên khoản nợ
-      debtType,               // C: Loại hình (NEW)
-      principal,              // D: Gốc
-      interestRate / 100,     // E: Lãi suất (chuyển % sang decimal)
-      term,                   // F: Kỳ hạn
-      date,                   // G: Ngày vay
-      maturityDate,           // H: Đáo hạn
-      0,                      // I: Đã trả gốc
-      0                       // J: Đã trả lãi
-    ];
-    const transactionId = IDGenerator.generate(debtName, date);
-    
-    // Phần 2: Cột L-M (Trạng thái và Ghi chú) - 2 cột
-    // Col N: TransactionID
-    const rowDataPart2 = [
-      'Chưa trả',             // L: Trạng thái
-      note,                   // M: Ghi chú
-      transactionId           // N: TransactionID
-    ];
-    
-    // ✅ Insert Phần 1: Cột A-J (10 cột)
-    debtSheet.getRange(emptyRow, 1, 1, rowDataPart1.length).setValues([rowDataPart1]);
-    
-    // ✅ BỎ QUA cột K (cột 11) - GIỮ NGUYÊN CÔNG THỨC =D-I
-    
-    // ✅ Insert Phần 2: Cột L-N (3 cột, bắt đầu từ cột 12)
-    debtSheet.getRange(emptyRow, 12, 1, rowDataPart2.length).setValues([rowDataPart2]);
-    
-    Logger.log('✅ ĐÃ INSERT XONG! Công thức cột K được giữ nguyên.');
-    
-    // Format
-    formatNewRow(debtSheet, emptyRow, {
-      4: '#,##0',           // D: Gốc
-      5: '0.00"%"',         // E: Lãi suất
-      6: '0',               // F: Kỳ hạn (Number)
-      7: 'dd/mm/yyyy',      // G: Ngày vay
-      8: 'dd/mm/yyyy',      // H: Đáo hạn
-      9: '#,##0',           // I: Đã trả gốc
-      10: '#,##0',          // J: Đã trả lãi
-      11: '#,##0'           // K: Còn nợ (công thức đã có sẵn)
+    const result = addDebt({
+      loanDate: date,
+      debtName: debtName,
+      debtType: debtType,
+      principal: principal,
+      interestRate: interestRate,
+      term: term,
+      note: note
     });
     
-    // ============================================
-    // BƯỚC 2: TỰ ĐỘNG THÊM KHOẢN THU & CHI
-    // ============================================
-    
-    // 1. Auto Income (Tiền vào)
-    let incomeSource = 'Khác';
-    const typeLower = (debtType || '').toLowerCase();
-    
-    if (typeLower.includes('ngân hàng') || typeLower.includes('bank') || typeLower.includes('margin')) {
-      incomeSource = 'Vay ngân hàng';
-    } else if (typeLower.includes('cá nhân') || typeLower.includes('người thân')) {
-      incomeSource = 'Vay cá nhân';
-    }
-
-    const incomeResult = addIncome({
-      date: date,
-      amount: principal,
-      source: incomeSource,
-      note: `Vay: ${debtName}. ${note}`,
-      transactionId: transactionId
-    });
-    
-    let autoIncomeMessage = '';
-    if (incomeResult.success) {
-      autoIncomeMessage = `\n✅ Đã tạo khoản thu: ${incomeSource}`;
-    } else {
-      autoIncomeMessage = `\n⚠️ Lỗi tạo khoản thu: ${incomeResult.message}`;
+    if (!result.success) {
+      return result;
     }
     
-    // 2. Auto Expense (Tiền ra - Mua sắm/Tiêu dùng)
-    let expenseCategory = 'Mua sắm';
-    const nameLower = debtName.toLowerCase();
-    if (nameLower.includes('nhà')) expenseCategory = 'Nhà ở';
-    if (nameLower.includes('học')) expenseCategory = 'Giáo dục';
-    if (nameLower.includes('chữa bệnh') || nameLower.includes('thuốc')) expenseCategory = 'Y tế';
-    
-    const expenseResult = addExpense({
-      date: date,
-      amount: principal,
-      category: expenseCategory,
-      subcategory: `Mua sắm từ khoản vay: ${debtName}`,
-      note: `Chi tiêu từ khoản vay ${debtName}`,
-      transactionId: transactionId
-    });
-    
-    let autoExpenseMessage = '';
-    if (expenseResult.success) {
-      autoExpenseMessage = `\n➖ Đã tạo khoản chi: ${expenseCategory}`;
-    } else {
-      autoExpenseMessage = `\n⚠️ Lỗi tạo khoản chi: ${expenseResult.message}`;
-    }
-
     // ============================================
-    // BƯỚC 3: TRẢ VỀ KẾT QUẢ
+    // Enhanced result message for UI
     // ============================================
+    const isInstallmentLoan = ['EQUAL_PRINCIPAL', 'EQUAL_PRINCIPAL_UPFRONT_FEE', 'INTEREST_FREE'].includes(debtType);
+    
     const resultMessage = `✅ Đã thêm khoản nợ: ${debtName}\n` +
-               `💰 Số tiền: ${principal.toLocaleString('vi-VN')}\n` +
-               `📅 Kỳ hạn: ${term} tháng\n` +
-               `💳 Loại: ${debtType}\n` +
-               `📊 Trạng thái: Chưa trả` +
-               autoIncomeMessage + 
-               autoExpenseMessage;
-    
-    Logger.log('=== KẾT QUẢ ===');
-    Logger.log(resultMessage);
+                `💰 Số tiền: ${principal.toLocaleString('vi-VN')}\n` +
+                `📅 Kỳ hạn: ${term} tháng\n` +
+                `💳 Loại: ${debtType}\n` +
+                `📊 Trạng thái: Chưa trả\n` +
+                `✅ Đã tạo khoản thu: Vay ngân hàng` +
+                (isInstallmentLoan ? `\n➖ Đã tạo khoản chi: Mua sắm (Trả góp)` : '');
     
     return {
       success: true,

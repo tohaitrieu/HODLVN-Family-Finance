@@ -8,6 +8,28 @@
 
 const CHANGELOG_HISTORY = [
   {
+    version: '3.5.8',
+    date: '2025-11-24',
+    title: 'Dashboard Optimization & Code Cleanup',
+    changes: [
+      '✅ OPTIMIZATION: Replaced 200+ lines of formulas with 5 custom functions (hffsIncome, hffsExpense, hffsDebt, hffsAssets, hffsYearly)',
+      '✅ OPTIMIZATION: Improved hffsYearly performance by 12x (prevents timeout)',
+      '✅ FIX: Fixed cash calculation (netCash = Income - Expense)',
+      '✅ FIX: Fixed budget reading to use correct column (C instead of B)',
+      '✅ FIX: Added budget multiplier (x1/x3/x12 based on year/quarter/month filter)',
+      '✅ NEW: Auto-refresh system - Dashboard updates automatically after data submission',
+      '✅ FIX: Corrected debt transaction logic (ALL debts→Income; Installment→+Expense)',
+      '✅ REFACTOR: Eliminated duplicate code in handlers (-51% in DebtHandler, -49% in LendingHandler)',
+      '✅ REFACTOR: Removed duplicate utility functions from Main.gs',
+      '✅ ARCHITECTURE: Established single source of truth (Forms→Handlers→DataProcessor)'
+    ],
+    actions: [
+      'Chạy "Cập nhật Dashboard" để áp dụng các cải tiến',
+      'Kiểm tra Dashboard với filter khác nhau (Năm/Quý/Tháng) để thấy budget scaling',
+      'Test nhập dữ liệu qua form để verify auto-refresh hoạt động'
+    ]
+  },
+  {
     version: '3.5.5',
     date: '2025-11-23',
     title: 'Tinh chỉnh Logic Lịch sự kiện',

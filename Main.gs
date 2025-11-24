@@ -11,7 +11,7 @@
  * - BudgetManager.gs: Quản lý ngân sách
  * - DashboardManager.gs: Quản lý dashboard & thống kê
  * 
- * VERSION: 3.5.4 - Dashboard Quick Actions
+ * VERSION: 3.5.8 - Dashboard Optimization & Code Cleanup
  * CHANGELOG v3.5.4:
  * ✅ NEW: Quick Action Checkboxes on Dashboard
  * ✅ NEW: Trigger integration for fast data entry
@@ -53,7 +53,7 @@
 // ==================== CẤU HÌNH TOÀN CỤC ====================
 
 const APP_CONFIG = {
-  VERSION: '3.5.7',
+  VERSION: '3.5.8',
   APP_NAME: '💰 Quản lý Tài chính',
   
   // Danh sách các sheet
@@ -282,38 +282,36 @@ function onOpen() {
 
   const ui = SpreadsheetApp.getUi();
   
-  ui.createMenu(APP_CONFIG.APP_NAME)
-    // === NHÓM 1: NHẬP LIỆU ===
-    .addSubMenu(ui.createMenu('📝 Nhập liệu')
-      .addItem('📥 Nhập Thu nhập', 'showIncomeForm')
-      .addItem('📤 Nhập Chi tiêu', 'showExpenseForm')
-      .addItem('💳 Thêm Khoản Nợ', 'showDebtManagementForm')
-      .addItem('💳 Trả nợ', 'showDebtPaymentForm')
-      .addItem('🤝 Cho vay', 'showLendingForm')
-      .addItem('💰 Thu nợ & Lãi', 'showLendingPaymentForm')
-      .addSeparator()
+  // === MENU 1: THU - CHI ===
+  ui.createMenu('📊 Thu - Chi')
+    .addItem('📥 Nhập thu', 'showIncomeForm')
+    .addItem('📤 Nhập chi', 'showExpenseForm')
+    .addToUi();
+    
+  // === MENU 2: NỢ ===
+  ui.createMenu('💳 Nợ')
+    .addItem('💳 Nhập nợ', 'showDebtManagementForm')
+    .addItem('💳 Trả nợ', 'showDebtPaymentForm')
+    .addToUi();
+    
+  // === MENU 3: ĐẦU TƯ ===
+  ui.createMenu('💼 Đầu tư')
+    .addSubMenu(ui.createMenu('➕ Nhập đầu tư')
       .addItem('📈 Giao dịch Chứng khoán', 'showStockForm')
       .addItem('📊 Nhập Cổ tức', 'showDividendForm')
       .addItem('🪙 Giao dịch Vàng', 'showGoldForm')
       .addItem('₿ Giao dịch Crypto', 'showCryptoForm')
-      .addItem('💼 Đầu tư khác', 'showOtherInvestmentForm'))
-    
+      .addItem('💼 Giao dịch Đầu tư khác', 'showOtherInvestmentForm'))
     .addSeparator()
-
-    // === NHÓM 2: BUDGET ===
-    .addSubMenu(ui.createMenu('💵 Ngân sách')
-      .addItem('📊 Đặt Ngân sách tháng', 'showSetBudgetForm')
-      .addSeparator()
-      .addItem('⚠️ Kiểm tra Budget', 'checkBudgetWarnings')
-      .addItem('📊 Báo cáo Chi tiêu', 'showExpenseReport')
-      .addItem('💰 Báo cáo Đầu tư', 'showInvestmentReport'))
+    .addItem('🤝 Cho vay', 'showLendingForm')
+    .addItem('💰 Thu hồi nợ', 'showLendingPaymentForm')
+    .addToUi();
     
-    .addSeparator()
-    
-    // === NHÓM 3: THỐNG KÊ ===
-    .addSubMenu(ui.createMenu('📊 Thống kê & Dashboard')
+  // === MENU 4: HỆ THỐNG ===
+  ui.createMenu('⚙️ Hệ thống')
+    // Dashboard & Thống kê
+    .addSubMenu(ui.createMenu('📊 Dashboard & Thống kê')
       .addItem('🔄 Cập nhật Dashboard', 'refreshDashboard')
-      .addItem('♻️ Cập nhật cấu trúc dữ liệu', 'runMigrations')
       .addSeparator()
       .addItem('📅 Lịch trả nợ dự kiến', 'showDebtScheduleReport')
       .addSeparator()
@@ -324,7 +322,17 @@ function onOpen() {
     
     .addSeparator()
     
-    // === NHÓM 4: TIỆN ÍCH ===
+    // Ngân sách
+    .addSubMenu(ui.createMenu('💵 Ngân sách')
+      .addItem('📊 Đặt Ngân sách tháng', 'showSetBudgetForm')
+      .addSeparator()
+      .addItem('⚠️ Kiểm tra Budget', 'checkBudgetWarnings')
+      .addItem('📊 Báo cáo Chi tiêu', 'showExpenseReport')
+      .addItem('💰 Báo cáo Đầu tư', 'showInvestmentReport'))
+    
+    .addSeparator()
+    
+    // Tiện ích
     .addSubMenu(ui.createMenu('🛠️ Tiện ích')
       .addItem('✨ Chuẩn hóa dữ liệu', 'normalizeAllData')
       .addItem('🧹 Dọn dẹp dữ liệu mồ côi', 'cleanOrphans')
@@ -337,8 +345,8 @@ function onOpen() {
       .addItem('🗑️ Xóa dữ liệu test', 'clearTestData'))
     
     .addSeparator()
-
-    // === NHÓM 5: KHỞI TẠO SHEET ===
+    
+    // Khởi tạo Sheet
     .addSubMenu(ui.createMenu('⚙️ Khởi tạo Sheet')
       .addItem('🔄 Cập nhật toàn bộ các Sheet', 'updateAllSheets')
       .addSeparator()
@@ -357,13 +365,11 @@ function onOpen() {
       .addItem('💼 Khởi tạo Sheet ĐẦU TƯ KHÁC', 'initializeOtherInvestmentSheet')
       .addSeparator()
       .addItem('💰 Khởi tạo Sheet BUDGET', 'initializeBudgetSheet')
-      .addItem('📊 Khởi tạo Sheet TỔNG QUAN', 'initializeDashboardSheet')
-      .addSeparator()
-      .addItem('Sửa lỗi lệch cột (Nợ/Cho vay)', 'fixColumnAlignment'))
+      .addItem('📊 Khởi tạo Sheet TỔNG QUAN', 'initializeDashboardSheet'))
     
     .addSeparator()
     
-    // === NHÓM 6: TRỢ GIÚP ===
+    // Trợ giúp
     .addItem('ℹ️ Hướng dẫn sử dụng', 'showInstructions')
     .addItem('📜 Lịch sử cập nhật', 'updateChangelog')
     .addItem('📖 Giới thiệu hệ thống', 'showAbout')
@@ -926,26 +932,14 @@ function initializeDashboardSheet(skipConfirm) {
 // ==================== HƯỚNG DẪN & GIỚI THIỆU ====================
 
 /**
- * Hiển thị hướng dẫn sử dụng
+ * Hiển thị hướng dẫn sử dụng - Mở link bài học trên HODL.VN
  */
 function showInstructions() {
-  const ui = SpreadsheetApp.getUi();
-  ui.alert(
-    'Hướng dẫn sử dụng',
-    '📖 HƯỚNG DẪN NHANH:\n\n' +
-    '1️⃣ KHỞI TẠO:\n' +
-    '   Menu > Khởi tạo Sheet > Khởi tạo TẤT CẢ Sheet\n' +
-    '   → Setup Wizard sẽ hướng dẫn bạn từng bước!\n\n' +
-    '2️⃣ NHẬP LIỆU:\n' +
-    '   Menu > Nhập liệu > Chọn loại giao dịch\n\n' +
-    '3️⃣ XEM THỐNG KÊ:\n' +
-    '   Vào Sheet TỔNG QUAN\n' +
-    '   Chọn Chu kỳ: Tất cả / Năm / Quý / Tháng\n\n' +
-    '4️⃣ KIỂM TRA BUDGET:\n' +
-    '   Menu > Ngân sách > Kiểm tra Budget\n\n' +
-    '📚 Chi tiết xem file README.md',
-    ui.ButtonSet.OK
+  const url = 'https://hodl.vn/lesson/bai-04-muoi-phut-thiet-lap-hffs-google-sheet/';
+  const html = HtmlService.createHtmlOutput(
+    '<script>window.open("' + url + '"); google.script.host.close();</script>'
   );
+  SpreadsheetApp.getUi().showModalDialog(html, 'Đang mở hướng dẫn...');
 }
 
 /**
@@ -1102,45 +1096,18 @@ function showError(title, message) {
   );
 }
 
-/**
- * Lấy spreadsheet hiện tại
- */
-function getSpreadsheet() {
-  return SpreadsheetApp.getActiveSpreadsheet();
-}
-
-/**
- * Lấy sheet theo tên
- */
-function getSheet(sheetName) {
-  return getSpreadsheet().getSheetByName(sheetName);
-}
-
-/**
- * Force recalculate toàn bộ sheet
- */
-function forceRecalculate() {
-  SpreadsheetApp.flush();
-  getSpreadsheet().getSheets().forEach(sheet => {
-    sheet.getDataRange().getValues();
-  });
-}
+// ============================================
+// UTILITY FUNCTIONS MOVED TO Utils.gs
+// ============================================
+// getSpreadsheet() - Use Utils.getSpreadsheet()
+// getSheet() - Use Utils.getSheet()
+// forceRecalculate() - Use Utils.forceRecalculate()
+// formatCurrency() - Use Utils.formatCurrency()
+// getCurrentDate() - Use new Date() directly
 
 /**
  * Lấy ngày hiện tại
  */
 function getCurrentDate() {
   return new Date();
-}
-
-/**
- * Format số tiền
- * @param {number} amount
- * @return {string}
- */
-function formatCurrency(amount) {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND'
-  }).format(amount);
 }

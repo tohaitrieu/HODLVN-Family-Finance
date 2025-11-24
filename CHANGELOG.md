@@ -2,6 +2,45 @@
 
 Mọi thay đổi đáng chú ý của dự án sẽ được ghi lại trong file này.
 
+## [3.5.8] - 2025-11-24
+### Dashboard Optimization & Code Cleanup
+- ✅ **OPTIMIZATION**: Custom Dashboard Functions Integration
+  - Replaced 200+ lines of SUMIFS formulas with 5 custom functions (`hffsIncome`, `hffsExpense`, `hffsDebt`, `hffsAssets`, `hffsYearly`)
+  - Added dynamic column headers to all dashboard tables
+  - Implemented dynamic row sizing to eliminate empty rows
+  - Optimized `hffsYearly` performance (12x faster, prevents timeout)
+  
+- ✅ **FIX**: Dashboard Data Accuracy
+  - Fixed cash calculation in Assets table (`netCash = Income - Expense`)
+  - Fixed budget reading to use correct column (Column C instead of B)
+  - Added budget multiplier based on filter period (x1 for month, x3 for quarter, x12 for year)
+  - Set default filters to current year/quarter/month
+  - Added TỔNG and TRUNG BÌNH rows to 12-month statistics table
+  
+- ✅ **NEW**: Auto-Refresh System
+  - Created `DashboardRefresh.gs` with automatic recalculation after data submission
+  - Integrated auto-refresh into 9 major data functions
+  - Dashboard now updates automatically without manual refresh
+  
+- ✅ **FIX**: Debt Transaction Logic
+  - ALL debt types now record Income (receiving loan money)
+  - Installment loans additionally record Expense (immediate purchase)
+  - Corrected cash flow representation
+  - Updated SyncManager to handle both THU and CHI deletion for debt records
+  
+- ✅ **REFACTOR**: Code Quality Improvements
+  - Eliminated duplicate logic in `DebtManagementHandler` (-51% code, 180→89 lines)
+  - Eliminated duplicate logic in `LendingHandler` (-49% code, 175→89 lines)
+  - Removed duplicate utility functions from `Main.gs` (getSpreadsheet, getSheet, formatCurrency, forceRecalculate)
+  - Established single source of truth pattern (Forms → Handlers → DataProcessor)
+  - Reduced duplicate function rate from 4.7% to 0%
+
+- ✅ **ARCHITECTURE**: Clean Separation of Concerns
+  - Forms handle input collection
+  - Handlers provide validation and UX
+  - DataProcessor is single source of truth for all data mutations
+  - Utils.gs consolidates all utility functions
+
 ## [3.5.7] - 2025-11-23
 ### Tự động ghi nhận Chi phí Đầu tư
 - ✅ **NEW**: Thêm danh mục "Đầu tư" vào nhóm Chi phí.
