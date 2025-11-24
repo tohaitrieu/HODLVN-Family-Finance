@@ -54,14 +54,13 @@ const DashboardManager = {
       // 1. Setup Header & Dropdowns
       this._setupHeader(sheet);
       
-      // 2. Setup 2x2 Grid Tables
-      // Return the last row used to position the Monthly Table
-      const lastRow = this._setupGridTables(sheet, this.CONFIG.LAYOUT.START_ROW);
+      // 2. Setup 4 main tables starting from H2
+      const lastTableRow = this._setupGridTables(sheet, this.CONFIG.LAYOUT.START_ROW);
       
-      // 3. Setup Monthly Table (Table 2) - Fixed at row 36
-      this._setupTable2(sheet, 36);
+      // 3. Setup Monthly Table below the 4 main tables
+      this._setupTable2(sheet, lastTableRow + 2);
       
-      // 4. Setup Chart - Fixed at K36
+      // 4. Setup Chart at C2 (compact chart from summary data)
       this._createChart(sheet);
       
       // 5. Setup Action Buttons (Checkboxes) - DISABLED
@@ -107,7 +106,6 @@ const DashboardManager = {
     sheet.getRange('A3').setValue('Quý').setFontWeight('bold');
     sheet.getRange('A4').setValue('Tháng').setFontWeight('bold');
     
-    
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1; // 1-12
     const currentQuarter = Math.ceil(currentMonth / 3); // 1-4
@@ -135,11 +133,118 @@ const DashboardManager = {
     sheet.getRange('B3').setValue(`Quý ${currentQuarter}`); // Current quarter
     sheet.getRange('B4').setValue(`Tháng ${currentMonth}`); // Current month
     
-    // Chart Data Headers (E2:H2)
-    sheet.getRange('F2').setValue('Thu nhập').setFontWeight('bold').setHorizontalAlignment('center');
-    sheet.getRange('G2').setValue('Chi phí').setFontWeight('bold').setHorizontalAlignment('center');
-    sheet.getRange('H2').setValue('Nợ').setFontWeight('bold').setHorizontalAlignment('center');
-    sheet.getRange('I2').setValue('Tài sản').setFontWeight('bold').setHorizontalAlignment('center');
+    // NEW: Setup Summary Section A5:B10
+    this._setupSummarySection(sheet);
+  },
+
+  _setupSummarySection(sheet) {
+    // Summary Section Headers and Data A5:B10
+    
+    // Headers
+    sheet.getRange('A5').setValue('Thu nhập').setFontWeight('bold').setHorizontalAlignment('left');
+    sheet.getRange('A6').setValue('Chi phí').setFontWeight('bold').setHorizontalAlignment('left');
+    sheet.getRange('A7').setValue('Tiền mặt').setFontWeight('bold').setHorizontalAlignment('left');
+    sheet.getRange('A8').setValue('Nợ').setFontWeight('bold').setHorizontalAlignment('left');
+    sheet.getRange('A9').setValue('Tài sản').setFontWeight('bold').setHorizontalAlignment('left');
+    sheet.getRange('A10').setValue('VCSH').setFontWeight('bold').setHorizontalAlignment('left');
+    
+    // Data formulas - Thu nhập tháng hiện tại
+    sheet.getRange('B5').setFormula(
+      `=IFERROR(SUMIFS('${APP_CONFIG.SHEETS.INCOME}'!C:C,'${APP_CONFIG.SHEETS.INCOME}'!B:B,">="&DATE(YEAR(TODAY()),MONTH(TODAY()),1),'${APP_CONFIG.SHEETS.INCOME}'!B:B,"<="&EOMONTH(TODAY(),0)),0)`
+    );
+    
+    // Chi phí tháng hiện tại
+    sheet.getRange('B6').setFormula(
+      `=IFERROR(SUMIFS('${APP_CONFIG.SHEETS.EXPENSE}'!C:C,'${APP_CONFIG.SHEETS.EXPENSE}'!B:B,">="&DATE(YEAR(TODAY()),MONTH(TODAY()),1),'${APP_CONFIG.SHEETS.EXPENSE}'!B:B,"<="&EOMONTH(TODAY(),0)),0)`
+    );
+    
+    // Tiền mặt = Thu nhập - Chi phí
+    sheet.getRange('B7').setFormula('=B5-B6');
+    
+    // Tổng nợ còn lại
+    sheet.getRange('B8').setFormula(
+      `=IFERROR(SUMIF('${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!L:L,"Chưa trả",'${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!K:K)+SUMIF('${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!L:L,"Đang trả",'${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!K:K),0)`
+    );
+    
+    // Tổng tài sản đầu tư
+    sheet.getRange('B9').setFormula(
+      `=IFERROR((SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Mua",'${APP_CONFIG.SHEETS.STOCK}'!M:M)-SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Bán",'${APP_CONFIG.SHEETS.STOCK}'!M:M))+SUMIF('${APP_CONFIG.SHEETS.GOLD}'!D:D,"Mua",'${APP_CONFIG.SHEETS.GOLD}'!K:K)+SUMIF('${APP_CONFIG.SHEETS.CRYPTO}'!C:C,"Mua",'${APP_CONFIG.SHEETS.CRYPTO}'!M:M)+SUM('${APP_CONFIG.SHEETS.OTHER_INVESTMENT}'!D:D),0)`
+    );
+    
+    // VCSH (Giá trị chứng khoán)
+    sheet.getRange('B10').setFormula(
+      `=IFERROR(SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Mua",'${APP_CONFIG.SHEETS.STOCK}'!M:M)-SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Bán",'${APP_CONFIG.SHEETS.STOCK}'!M:M),0)`
+    );
+
+    // Format data cells
+    sheet.getRange('B5:B10').setNumberFormat('#,##0 "₫"');
+    
+    // Color coding for better visualization
+    sheet.getRange('A5:B5').setBackground('#E8F5E8'); // Income - light green
+    sheet.getRange('A6:B6').setBackground('#FFEBEE'); // Expense - light red
+    sheet.getRange('A7:B7').setBackground('#E3F2FD'); // Cash - light blue
+    sheet.getRange('A8:B8').setBackground('#FFF3E0'); // Debt - light orange
+    sheet.getRange('A9:B9').setBackground('#F3E5F5'); // Assets - light purple
+    sheet.getRange('A10:B10').setBackground('#F9FBE7'); // Securities - light lime
+    
+    // Borders for summary section
+    sheet.getRange('A5:B10').setBorder(true, true, true, true, true, true, '#E0E0E0', SpreadsheetApp.BorderStyle.SOLID);
+    
+    // Add Event Tables after VCSH (starting from A12)
+    this._setupEventTables(sheet, 12);
+  },
+
+  _setupEventTables(sheet, startRow) {
+    // Event Tables positioned below summary section
+    let currentRow = startRow;
+    
+    // 1. Payables Events Table (A12)
+    sheet.getRange(currentRow, 1, 1, 6).merge()
+      .setValue('📅 SỰ KIỆN NỢ PHẢI TRẢ')
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center')
+      .setBackground(this.CONFIG.COLORS.LIABILITIES)
+      .setFontColor('#FFFFFF');
+      
+    currentRow++;
+    
+    // Payables table headers
+    const payableHeaders = ['Ngày', 'Hành động', 'Khoản nợ', 'Số dư', 'Gốc', 'Lãi'];
+    sheet.getRange(currentRow, 1, 1, 6).setValues([payableHeaders])
+      .setFontWeight('bold')
+      .setBackground('#EEEEEE');
+    currentRow++;
+    
+    // Payables data using custom function
+    sheet.getRange(currentRow, 1).setFormula('=AccPayable(INDIRECT("\'QUẢN LÝ NỢ\'!A2:L"), $Z$1)');
+    
+    currentRow += 11; // Skip 10 rows for payables data + 1 padding
+    
+    // 2. Receivables Events Table 
+    sheet.getRange(currentRow, 1, 1, 6).merge()
+      .setValue('📅 SỰ KIỆN THU NỢ')
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center')
+      .setBackground(this.CONFIG.COLORS.CALENDAR)
+      .setFontColor('#FFFFFF');
+      
+    currentRow++;
+    
+    // Receivables table headers
+    const receivableHeaders = ['Ngày', 'Hành động', 'Khoản cho vay', 'Số dư', 'Gốc', 'Lãi'];
+    sheet.getRange(currentRow, 1, 1, 6).setValues([receivableHeaders])
+      .setFontWeight('bold')
+      .setBackground('#EEEEEE');
+    currentRow++;
+    
+    // Receivables data using custom function
+    sheet.getRange(currentRow, 1).setFormula('=AccReceivable(INDIRECT("\'CHO VAY\'!A2:L"), $Z$2)');
+    
+    // Format event tables
+    sheet.getRange(startRow, 1, currentRow - startRow + 11, 6)
+      .setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
+    
+    return currentRow + 11; // Return next available row
   },
 
   _setupActionButtons(sheet) {
@@ -176,21 +281,20 @@ const DashboardManager = {
   
 
   _setupGridTables(sheet, startRow) {
-    const cfg = this.CONFIG.LAYOUT;
-    let currentRow = startRow;
-    
-    // Fetch events once - REMOVED (Using Custom Functions)
-    // const events = this._getCalendarEvents();
-    
-    // === ROW 1: INCOME (Left) & EXPENSE (Middle) & PAYABLES (Right) ===
+    // NEW LAYOUT: Start tables from H2 (column 8)
+    const TABLE_START_COL = 8; // Column H
+    const TABLE_START_ROW = 2; // Row 2
+    let currentRow = TABLE_START_ROW;
     
     // Calculate expected row counts from config
     const incomeRowCount = APP_CONFIG.CATEGORIES.INCOME.length + 1; // +1 for total
     const expenseRowCount = APP_CONFIG.CATEGORIES.EXPENSE.filter(c => c !== 'Trả nợ' && c !== 'Cho vay').length + 2; // +1 debt payment, +1 total
     
-    // 1. Income Table - Using custom function with filter dependencies
+    // === ROW 1: INCOME (H2) & EXPENSE (L2) ===
+    
+    // 1. Income Table - Starting from H2
     const incomeHeight = this._renderCustomFunctionTable(
-      sheet, currentRow, cfg.LEFT_COL, 
+      sheet, currentRow, TABLE_START_COL, 
       '1. Báo cáo Thu nhập', 
       this.CONFIG.COLORS.INCOME, 
       '=hffsIncome($B$2,$B$3,$B$4,$Z$1)', 
@@ -200,9 +304,9 @@ const DashboardManager = {
       ['Danh mục', 'Giá trị', 'Tỷ lệ'] // headers
     );
     
-    // 2. Expense Table - Using custom function with filter dependencies
+    // 2. Expense Table - Starting from L2 (4 columns to the right)
     const expenseHeight = this._renderCustomFunctionTable(
-      sheet, currentRow, cfg.RIGHT_COL,
+      sheet, currentRow, TABLE_START_COL + 4,
       '2. Báo cáo Chi phí',
       this.CONFIG.COLORS.EXPENSE,
       '=hffsExpense($B$2,$B$3,$B$4,$Z$1)',
@@ -211,24 +315,21 @@ const DashboardManager = {
       expenseRowCount, // exact row count
       ['Danh mục', 'Đã chi', 'Ngân sách', 'Còn lại', 'Trạng thái'] // headers
     );
-    
-    // 3. Payables Table (Right - Col K)
-    const payablesHeight = this._renderPayables(sheet, currentRow, cfg.CALENDAR_COL);
 
-    // Calculate max height for Row 1
-    const row1Height = Math.max(incomeHeight, expenseHeight, payablesHeight);
+    // Calculate next row position
+    const row1Height = Math.max(incomeHeight, expenseHeight);
     currentRow += row1Height + 2; // +2 padding
     
-    // === ROW 2: LIABILITIES (Left) & ASSETS (Middle) & RECEIVABLES (Right) ===
+    // === ROW 2: LIABILITIES & ASSETS ===
     
     // Get active debt count
     const debtItems = this._getDebtItems();
     const debtRowCount = debtItems.length + 1; // +1 for total
     const assetRowCount = 7; // 6 asset types + total
     
-    // 4. Liabilities Table - Using custom function
+    // 3. Liabilities Table - Starting from H position of row 2
     const liabilityHeight = this._renderCustomFunctionTable(
-      sheet, currentRow, cfg.LEFT_COL,
+      sheet, currentRow, TABLE_START_COL,
       '3. Báo cáo Nợ phải trả',
       this.CONFIG.COLORS.LIABILITIES,
       '=hffsDebt($Z$1)',
@@ -238,9 +339,9 @@ const DashboardManager = {
       ['Khoản nợ', 'Còn nợ', 'Tỷ lệ'] // headers
     );
     
-    // 5. Assets Table - Using custom function
+    // 4. Assets Table - Starting from L position of row 2
     const assetHeight = this._renderCustomFunctionTable(
-      sheet, currentRow, cfg.RIGHT_COL,
+      sheet, currentRow, TABLE_START_COL + 4,
       '4. Báo cáo Tài sản',
       this.CONFIG.COLORS.ASSETS,
       '=hffsAssets($Z$1)',
@@ -249,18 +350,12 @@ const DashboardManager = {
       assetRowCount, // exact row count
       ['Danh mục', 'Tổng vốn', 'Lãi/Lỗ', 'Giá trị HT', 'Tỷ lệ'] // headers
     );
-    
-    // 6. Receivables Table (Right - Col K, Row 2)
-    const receivablesHeight = this._renderReceivables(sheet, currentRow, cfg.CALENDAR_COL);
 
+    // Calculate final row position for subsequent elements
+    const row2Height = Math.max(liabilityHeight, assetHeight);
+    currentRow += row2Height + 2; // +2 padding
 
-    // Calculate max height for Row 2
-    const row2Height = Math.max(liabilityHeight, assetHeight, receivablesHeight);
-    
-    // Formatting is handled by _renderCustomFunctionTable
-
-    
-    return currentRow + row2Height;
+    return currentRow;
   },
   
   _renderTable(sheet, startRow, startCol, title, color, rows, numCols = 3, hasPercentage = false) {
@@ -808,76 +903,40 @@ const DashboardManager = {
   },
   
   _createChart(sheet) {
-    // 1. Cấu hình vị trí Chart với padding tốt hơn
-    const chartStartRow = 38; // Moved down for better spacing
-    const chartStartCol = 11; // Column K
-    const chartOffsetX = 10; // Add horizontal padding
-    const chartOffsetY = 10; // Add vertical padding
+    // NEW: Chart positioned at C2 with smaller, compact size
+    const chartStartRow = 2; // Row 2
+    const chartStartCol = 3; // Column C
+    const chartOffsetX = 5; 
+    const chartOffsetY = 5; 
 
-    // 2. Tạo dữ liệu chart chính xác với SUMIF functions
-    // Sử dụng SUMIF thay vì INDEX/MATCH để tính tổng chính xác
+    // Chart now uses the summary data from A5:B10
+    // Data is already populated by _setupSummarySection()
     
-    // Clear any existing chart data
-    sheet.getRange('F3:I3').clearContent();
-    
-    // Set up chart data with current month filter
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
-    const firstDayOfMonth = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
-    const lastDayOfMonth = new Date(currentYear, currentMonth, 0);
-    const lastDay = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${lastDayOfMonth.getDate()}`;
     
-    // Thu nhập tháng hiện tại
-    sheet.getRange('F3').setFormula(
-      `=IFERROR(SUMIFS('${APP_CONFIG.SHEETS.INCOME}'!C:C,'${APP_CONFIG.SHEETS.INCOME}'!B:B,">="&DATE(YEAR(TODAY()),MONTH(TODAY()),1),'${APP_CONFIG.SHEETS.INCOME}'!B:B,"<="&EOMONTH(TODAY(),0)),0)`
-    );
-    
-    // Chi phí tháng hiện tại
-    sheet.getRange('G3').setFormula(
-      `=IFERROR(SUMIFS('${APP_CONFIG.SHEETS.EXPENSE}'!C:C,'${APP_CONFIG.SHEETS.EXPENSE}'!B:B,">="&DATE(YEAR(TODAY()),MONTH(TODAY()),1),'${APP_CONFIG.SHEETS.EXPENSE}'!B:B,"<="&EOMONTH(TODAY(),0)),0)`
-    );
-    
-    // Tổng nợ còn lại (tất cả khoản nợ đang có)
-    sheet.getRange('H3').setFormula(
-      `=IFERROR(SUMIF('${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!L:L,"Chưa trả",'${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!K:K)+SUMIF('${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!L:L,"Đang trả",'${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!K:K),0)`
-    );
-    
-    // Tổng tài sản đầu tư (portfolio hiện tại)
-    sheet.getRange('I3').setFormula(
-      `=IFERROR((SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Mua",'${APP_CONFIG.SHEETS.STOCK}'!M:M)-SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Bán",'${APP_CONFIG.SHEETS.STOCK}'!M:M))+SUMIF('${APP_CONFIG.SHEETS.GOLD}'!D:D,"Mua",'${APP_CONFIG.SHEETS.GOLD}'!K:K)+SUMIF('${APP_CONFIG.SHEETS.CRYPTO}'!C:C,"Mua",'${APP_CONFIG.SHEETS.CRYPTO}'!M:M)+SUM('${APP_CONFIG.SHEETS.OTHER_INVESTMENT}'!D:D),0)`
-    );
-
-    // Format data cells với định dạng tiền tệ Việt Nam
-    sheet.getRange('F3:I3').setNumberFormat('#,##0 "₫"');
-    
-    // Add data labels for clarity
-    sheet.getRange('F4').setValue('(Thu nhập tháng này)').setFontSize(9).setFontColor('#666666');
-    sheet.getRange('G4').setValue('(Chi phí tháng này)').setFontSize(9).setFontColor('#666666');
-    sheet.getRange('H4').setValue('(Tổng nợ còn lại)').setFontSize(9).setFontColor('#666666');
-    sheet.getRange('I4').setValue('(Giá trị tài sản)').setFontSize(9).setFontColor('#666666');
-    
-    // 3. TẠO BIỂU ĐỒ với cải thiện về visual và padding
+    // 3. TẠO BIỂU ĐỒ compact từ dữ liệu A5:B10
     const chart = sheet.newChart()
         .setChartType(Charts.ChartType.COLUMN)
         
-        // Sử dụng range F2:I3 (Headers + Data)
-        .addRange(sheet.getRange('F2:I3')) 
+        // NEW: Use summary section A5:B10 as data source
+        .addRange(sheet.getRange('A5:B10')) 
         
         .setPosition(chartStartRow, chartStartCol, chartOffsetY, chartOffsetX)
         
-        // Chart styling với padding và fonts tốt hơn
-        .setOption('title', '📊 TỔNG QUAN TÀI CHÍNH THÁNG ' + currentMonth + '/' + currentYear)
+        // Compact chart styling
+        .setOption('title', '📊 TÀI CHÍNH ' + currentMonth + '/' + currentYear)
         .setOption('titleTextStyle', { 
-          fontSize: 16, 
+          fontSize: 12, 
           bold: true, 
           color: '#333333',
           fontName: 'Arial'
         })
         
-        // Tăng kích thước để dễ đọc hơn
-        .setOption('width', 800)
-        .setOption('height', 480)
+        // Compact size for better layout
+        .setOption('width', 400)
+        .setOption('height', 300)
         
         // Không transpose để mỗi cột là một series
         .setTransposeRowsAndColumns(false) 
@@ -988,69 +1047,45 @@ const DashboardManager = {
     // Hide gridlines
     sheet.setHiddenGridlines(true);
     
-    // Set column widths for better layout
-    // Columns A-D: Data tables (wider for content)
-    for (let col = 1; col <= 4; col++) {
-      sheet.setColumnWidth(col, 140);
+    // NEW LAYOUT: Optimize column widths for redesigned dashboard
+    
+    // Columns A-B: Summary section and Event tables
+    sheet.setColumnWidth(1, 120); // Labels
+    sheet.setColumnWidth(2, 130); // Values
+    
+    // Columns C-G: Chart area and spacer
+    for (let col = 3; col <= 7; col++) {
+      sheet.setColumnWidth(col, 110);
     }
     
-    // Columns E-I: Chart data and spacing
-    for (let col = 5; col <= 9; col++) {
-      sheet.setColumnWidth(col, 130);
-    }
-    
-    // Column J: Spacer between data and chart
-    sheet.setColumnWidth(10, 20);
-    
-    // Columns K-P: Chart area (wider for chart visibility)
-    for (let col = 11; col <= 16; col++) {
+    // Columns H onwards: Main tables area
+    for (let col = 8; col <= 20; col++) {
       sheet.setColumnWidth(col, 100);
     }
     
     // Set row heights for better spacing
-    // Header rows
+    // Header and filter rows
     sheet.setRowHeight(1, 35); // Title row
-    sheet.setRowHeight(2, 25); // Dropdown row
-    sheet.setRowHeight(3, 25); // Chart headers row
-    sheet.setRowHeight(4, 20); // Chart labels row
-    sheet.setRowHeight(5, 15); // Spacer
+    sheet.setRowHeight(2, 25); // Filter dropdowns
+    sheet.setRowHeight(3, 25); 
+    sheet.setRowHeight(4, 25);
     
-    // Data table rows - standard height
-    for (let row = 6; row <= 35; row++) {
+    // Summary section rows (A5:B10)
+    for (let row = 5; row <= 10; row++) {
+      sheet.setRowHeight(row, 28);
+    }
+    
+    // Event tables area
+    for (let row = 12; row <= 35; row++) {
       sheet.setRowHeight(row, 22);
     }
     
-    // Chart area rows - taller for better chart display
-    for (let row = 36; row <= 60; row++) {
-      sheet.setRowHeight(row, 25);
+    // Main tables and monthly table area
+    for (let row = 36; row <= 80; row++) {
+      sheet.setRowHeight(row, 22);
     }
     
-    // Add border around chart data area for clarity
-    sheet.getRange('F2:I4').setBorder(
-      true, true, true, true, true, true, 
-      '#4472C4', SpreadsheetApp.BorderStyle.SOLID
-    );
-    
-    // Format chart headers with background
-    sheet.getRange('F2:I2')
-      .setBackground('#4472C4')
-      .setFontColor('#FFFFFF')
-      .setFontWeight('bold')
-      .setHorizontalAlignment('center');
-    
-    // Format chart data with light background
-    sheet.getRange('F3:I3')
-      .setBackground('#F8F9FA')
-      .setHorizontalAlignment('center')
-      .setFontWeight('bold');
-    
-    // Format chart labels
-    sheet.getRange('F4:I4')
-      .setBackground('#F0F0F0')
-      .setHorizontalAlignment('center')
-      .setFontStyle('italic');
-    
-    Logger.log('✅ Sheet formatting completed with improved spacing for chart');
+    Logger.log('✅ Sheet formatting completed for new dashboard layout');
   },
   
   _setupTriggers() {
