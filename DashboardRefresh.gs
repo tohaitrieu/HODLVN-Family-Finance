@@ -12,7 +12,11 @@
  * Force refresh Dashboard by updating a hidden timestamp cell
  * This triggers recalculation of all custom functions
  */
-function refreshDashboard() {
+/**
+ * Force refresh Dashboard by updating a hidden timestamp cell
+ * This triggers recalculation of all custom functions
+ */
+function forceDashboardRecalc() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const dashboard = ss.getSheetByName(APP_CONFIG.SHEETS.DASHBOARD);
@@ -42,5 +46,5 @@ function refreshDashboard() {
 function triggerDashboardRefresh() {
   // Use setTimeout to avoid blocking the main form submission
   Utilities.sleep(100); // Small delay to ensure data is written first
-  refreshDashboard();
+  forceDashboardRecalc();
 }

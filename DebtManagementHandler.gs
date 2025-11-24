@@ -167,3 +167,94 @@ function testFormulaColumnJ() {
     }
   }
 }
+
+/**
+ * Cập nhật trạng thái khoản nợ sau khi trả nợ
+ * @param {string} debtName - Tên khoản nợ
+ * @param {number} principal - Số tiền gốc vừa trả
+ * @param {number} interest - Số tiền lãi vừa trả
+ */
+function updateDebtStatus(debtName, principal, interest) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
+    if (!sheet) return;
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return;
+
+    const data = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
+    
+    // Find the debt
+    for (let i = 0; i < data.length; i++) {
+      // Col B (1): Name, Col L (11): Status
+      if (data[i][1] === debtName && data[i][11] !== 'Đã thanh toán') { 
+        const row = i + 2;
+        
+        // Update Paid Principal (Col I - index 8)
+        const currentPaidPrincipal = parseFloat(data[i][8]) || 0;
+        sheet.getRange(row, 9).setValue(currentPaidPrincipal + principal);
+        
+        // Update Paid Interest (Col J - index 9)
+        const currentPaidInterest = parseFloat(data[i][9]) || 0;
+        sheet.getRange(row, 10).setValue(currentPaidInterest + interest);
+        
+        // Check if fully paid
+        // Original Principal is Col D (index 3)
+        const originalPrincipal = parseFloat(data[i][3]);
+        if (currentPaidPrincipal + principal >= originalPrincipal) {
+          sheet.getRange(row, 12).setValue('Đã thanh toán');
+        } else {
+            // If it was "Chưa trả", change to "Đang trả"
+            if (data[i][11] === 'Chưa trả') {
+                sheet.getRange(row, 12).setValue('Đang trả');
+            }
+        }
+        break; // Update the first matching active debt
+      }
+    }
+  } catch (error) {
+    Logger.log('Error updating debt status: ' + error.message);
+  }
+}
+
+/**
+ * Cập nhật trạng thái cho vay sau khi thu nợ
+ * @param {string} borrowerName - Tên người vay
+ * @param {number} principal - Số tiền gốc vừa thu
+ * @param {number} interest - Số tiền lãi vừa thu
+ */
+function updateLendingStatus(borrowerName, principal, interest) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APP_CONFIG.SHEETS.LENDING);
+    if (!sheet) return;
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return;
+
+    const data = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
+    
+    for (let i = 0; i < data.length; i++) {
+      // Col B (1): Name, Col L (11): Status
+      if (data[i][1] === borrowerName && data[i][11] !== 'Đã tất toán') {
+        const row = i + 2;
+        
+        // Update Paid Principal (Col I - index 8)
+        const currentPaidPrincipal = parseFloat(data[i][8]) || 0;
+        sheet.getRange(row, 9).setValue(currentPaidPrincipal + principal);
+        
+        // Update Paid Interest (Col J - index 9)
+        const currentPaidInterest = parseFloat(data[i][9]) || 0;
+        sheet.getRange(row, 10).setValue(currentPaidInterest + interest);
+        
+        // Check if fully paid
+        const originalPrincipal = parseFloat(data[i][3]); // Col D (index 3)
+        if (currentPaidPrincipal + principal >= originalPrincipal) {
+          sheet.getRange(row, 12).setValue('Đã tất toán');
+        }
+        break;
+      }
+    }
+  } catch (error) {
+    Logger.log('Error updating lending status: ' + error.message);
+  }
+}

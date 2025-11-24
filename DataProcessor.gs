@@ -379,7 +379,7 @@ function addDebtPayment(data) {
     });
     
     // Update Debt Management status
-    DebtManagementHandler.updateDebtStatus(data.debtName, principal, interest);
+    updateDebtStatus(data.debtName, principal, interest);
     
     // Add Expense record
     addExpense({
@@ -447,13 +447,20 @@ function addLending(data) {
     
     sheet.getRange(emptyRow, 1, 1, rowData.length).setValues([rowData]);
     
+    // Set formula for Remaining (Col K - 11)
+    // Formula: =IFERROR(Principal(D) - PaidPrincipal(I), 0)
+    // R1C1: =IFERROR(RC[-7]-RC[-2], 0)
+    sheet.getRange(emptyRow, 11).setFormulaR1C1('=IFERROR(RC[-7]-RC[-2], 0)');
+    
     formatNewRow(sheet, emptyRow, {
-      2: 'dd/mm/yyyy',
-      4: '#,##0',
-      5: '0.00%',
-      7: 'dd/mm/yyyy',
-      8: 'dd/mm/yyyy',
-      11: '#,##0'
+      2: 'dd/mm/yyyy', // Date
+      4: '#,##0',      // Principal
+      5: '0.00%',      // Interest Rate
+      7: 'dd/mm/yyyy', // Loan Date
+      8: 'dd/mm/yyyy', // Due Date
+      9: '#,##0',      // Paid Principal
+      10: '#,##0',     // Paid Interest
+      11: '#,##0'      // Remaining
     });
     
     // Add Expense record (Money out)
@@ -519,7 +526,7 @@ function addLendingRepayment(data) {
     });
     
     // Update Lending Status
-    DebtManagementHandler.updateLendingStatus(data.borrower, principal, interest);
+    updateLendingStatus(data.borrower, principal, interest);
     
     // Add Income record
     addIncome({

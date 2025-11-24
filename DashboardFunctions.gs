@@ -280,13 +280,18 @@ function hffsDebt() {
  * @return {Array} 2D array: [["Asset", "Cost", "P&L", "Current Value", "Percentage"], ...]
  * @customfunction
  */
+/**
+ * Get asset summary
+ * @return {Array} 2D array: [["Asset", "Cost", "P&L", "Current Value", "Percentage"], ...]
+ * @customfunction
+ */
 function hffsAssets() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     
     const result = [];
     
-    // Helper to sum column
+    // Helper to sum column with filter
     const sumColumn = (sheetName, colIndex, filterCol = null, filterValue = null) => {
       const sheet = ss.getSheetByName(sheetName);
       if (!sheet) return 0;
@@ -303,25 +308,130 @@ function hffsAssets() {
     };
     
     // 1. Net Cash = Income - Expense
-    // Note: Debt payments are already in Expense sheet, so don't subtract debt remaining
-    // Debt remaining is a liability, not a cash outflow
-    const totalIncome = sumColumn(APP_CONFIG.SHEETS.INCOME, 2); // Col C
-    const totalExpense = sumColumn(APP_CONFIG.SHEETS.EXPENSE, 2); // Col C
+    const totalIncome = sumColumn(APP_CONFIG.SHEETS.INCOME, 2); // Col C (Index 2)
+    const totalExpense = sumColumn(APP_CONFIG.SHEETS.EXPENSE, 2); // Col C (Index 2)
     const netCash = totalIncome - totalExpense;
     
-    // 2. Stock
-    const stockCost = sumColumn(APP_CONFIG.SHEETS.STOCK, 7); // Col H: Total Cost
-    const stockValue = sumColumn(APP_CONFIG.SHEETS.STOCK, 12); // Col M: Market Value
+    // 2. Stock (Calculate Net Holdings)
+    let stockCost = 0;
+    let stockValue = 0;
+    
+    const stockSheet = ss.getSheetByName(APP_CONFIG.SHEETS.STOCK);
+    if (stockSheet) {
+      const data = stockSheet.getDataRange().getValues();
+      const holdings = {}; // { ticker: { qty: 0, cost: 0, currentPrice: 0 } }
+      
+      for (let i = 1; i < data.length; i++) {
+        const type = data[i][2]; // Col C: Type
+        const ticker = data[i][3]; // Col D: Ticker
+        const qty = parseFloat(data[i][4]) || 0; // Col E: Quantity
+        const totalCost = parseFloat(data[i][7]) || 0; // Col H: Total Cost
+        const marketPrice = parseFloat(data[i][11]) || 0; // Col L: Market Price
+        
+        if (!holdings[ticker]) holdings[ticker] = { qty: 0, cost: 0, currentPrice: 0 };
+        
+        // Update current price (use the latest available)
+        if (marketPrice > 0) holdings[ticker].currentPrice = marketPrice;
+        
+        if (type === 'Mua') {
+          holdings[ticker].qty += qty;
+          holdings[ticker].cost += totalCost;
+        } else if (type === 'Bán') {
+          holdings[ticker].qty -= qty;
+          holdings[ticker].cost -= totalCost; // Subtract proceeds from cost basis (Net Investment)
+        } else if (type === 'Thưởng') {
+          holdings[ticker].qty += qty;
+          // Bonus shares have 0 cost
+        }
+      }
+      
+      // Calculate totals
+      for (const ticker in holdings) {
+        const h = holdings[ticker];
+        if (h.qty > 0) {
+          stockCost += h.cost;
+          stockValue += h.qty * h.currentPrice;
+        }
+      }
+    }
     const stockPL = stockValue - stockCost;
     
-    // 3. Gold
-    const goldCost = sumColumn(APP_CONFIG.SHEETS.GOLD, 8); // Col I: Total Cost
-    const goldValue = sumColumn(APP_CONFIG.SHEETS.GOLD, 10); // Col K: Market Value
+    // 3. Gold (Calculate Net Holdings)
+    let goldCost = 0;
+    let goldValue = 0;
+    
+    const goldSheet = ss.getSheetByName(APP_CONFIG.SHEETS.GOLD);
+    if (goldSheet) {
+      const data = goldSheet.getDataRange().getValues();
+      const holdings = {};
+      
+      for (let i = 1; i < data.length; i++) {
+        const type = data[i][3]; // Col D: Type (Mua/Bán)
+        const goldType = data[i][4]; // Col E: Gold Type
+        const qty = parseFloat(data[i][5]) || 0; // Col F: Quantity
+        const totalCost = parseFloat(data[i][8]) || 0; // Col I: Total Cost
+        const marketPrice = parseFloat(data[i][9]) || 0; // Col J: Market Price
+        
+        if (!holdings[goldType]) holdings[goldType] = { qty: 0, cost: 0, currentPrice: 0 };
+        
+        if (marketPrice > 0) holdings[goldType].currentPrice = marketPrice;
+        
+        if (type === 'Mua') {
+          holdings[goldType].qty += qty;
+          holdings[goldType].cost += totalCost;
+        } else if (type === 'Bán') {
+          holdings[goldType].qty -= qty;
+          holdings[goldType].cost -= totalCost;
+        }
+      }
+      
+      for (const type in holdings) {
+        const h = holdings[type];
+        if (h.qty > 0) {
+          goldCost += h.cost;
+          goldValue += h.qty * h.currentPrice;
+        }
+      }
+    }
     const goldPL = goldValue - goldCost;
     
-    // 4. Crypto
-    const cryptoCost = sumColumn(APP_CONFIG.SHEETS.CRYPTO, 8); // Col I: Total Cost (VND)
-    const cryptoValue = sumColumn(APP_CONFIG.SHEETS.CRYPTO, 12); // Col M: Market Value (VND)
+    // 4. Crypto (Calculate Net Holdings)
+    let cryptoCost = 0;
+    let cryptoValue = 0;
+    
+    const cryptoSheet = ss.getSheetByName(APP_CONFIG.SHEETS.CRYPTO);
+    if (cryptoSheet) {
+      const data = cryptoSheet.getDataRange().getValues();
+      const holdings = {};
+      
+      for (let i = 1; i < data.length; i++) {
+        const type = data[i][2]; // Col C: Type
+        const coin = data[i][3]; // Col D: Coin
+        const qty = parseFloat(data[i][4]) || 0; // Col E: Quantity
+        const totalCost = parseFloat(data[i][8]) || 0; // Col I: Total Cost (VND)
+        const marketPriceVND = parseFloat(data[i][11]) || 0; // Col L: Market Price VND
+        
+        if (!holdings[coin]) holdings[coin] = { qty: 0, cost: 0, currentPrice: 0 };
+        
+        if (marketPriceVND > 0) holdings[coin].currentPrice = marketPriceVND;
+        
+        if (type === 'Mua') {
+          holdings[coin].qty += qty;
+          holdings[coin].cost += totalCost;
+        } else if (type === 'Bán') {
+          holdings[coin].qty -= qty;
+          holdings[coin].cost -= totalCost;
+        }
+      }
+      
+      for (const coin in holdings) {
+        const h = holdings[coin];
+        if (h.qty > 0) {
+          cryptoCost += h.cost;
+          cryptoValue += h.qty * h.currentPrice;
+        }
+      }
+    }
     const cryptoPL = cryptoValue - cryptoCost;
     
     // 5. Other Investment
@@ -330,9 +440,11 @@ function hffsAssets() {
     const otherInvPL = otherInvReturn - otherInvCost;
     
     // 6. Lending
-    const lendingCost = sumColumn(APP_CONFIG.SHEETS.LENDING, 3); // Col D: Principal
-    const lendingRemaining = sumColumn(APP_CONFIG.SHEETS.LENDING, 10); // Col K: Remaining
-    const lendingPL = lendingRemaining - lendingCost; // Simplified, should include interest
+    // Principal is Col D (Index 3)
+    // Remaining is Col K (Index 10)
+    const lendingCost = sumColumn(APP_CONFIG.SHEETS.LENDING, 3); 
+    const lendingRemaining = sumColumn(APP_CONFIG.SHEETS.LENDING, 10);
+    const lendingPL = lendingRemaining - lendingCost; // Simplified
     
     // Build result
     result.push(['Tiền mặt (Ròng)', 0, 0, netCash]);
