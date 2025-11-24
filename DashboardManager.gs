@@ -57,8 +57,8 @@ const DashboardManager = {
       // 2. Setup 4 main tables starting from H2
       const lastTableRow = this._setupGridTables(sheet, this.CONFIG.LAYOUT.START_ROW);
       
-      // 3. Setup Monthly Table below the 4 main tables
-      this._setupTable2(sheet, lastTableRow + 2);
+      // 3. Setup Monthly Table at H28 as requested
+      this._setupTable2(sheet, 28);
       
       // 4. Setup Chart at C2 (compact chart from summary data)
       this._createChart(sheet);
@@ -147,6 +147,12 @@ const DashboardManager = {
     sheet.getRange('A8').setValue('Nợ').setFontWeight('bold').setHorizontalAlignment('left');
     sheet.getRange('A9').setValue('Tài sản').setFontWeight('bold').setHorizontalAlignment('left');
     sheet.getRange('A10').setValue('VCSH').setFontWeight('bold').setHorizontalAlignment('left');
+    
+    // Set right alignment for B2:B10 as requested
+    sheet.getRange('B2:B10').setHorizontalAlignment('right');
+    
+    // Remove formatting from B5:B10 as requested
+    sheet.getRange('B5:B10').clear({contentsOnly: false, formatOnly: true});
     
     // Data formulas - Thu nhập tháng hiện tại
     sheet.getRange('B5').setFormula(
@@ -857,8 +863,8 @@ const DashboardManager = {
   _setupTable2(sheet, startRow) {
     const currentYear = new Date().getFullYear();
     
-    // Title
-    sheet.getRange(startRow, 1, 1, 9).merge()
+    // Title - positioned at H28
+    sheet.getRange(startRow, 8, 1, 9).merge()
       .setValue(`📈 THỐNG KÊ TÀI CHÍNH GIA ĐÌNH NĂM ${currentYear}`)
       .setFontSize(12)
       .setFontWeight('bold')
@@ -871,35 +877,35 @@ const DashboardManager = {
     const totalRow = dataStart + 12; // Row after 12 months
     const avgRow = totalRow + 1; // Row after total
     
-    // Headers
+    // Headers - positioned from column H
     const headers = ['Kỳ', 'Thu', 'Chi', 'Nợ', 'CK', 'Vàng', 'Crypto', 'ĐT khác', 'Dòng tiền'];
-    sheet.getRange(headerRow, 1, 1, 9).setValues([headers])
+    sheet.getRange(headerRow, 8, 1, 9).setValues([headers])
       .setFontWeight('bold')
       .setBackground('#EEEEEE')
       .setHorizontalAlignment('center');
     
-    // Use custom function to get yearly data (uses current year by default)
-    sheet.getRange(dataStart, 1).setFormula('=hffsYearly($B$2, $Z$1)');
+    // Use custom function to get yearly data (uses current year by default) - positioned from column H
+    sheet.getRange(dataStart, 8).setFormula('=hffsYearly($B$2, $Z$1)');
     
-    // Total row
-    sheet.getRange(totalRow, 1).setValue('TỔNG').setFontWeight('bold');
-    for (let col = 2; col <= 9; col++) {
-      const colLetter = String.fromCharCode(64 + col); // B=2, C=3, etc.
-      sheet.getRange(totalRow, col).setFormula(`=SUM(${colLetter}${dataStart}:${colLetter}${dataStart + 11})`);
+    // Total row - positioned from column H
+    sheet.getRange(totalRow, 8).setValue('TỔNG').setFontWeight('bold');
+    for (let col = 9; col <= 16; col++) {
+      const colLetter = String.fromCharCode(64 + col - 7); // I=2, J=3, etc. (adjusting for H start)
+      sheet.getRange(totalRow, col).setFormula(`=SUM(${String.fromCharCode(64 + col)}${dataStart}:${String.fromCharCode(64 + col)}${dataStart + 11})`);
     }
-    sheet.getRange(totalRow, 1, 1, 9).setBackground('#EEEEEE');
+    sheet.getRange(totalRow, 8, 1, 9).setBackground('#EEEEEE');
     
-    // Average row
-    sheet.getRange(avgRow, 1).setValue('TRUNG BÌNH').setFontWeight('bold');
-    for (let col = 2; col <= 9; col++) {
+    // Average row - positioned from column H
+    sheet.getRange(avgRow, 8).setValue('TRUNG BÌNH').setFontWeight('bold');
+    for (let col = 9; col <= 16; col++) {
       const colLetter = String.fromCharCode(64 + col);
       sheet.getRange(avgRow, col).setFormula(`=AVERAGE(${colLetter}${dataStart}:${colLetter}${dataStart + 11})`);
     }
-    sheet.getRange(avgRow, 1, 1, 9).setBackground('#F5F5F5');
+    sheet.getRange(avgRow, 8, 1, 9).setBackground('#F5F5F5');
     
-    // Format
-    sheet.getRange(dataStart, 2, 14, 8).setNumberFormat('#,##0'); // 12 months + total + avg
-    sheet.getRange(headerRow, 1, 15, 9).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
+    // Format - adjusted for H column start
+    sheet.getRange(dataStart, 9, 14, 8).setNumberFormat('#,##0'); // 12 months + total + avg
+    sheet.getRange(headerRow, 8, 15, 9).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
   },
   
   _createChart(sheet) {
@@ -934,9 +940,9 @@ const DashboardManager = {
           fontName: 'Arial'
         })
         
-        // Compact size for better layout
-        .setOption('width', 400)
-        .setOption('height', 300)
+        // Updated size as requested: 480x288
+        .setOption('width', 480)
+        .setOption('height', 288)
         
         // Không transpose để mỗi cột là một series
         .setTransposeRowsAndColumns(false) 
@@ -1063,26 +1069,10 @@ const DashboardManager = {
       sheet.setColumnWidth(col, 100);
     }
     
-    // Set row heights for better spacing
-    // Header and filter rows
-    sheet.setRowHeight(1, 35); // Title row
-    sheet.setRowHeight(2, 25); // Filter dropdowns
-    sheet.setRowHeight(3, 25); 
-    sheet.setRowHeight(4, 25);
-    
-    // Summary section rows (A5:B10)
-    for (let row = 5; row <= 10; row++) {
-      sheet.setRowHeight(row, 28);
-    }
-    
-    // Event tables area
-    for (let row = 12; row <= 35; row++) {
-      sheet.setRowHeight(row, 22);
-    }
-    
-    // Main tables and monthly table area
-    for (let row = 36; row <= 80; row++) {
-      sheet.setRowHeight(row, 22);
+    // Set ALL sheet rows to height 32 as requested
+    const maxRows = sheet.getMaxRows();
+    for (let row = 1; row <= maxRows; row++) {
+      sheet.setRowHeight(row, 32);
     }
     
     Logger.log('✅ Sheet formatting completed for new dashboard layout');
