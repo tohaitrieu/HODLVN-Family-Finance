@@ -19,7 +19,7 @@
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
       background: white;
       border-radius: 20px;
@@ -31,37 +31,55 @@
     .header {
       background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
       color: white;
-      padding: 30px;
-      text-align: center;
+      padding: 25px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       position: relative;
     }
 
     .logo {
-      width: 120px;
+      width: 100px;
       height: auto;
-      margin-bottom: 15px;
       filter: brightness(0) invert(1);
     }
 
+    .header-content {
+      flex: 1;
+      text-align: center;
+    }
+
     .header h1 {
-      font-size: 28px;
-      font-weight: 300;
+      font-size: 32px;
+      font-weight: 600;
       margin: 0;
+      letter-spacing: 1px;
+    }
+
+    .hffs-brand {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 8px 20px;
+      border-radius: 25px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      margin-top: 8px;
+      display: inline-block;
     }
 
     .content {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      min-height: 500px;
+      min-height: 600px;
     }
 
     .form-section {
-      padding: 40px;
+      padding: 50px;
     }
 
     .rules-section {
       background: #f8f9fa;
-      padding: 40px;
+      padding: 50px;
       border-left: 1px solid #e9ecef;
     }
 
@@ -263,7 +281,11 @@
   <div class="container">
     <div class="header">
       <img src="https://hodl.vn/wp-content/uploads/2024/05/hodlvn-logo-2024.svg" alt="HODL Vietnam" class="logo" onerror="this.style.display='none'">
-      <h1>💳 Thêm Khoản Nợ Mới</h1>
+      <div class="header-content">
+        <h1>Quản Lý Nợ</h1>
+        <div class="hffs-brand">HODLVN FAMILY FINANCE SYSTEM</div>
+      </div>
+      <div style="width: 100px;"></div>
     </div>
     
     <div class="content">
