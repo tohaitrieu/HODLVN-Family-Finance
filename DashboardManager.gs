@@ -181,6 +181,10 @@ const DashboardManager = {
     
     // === ROW 1: INCOME (Left) & EXPENSE (Middle) & PAYABLES (Right) ===
     
+    // Calculate expected row counts from config
+    const incomeRowCount = APP_CONFIG.CATEGORIES.INCOME.length + 1; // +1 for total
+    const expenseRowCount = APP_CONFIG.CATEGORIES.EXPENSE.filter(c => c !== 'Trả nợ' && c !== 'Cho vay').length + 2; // +1 debt payment, +1 total
+    
     // 1. Income Table - Using custom function
     const incomeHeight = this._renderCustomFunctionTable(
       sheet, currentRow, cfg.LEFT_COL, 
@@ -188,7 +192,8 @@ const DashboardManager = {
       this.CONFIG.COLORS.INCOME, 
       '=hffsIncome()', 
       3, // 3 columns
-      true // has percentage
+      true, // has percentage
+      incomeRowCount // exact row count
     );
     
     // 2. Expense Table - Using custom function
@@ -198,7 +203,8 @@ const DashboardManager = {
       this.CONFIG.COLORS.EXPENSE,
       '=hffsExpense()',
       5, // 5 columns
-      true // has percentage
+      true, // has percentage
+      expenseRowCount // exact row count
     );
     
     // 3. Payables Table (Right - Col K)
@@ -210,6 +216,11 @@ const DashboardManager = {
     
     // === ROW 2: LIABILITIES (Left) & ASSETS (Middle) & RECEIVABLES (Right) ===
     
+    // Get active debt count
+    const debtItems = this._getDebtItems();
+    const debtRowCount = debtItems.length + 1; // +1 for total
+    const assetRowCount = 7; // 6 asset types + total
+    
     // 4. Liabilities Table - Using custom function
     const liabilityHeight = this._renderCustomFunctionTable(
       sheet, currentRow, cfg.LEFT_COL,
@@ -217,7 +228,8 @@ const DashboardManager = {
       this.CONFIG.COLORS.LIABILITIES,
       '=hffsDebt()',
       3, // 3 columns
-      true // has percentage
+      true, // has percentage
+      debtRowCount // exact row count
     );
     
     // 5. Assets Table - Using custom function
@@ -227,27 +239,19 @@ const DashboardManager = {
       this.CONFIG.COLORS.ASSETS,
       '=hffsAssets()',
       5, // 5 columns
-      true // has percentage
+      true, // has percentage
+      assetRowCount // exact row count
     );
     
     // 6. Receivables Table (Right - Col K, Row 2)
     const receivablesHeight = this._renderReceivables(sheet, currentRow, cfg.CALENDAR_COL);
 
+
     // Calculate max height for Row 2
     const row2Height = Math.max(liabilityHeight, assetHeight, receivablesHeight);
     
-    // === FORMAT NUMBERS FOR ALL TABLES ===
-    // Income
-    sheet.getRange(incStart, cfg.LEFT_COL + 1, incomeCategories.length + 1, 1).setNumberFormat('#,##0');
-    sheet.getRange(incStart, cfg.LEFT_COL + 2, incomeCategories.length + 1, 1).setNumberFormat('0.0%');
-    // Expense
-    sheet.getRange(expStart, cfg.RIGHT_COL + 1, expenseCategories.length + 2, 3).setNumberFormat('#,##0');
-    // Liabilities
-    sheet.getRange(liabStart, cfg.LEFT_COL + 1, debtItems.length + 1, 1).setNumberFormat('#,##0');
-    sheet.getRange(liabStart, cfg.LEFT_COL + 2, debtItems.length + 1, 1).setNumberFormat('0.0%');
-    // Assets
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 1, 7, 3).setNumberFormat('#,##0');
-    sheet.getRange(assetStart, cfg.RIGHT_COL + 4, 7, 1).setNumberFormat('0.0%');
+    // Formatting is handled by _renderCustomFunctionTable
+
     
     return currentRow + row2Height;
   },
@@ -409,9 +413,10 @@ const DashboardManager = {
    * @param {string} formula - Custom function formula (e.g., '=hffsIncome()')
    * @param {number} numCols - Number of columns
    * @param {boolean} hasPercentage - Whether last column is percentage
+   * @param {number} expectedRows - Expected number of data rows (excluding header)
    * @return {number} Height of table
    */
-  _renderCustomFunctionTable(sheet, startRow, startCol, title, color, formula, numCols, hasPercentage) {
+  _renderCustomFunctionTable(sheet, startRow, startCol, title, color, formula, numCols, hasPercentage, expectedRows) {
     // Header
     sheet.getRange(startRow, startCol, 1, numCols).merge()
       .setValue(title)
@@ -424,26 +429,23 @@ const DashboardManager = {
     // The formula will spill to adjacent cells automatically
     sheet.getRange(startRow + 1, startCol).setFormula(formula);
     
-    // Format numbers (will apply to whatever rows get filled)
-    // Apply to reasonable max rows (20 should be enough for most cases)
-    const maxRows = 20;
-    
+    // Format numbers based on expected rows
     // Format all columns with numbers except first (category name)
     if (numCols > 1) {
-      sheet.getRange(startRow + 1, startCol + 1, maxRows, numCols - 1).setNumberFormat('#,##0');
+      sheet.getRange(startRow + 1, startCol + 1, expectedRows, numCols - 1).setNumberFormat('#,##0');
     }
     
     // Format percentage column if exists
     if (hasPercentage && numCols > 1) {
-      sheet.getRange(startRow + 1, startCol + numCols - 1, maxRows, 1).setNumberFormat('0.0%');
+      sheet.getRange(startRow + 1, startCol + numCols - 1, expectedRows, 1).setNumberFormat('0.0%');
     }
     
-    // Border around table area
-    sheet.getRange(startRow, startCol, maxRows + 1, numCols)
+    // Border around actual table area (header + expected rows)
+    sheet.getRange(startRow, startCol, expectedRows + 1, numCols)
       .setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
     
-    // Return estimated height (will auto-expand based on function output)
-    return maxRows + 1;
+    // Return actual height (header + data rows)
+    return expectedRows + 1;
   },
   
   _renderPayables(sheet, startRow, startCol) {
@@ -763,37 +765,34 @@ const DashboardManager = {
     const chartStartRow = 36;
     const chartStartCol = 11; // Column K
 
-    // 2. Tính toán vị trí dòng dữ liệu nguồn
+    // 2. Calculate data source positions
+    // With custom functions, we use fixed positions for totals
+    // Income: Last row of hffsIncome() output (varies by categories)
+    // Expense: Last row of hffsExpense() output
+    // Debt: Last row of hffsDebt() output  
+    // Assets: Last row of hffsAssets() output
+    
+    // Since custom functions auto-fill, we use INDEX to get last row values
+    // Or we can use fixed cells if we know the max rows
+    
     const cfg = this.CONFIG.LAYOUT;
     const startRow = cfg.START_ROW;
-
-    const incomeCategories = APP_CONFIG.CATEGORIES.INCOME;
-    const incomeTotalRow = startRow + 2 + incomeCategories.length;
-
-    const expenseCategories = APP_CONFIG.CATEGORIES.EXPENSE.filter(cat => cat !== 'Trả nợ' && cat !== 'Cho vay');
-    const expenseTotalRow = startRow + 2 + expenseCategories.length + 1;
-
-    // Tính row height để xác định vị trí block dưới
-    const incomeHeight = incomeCategories.length + 3;
-    const expenseHeight = expenseCategories.length + 4;
-    const row1Height = Math.max(incomeHeight, expenseHeight);
-    const row2StartRow = startRow + row1Height + 2;
-
-    const debtItems = this._getDebtItems();
-    const debtTotalRow = row2StartRow + 2 + debtItems.length;
-    const assetTotalRow = row2StartRow + 2 + 6;
-
-    // 3. ĐIỀN DỮ LIỆU GIÁ TRỊ (TRỤC Y) VÀO E3:H3
-    // Lưu ý: Không cần điền E2:H2 nữa theo yêu cầu của bạn.
     
-    // Giả định vị trí cột Tiền là C và G (hoặc H tùy cấu hình của bạn).
-    // Bạn hãy kiểm tra kỹ cột chứa số liệu thực tế trong sheet Dashboard để sửa C/G/H cho đúng.
-    sheet.getRange('F3').setFormula(`=B${incomeTotalRow}`); // Thu nhập
-    sheet.getRange('G3').setFormula(`=F${expenseTotalRow}`); // Chi phí (Thực tế)
-    sheet.getRange('H3').setFormula(`=B${debtTotalRow}`); // Nợ
-    sheet.getRange('I3').setFormula(`=H${assetTotalRow}`); // Tài sản
+    // For now, use simple SUMs to aggregate the custom function outputs
+    // Income Total: Sum column B (amounts) where data exists
+    sheet.getRange('F3').setFormula(`=IFERROR(INDEX(A:C, MATCH("TỔNG THU NHẬP", A:A, 0), 2), 0)`);
+    
+    // Expense Total: Sum column F (amounts) in expense table
+    sheet.getRange('G3').setFormula(`=IFERROR(INDEX(E:I, MATCH("TỔNG CHI PHÍ", E:E, 0), 2), 0)`);
+    
+    // Debt Total: Sum column B in debt table  
+    const row2Start = startRow + 23; // Approximate based on row1 height
+    sheet.getRange('H3').setFormula(`=IFERROR(INDEX(A:C, MATCH("TỔNG NỢ", A:A, 0), 2), 0)`);
+    
+    // Assets Total: Sum column H in assets table
+    sheet.getRange('I3').setFormula(`=IFERROR(INDEX(E:I, MATCH("TỔNG TÀI SẢN", E:E, 0), 4), 0)`);
 
-    // Format số liệu F3:I3
+    // Format F3:I3
     sheet.getRange('F3:I3').setNumberFormat('#,##0');
     
     // 4. TẠO BIỂU ĐỒ
