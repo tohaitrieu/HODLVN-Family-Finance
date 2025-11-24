@@ -364,75 +364,67 @@ function hffsYearly(year) {
     const currentYear = year || new Date().getFullYear();
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    const result = [];
+    // Initialize monthly totals (index 0 = month 1, index 11 = month 12)
+    const monthlyData = Array.from({length: 12}, () => ({
+      income: 0,
+      expense: 0,
+      debtPrincipal: 0,
+      debtInterest: 0,
+      stock: 0,
+      gold: 0,
+      crypto: 0,
+      otherInv: 0,
+      lending: 0
+    }));
     
-    const incomeSheet = ss.getSheetByName(APP_CONFIG.SHEETS.INCOME);
-    const expenseSheet = ss.getSheetByName(APP_CONFIG.SHEETS.EXPENSE);
-    const debtPaymentSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_PAYMENT);
-    const stockSheet = ss.getSheetByName(APP_CONFIG.SHEETS.STOCK);
-    const goldSheet = ss.getSheetByName(APP_CONFIG.SHEETS.GOLD);
-    const cryptoSheet = ss.getSheetByName(APP_CONFIG.SHEETS.CRYPTO);
-    const otherInvSheet = ss.getSheetByName(APP_CONFIG.SHEETS.OTHER_INVESTMENT);
-    const lendingSheet = ss.getSheetByName(APP_CONFIG.SHEETS.LENDING);
-    
-    // Helper function to sum by month
-    const sumByMonth = (sheet, month, amountCol, dateCol = 1, filterCol = null, excludeValue = null) => {
-      if (!sheet) return 0;
-      const data = sheet.getDataRange().getValues();
-      let total = 0;
+    // Helper to process sheet data once and accumulate by month
+    const processSheet = (sheetName, amountCol, dateCol, targetField, filterCol = null, excludeValue = null) => {
+      const sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return;
       
+      const data = sheet.getDataRange().getValues();
       for (let i = 1; i < data.length; i++) {
         const date = data[i][dateCol];
         const amount = parseFloat(data[i][amountCol]) || 0;
         
+        // Apply filter if specified
         if (filterCol !== null && data[i][filterCol] === excludeValue) continue;
         
-        if (date instanceof Date && 
-            date.getFullYear() === currentYear && 
-            date.getMonth() === month - 1) {
-          total += amount;
+        if (date instanceof Date && date.getFullYear() === currentYear) {
+          const monthIndex = date.getMonth();
+          monthlyData[monthIndex][targetField] += amount;
         }
       }
-      return total;
     };
     
-    // Calculate for each month
-    for (let m = 1; m <= 12; m++) {
-      const monthName = `Tháng ${m}`;
-      
-      // Income (Column C)
-      const income = sumByMonth(incomeSheet, m, 2);
-      
-      // Expense (Column C) - Exclude "Trả nợ" category
-      const expense = sumByMonth(expenseSheet, m, 2, 1, 3, 'Trả nợ');
-      
-      // Debt payments (Principal + Interest)
-      const debtPrincipal = sumByMonth(debtPaymentSheet, m, 3);
-      const debtInterest = sumByMonth(debtPaymentSheet, m, 4);
-      const totalDebt = debtPrincipal + debtInterest;
-      
-      // Investment amounts (using total cost for investments made in month)
-      const stockInv = sumByMonth(stockSheet, m, 7); // Total Cost
-      const goldInv = sumByMonth(goldSheet, m, 8); // Total Cost
-      const cryptoInv = sumByMonth(cryptoSheet, m, 8); // Total Cost (VND)
-      
-      // Other Investment + Lending
-      const otherInv = sumByMonth(otherInvSheet, m, 3); // Amount
-      const lending = sumByMonth(lendingSheet, m, 3, 6); // Principal, date in col G
-      const totalOtherInv = otherInv + lending;
-      
-      // Cash flow = Income - Expense - Debt Payments
-      const cashflow = income - expense - totalDebt;
+    // Process each sheet ONCE
+    processSheet(APP_CONFIG.SHEETS.INCOME, 2, 1, 'income');
+    processSheet(APP_CONFIG.SHEETS.EXPENSE, 2, 1, 'expense', 3, 'Trả nợ'); // Exclude debt payments
+    processSheet(APP_CONFIG.SHEETS.DEBT_PAYMENT, 3, 1, 'debtPrincipal');
+    processSheet(APP_CONFIG.SHEETS.DEBT_PAYMENT, 4, 1, 'debtInterest');
+    processSheet(APP_CONFIG.SHEETS.STOCK, 7, 1, 'stock');
+    processSheet(APP_CONFIG.SHEETS.GOLD, 8, 1, 'gold');
+    processSheet(APP_CONFIG.SHEETS.CRYPTO, 8, 1, 'crypto');
+    processSheet(APP_CONFIG.SHEETS.OTHER_INVESTMENT, 3, 1, 'otherInv');
+    processSheet(APP_CONFIG.SHEETS.LENDING, 3, 6, 'lending'); // Date in col G (index 6)
+    
+    // Build result array
+    const result = [];
+    for (let m = 0; m < 12; m++) {
+      const data = monthlyData[m];
+      const totalDebt = data.debtPrincipal + data.debtInterest;
+      const totalOtherInv = data.otherInv + data.lending;
+      const cashflow = data.income - data.expense - totalDebt;
       
       result.push([
-        monthName, 
-        income, 
-        expense, 
-        totalDebt, 
-        stockInv, 
-        goldInv, 
-        cryptoInv, 
-        totalOtherInv, 
+        `Tháng ${m + 1}`,
+        data.income,
+        data.expense,
+        totalDebt,
+        data.stock,
+        data.gold,
+        data.crypto,
+        totalOtherInv,
         cashflow
       ]);
     }
