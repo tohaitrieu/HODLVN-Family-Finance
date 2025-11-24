@@ -99,7 +99,7 @@ const DashboardManager = {
       .setVerticalAlignment('middle')
       .setBackground(this.CONFIG.COLORS.HEADER)
       .setFontColor(this.CONFIG.COLORS.TEXT);
-    sheet.setRowHeight(1, 40);
+    sheet.setRowHeight(1, GLOBAL_SHEET_CONFIG.TITLE_ROW_HEIGHT);
     
     // Dropdowns Labels
     sheet.getRange('A2').setValue('Năm').setFontWeight('bold');
@@ -151,9 +151,6 @@ const DashboardManager = {
     // Set right alignment for B2:B10 as requested
     sheet.getRange('B2:B10').setHorizontalAlignment('right');
     
-    // Remove formatting from B5:B10 as requested
-    sheet.getRange('B5:B10').clearFormat();
-    
     // Data formulas - Thu nhập tháng hiện tại
     sheet.getRange('B5').setFormula(
       `=IFERROR(SUMIFS('${APP_CONFIG.SHEETS.INCOME}'!C:C,'${APP_CONFIG.SHEETS.INCOME}'!B:B,">="&DATE(YEAR(TODAY()),MONTH(TODAY()),1),'${APP_CONFIG.SHEETS.INCOME}'!B:B,"<="&EOMONTH(TODAY(),0)),0)`
@@ -182,16 +179,11 @@ const DashboardManager = {
       `=IFERROR(SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Mua",'${APP_CONFIG.SHEETS.STOCK}'!M:M)-SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Bán",'${APP_CONFIG.SHEETS.STOCK}'!M:M),0)`
     );
 
-    // Format data cells
-    sheet.getRange('B5:B10').setNumberFormat('#,##0 "₫"');
+    // Format data cells for chart compatibility
+    sheet.getRange('B5:B10').setNumberFormat('#,##0');
     
-    // Color coding for better visualization
-    sheet.getRange('A5:B5').setBackground('#E8F5E8'); // Income - light green
-    sheet.getRange('A6:B6').setBackground('#FFEBEE'); // Expense - light red
-    sheet.getRange('A7:B7').setBackground('#E3F2FD'); // Cash - light blue
-    sheet.getRange('A8:B8').setBackground('#FFF3E0'); // Debt - light orange
-    sheet.getRange('A9:B9').setBackground('#F3E5F5'); // Assets - light purple
-    sheet.getRange('A10:B10').setBackground('#F9FBE7'); // Securities - light lime
+    // Set uniform background color for all summary section cells
+    sheet.getRange('A5:B10').setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND);
     
     // Borders for summary section
     sheet.getRange('A5:B10').setBorder(true, true, true, true, true, true, '#E0E0E0', SpreadsheetApp.BorderStyle.SOLID);
@@ -218,7 +210,7 @@ const DashboardManager = {
     const payableHeaders = ['Ngày', 'Hành động', 'Khoản nợ', 'Số dư', 'Gốc', 'Lãi'];
     sheet.getRange(currentRow, 1, 1, 6).setValues([payableHeaders])
       .setFontWeight('bold')
-      .setBackground('#EEEEEE');
+      .setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND);
     currentRow++;
     
     // Payables data using custom function
@@ -240,7 +232,7 @@ const DashboardManager = {
     const receivableHeaders = ['Ngày', 'Hành động', 'Khoản cho vay', 'Số dư', 'Gốc', 'Lãi'];
     sheet.getRange(currentRow, 1, 1, 6).setValues([receivableHeaders])
       .setFontWeight('bold')
-      .setBackground('#EEEEEE');
+      .setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND);
     currentRow++;
     
     // Receivables data using custom function
@@ -248,7 +240,7 @@ const DashboardManager = {
     
     // Format event tables
     sheet.getRange(startRow, 1, currentRow - startRow + 11, 6)
-      .setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
+      .setBorder(true, true, true, true, true, true, GLOBAL_SHEET_CONFIG.BORDER_COLOR, GLOBAL_SHEET_CONFIG.BORDER_STYLE);
     
     return currentRow + 11; // Return next available row
   },
@@ -384,19 +376,19 @@ const DashboardManager = {
     // Rows
     rows.forEach((name, idx) => {
       const r = startRow + 2 + idx;
-      sheet.getRange(r, startCol).setValue(name);
+      sheet.getRange(r, startCol).setValue(name).setFontWeight('bold');
       
       // Last row is Total
       if (idx === rows.length - 1) {
         sheet.getRange(r, startCol).setFontWeight('bold');
-        sheet.getRange(r, startCol, 1, numCols).setBackground('#EEEEEE');
+        sheet.getRange(r, startCol, 1, numCols).setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND);
       }
     });
     
     // Border
     // Border - Lighter Color
     sheet.getRange(startRow, startCol, rows.length + 2, numCols)
-      .setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
+      .setBorder(true, true, true, true, true, true, GLOBAL_SHEET_CONFIG.BORDER_COLOR, GLOBAL_SHEET_CONFIG.BORDER_STYLE);
       
     return rows.length + 2; // Header + SubHeader + Data rows
   },
@@ -425,7 +417,7 @@ const DashboardManager = {
     
     rows.forEach((name, idx) => {
       const r = dataStart + idx;
-      sheet.getRange(r, startCol).setValue(name);
+      sheet.getRange(r, startCol).setValue(name).setFontWeight('bold');
       
       // 1. Đã chi (Spent)
       if (idx < expenseCategories.length) {
@@ -468,7 +460,7 @@ const DashboardManager = {
       // Last row styling
       if (idx === rows.length - 1) {
         sheet.getRange(r, startCol).setFontWeight('bold');
-        sheet.getRange(r, startCol, 1, numCols).setBackground('#EEEEEE');
+        sheet.getRange(r, startCol, 1, numCols).setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND);
       }
     });  // <-- ĐÃ THÊM DẤU ĐÓNG forEach
     
@@ -478,7 +470,7 @@ const DashboardManager = {
     // Red - Vượt ngân sách (🔴)
     const ruleRed = SpreadsheetApp.newConditionalFormatRule()
       .whenTextContains('🔴')
-      .setBackground('#FFEBEE')
+      .setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND)
       .setFontColor('#C62828')
       .setRanges([statusRange])
       .build();
@@ -486,7 +478,7 @@ const DashboardManager = {
     // Yellow - Sắp hết (⚠️)
     const ruleYellow = SpreadsheetApp.newConditionalFormatRule()
       .whenTextContains('⚠️')
-      .setBackground('#FFF3E0')
+      .setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND)
       .setFontColor('#EF6C00')
       .setRanges([statusRange])
       .build();
@@ -494,7 +486,7 @@ const DashboardManager = {
     // Green - Trong hạn mức (✅)
     const ruleGreen = SpreadsheetApp.newConditionalFormatRule()
       .whenTextContains('✅')
-      .setBackground('#E8F5E9')
+      .setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND)
       .setFontColor('#2E7D32')
       .setRanges([statusRange])
       .build();
@@ -506,7 +498,7 @@ const DashboardManager = {
     
     // Border
     sheet.getRange(startRow, startCol, rows.length + 2, numCols)
-      .setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
+      .setBorder(true, true, true, true, true, true, GLOBAL_SHEET_CONFIG.BORDER_COLOR, GLOBAL_SHEET_CONFIG.BORDER_STYLE);
       
     return rows.length + 2;
   },
@@ -541,7 +533,7 @@ const DashboardManager = {
       sheet.getRange(dataStartRow, startCol, 1, numCols)
         .setValues([subHeaders])
         .setFontWeight('bold')
-        .setBackground('#EEEEEE')
+        .setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND)
         .setHorizontalAlignment('center');
       dataStartRow++;
     }
@@ -561,10 +553,18 @@ const DashboardManager = {
       sheet.getRange(dataStartRow, startCol + numCols - 1, expectedRows, 1).setNumberFormat('0.0%');
     }
     
+    // Set background color for data cells
+    sheet.getRange(dataStartRow, startCol, expectedRows, numCols)
+      .setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND);
+    
+    // Make first column (categories) bold
+    sheet.getRange(dataStartRow, startCol, expectedRows, 1)
+      .setFontWeight('bold');
+    
     // Border around actual table area (header + sub-headers + expected rows)
     const totalHeight = (subHeaders ? 2 : 1) + expectedRows;
     sheet.getRange(startRow, startCol, totalHeight, numCols)
-      .setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
+      .setBorder(true, true, true, true, true, true, GLOBAL_SHEET_CONFIG.BORDER_COLOR, GLOBAL_SHEET_CONFIG.BORDER_STYLE);
     
     // Return actual height
     return totalHeight;
@@ -600,6 +600,7 @@ const DashboardManager = {
     
     // Format columns (Assuming max 12 rows returned)
     const dataRange = sheet.getRange(formulaRow, startCol, 12, numCols);
+    dataRange.setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND);
     dataRange.setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
     
     // Format Date Column
@@ -870,7 +871,7 @@ const DashboardManager = {
       .setFontWeight('bold')
       .setBackground(this.CONFIG.COLORS.HEADER)
       .setFontColor('#FFFFFF');
-    sheet.setRowHeight(startRow, 35);
+    sheet.setRowHeight(startRow, GLOBAL_SHEET_CONFIG.TITLE_ROW_HEIGHT);
     
     const headerRow = startRow + 1;
     const dataStart = startRow + 2;
@@ -893,7 +894,7 @@ const DashboardManager = {
       const colLetter = String.fromCharCode(64 + col - 7); // I=2, J=3, etc. (adjusting for H start)
       sheet.getRange(totalRow, col).setFormula(`=SUM(${String.fromCharCode(64 + col)}${dataStart}:${String.fromCharCode(64 + col)}${dataStart + 11})`);
     }
-    sheet.getRange(totalRow, 8, 1, 9).setBackground('#EEEEEE');
+    sheet.getRange(totalRow, 8, 1, 9).setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND);
     
     // Average row - positioned from column H
     sheet.getRange(avgRow, 8).setValue('TRUNG BÌNH').setFontWeight('bold');
@@ -901,15 +902,16 @@ const DashboardManager = {
       const colLetter = String.fromCharCode(64 + col);
       sheet.getRange(avgRow, col).setFormula(`=AVERAGE(${colLetter}${dataStart}:${colLetter}${dataStart + 11})`);
     }
-    sheet.getRange(avgRow, 8, 1, 9).setBackground('#F5F5F5');
+    sheet.getRange(avgRow, 8, 1, 9).setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND);
     
     // Format - adjusted for H column start
     sheet.getRange(dataStart, 9, 14, 8).setNumberFormat('#,##0'); // 12 months + total + avg
+    sheet.getRange(dataStart, 8, 14, 9).setBackground(GLOBAL_SHEET_CONFIG.DEFAULT_CELL_BACKGROUND); // Set background for data cells
     sheet.getRange(headerRow, 8, 15, 9).setBorder(true, true, true, true, true, true, '#B0B0B0', SpreadsheetApp.BorderStyle.SOLID);
   },
   
   _createChart(sheet) {
-    // Chart positioned at C2 with title only
+    // Chart positioned at C2 with data from A5:B10
     const chartStartRow = 2; // Row 2
     const chartStartCol = 3; // Column C
     const chartOffsetX = 5; 
@@ -919,57 +921,110 @@ const DashboardManager = {
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
     
-    // Create a minimal chart with only title - no data
+    // Create chart using A5:B10 data (A5:A10 = categories/X-axis, B5:B10 = values/Y-axis)
     const chart = sheet.newChart()
         .setChartType(Charts.ChartType.COLUMN)
         
-        // Create empty data range for title-only chart
-        .addRange(sheet.getRange('Z1:Z1')) // Use empty range
+        // Use A5:B10 data range: A5:A10 as categories (X), B5:B10 as values (Y)
+        .addRange(sheet.getRange('A5:B10'))
         
         .setPosition(chartStartRow, chartStartCol, chartOffsetY, chartOffsetX)
         
-        // Chart title only
+        // Chart title
         .setOption('title', '📊 TÀI CHÍNH ' + currentMonth + '/' + currentYear)
         .setOption('titleTextStyle', { 
-          fontSize: 16, 
+          fontSize: 14, 
           bold: true, 
           color: '#333333',
           fontName: 'Arial'
         })
         
-        // Updated size as requested: 480x288
-        .setOption('width', 480)
-        .setOption('height', 288)
+        // Updated size as requested: 520x252
+        .setOption('width', 520)
+        .setOption('height', 252)
         
-        // Hide all chart elements except title
-        .setOption('legend', { position: 'none' })
+        // Configure chart to properly read data
+        .setTransposeRowsAndColumns(false) // Keep rows as series
+        
+        // Legend settings
+        .setOption('legend', { 
+          position: 'bottom',
+          textStyle: {
+            fontSize: 10,
+            fontName: 'Arial'
+          }
+        })
+        
+        // Configure X-axis (categories from A5:A10)
         .setOption('hAxis', { 
-          textPosition: 'none',
-          gridlines: { color: 'transparent' },
-          baselineColor: 'transparent'
+          title: 'Danh mục',
+          titleTextStyle: {
+            fontSize: 11,
+            color: '#333333',
+            italic: false
+          },
+          textStyle: {
+            fontSize: 9,
+            color: '#333333'
+          },
+          slantedText: true,
+          slantedTextAngle: 45
         })
+        
+        // Configure Y-axis (values from B5:B10)
         .setOption('vAxis', { 
-          textPosition: 'none',
-          gridlines: { color: 'transparent' },
-          baselineColor: 'transparent'
+          title: 'Giá trị (VNĐ)',
+          titleTextStyle: {
+            fontSize: 11,
+            color: '#333333',
+            italic: false
+          },
+          textStyle: {
+            fontSize: 10,
+            color: '#333333'
+          },
+          format: '#,##0',
+          gridlines: {
+            color: '#E0E0E0',
+            count: 5
+          },
+          minorGridlines: {
+            count: 0
+          }
         })
         
-        // Maximize chart area for title display
+        // Chart area configuration
         .setOption('chartArea', { 
-          left: 10, 
-          top: 20, 
-          width: '95%', 
-          height: '80%'
+          left: 70, 
+          top: 40, 
+          width: '75%', 
+          height: '65%'
         })
         
-        // Clean background
-        .setOption('backgroundColor', '#FFFFFF')
+        // Color scheme for financial data
+        .setOption('series', {
+          0: {
+            color: '#4CAF50',
+            dataLabel: {
+              color: '#333333',
+              fontSize: 9
+            }
+          }
+        })
+        
+        // Background and styling
+        .setOption('backgroundColor', '#FAFAFA')
+        .setOption('animation', {
+          duration: 1000,
+          easing: 'out',
+          startup: true
+        })
         
         .build();
       
     sheet.insertChart(chart);
     
-    Logger.log('✅ Chart created with title only');
+    Logger.log('✅ Chart created with data from A5:B10');
   },
   
   _formatSheet(sheet) {
@@ -982,20 +1037,37 @@ const DashboardManager = {
     sheet.setColumnWidth(1, 120); // Labels
     sheet.setColumnWidth(2, 130); // Values
     
-    // Columns C-G: Chart area and spacer
-    for (let col = 3; col <= 7; col++) {
+    // Column C: Specific width as requested
+    sheet.setColumnWidth(3, 180);
+    
+    // Columns D-G: Chart area and spacer
+    for (let col = 4; col <= 7; col++) {
       sheet.setColumnWidth(col, 110);
     }
     
-    // Columns H onwards: Main tables area
-    for (let col = 8; col <= 20; col++) {
+    // Column H: Specific width as requested
+    sheet.setColumnWidth(8, 150);
+    
+    // Columns I-K: Main tables area
+    for (let col = 9; col <= 11; col++) {
       sheet.setColumnWidth(col, 100);
     }
     
-    // Set ALL sheet rows to height 32 as requested
+    // Column L: Specific width as requested
+    sheet.setColumnWidth(12, 150);
+    
+    // Columns M onwards: Main tables area
+    for (let col = 13; col <= 20; col++) {
+      sheet.setColumnWidth(col, 100);
+    }
+    
+    // Set ALL sheet rows to consistent height using global config
     const maxRows = sheet.getMaxRows();
-    for (let row = 1; row <= maxRows; row++) {
-      sheet.setRowHeight(row, 32);
+    // Header row gets title height
+    sheet.setRowHeight(1, GLOBAL_SHEET_CONFIG.TITLE_ROW_HEIGHT);
+    // All other rows get default height
+    for (let row = 2; row <= maxRows; row++) {
+      sheet.setRowHeight(row, GLOBAL_SHEET_CONFIG.DEFAULT_ROW_HEIGHT);
     }
     
     Logger.log('✅ Sheet formatting completed for new dashboard layout');

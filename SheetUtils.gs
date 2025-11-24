@@ -76,7 +76,18 @@ const SheetUtils = {
       }
     });
     
-    // 3. Set Formats (Number, Date...)
+    // 3. Set Row Heights (using global configuration)
+    const maxRows = sheet.getMaxRows();
+    
+    // Set header row height
+    sheet.setRowHeight(1, GLOBAL_SHEET_CONFIG.HEADER_ROW_HEIGHT);
+    
+    // Set default row height for all other rows
+    for (let row = 2; row <= maxRows; row++) {
+      sheet.setRowHeight(row, GLOBAL_SHEET_CONFIG.DEFAULT_ROW_HEIGHT);
+    }
+    
+    // 4. Set Formats (Number, Date...)
     // Áp dụng cho toàn bộ cột (từ dòng 2)
     const lastRow = sheet.getMaxRows();
     if (lastRow > 1) {
@@ -87,7 +98,7 @@ const SheetUtils = {
       });
     }
     
-    // 4. Set Validations
+    // 5. Set Validations
     cols.forEach((col, index) => {
       if (col.type === 'dropdown' && col.source) {
         let rule = null;

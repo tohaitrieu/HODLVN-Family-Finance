@@ -585,13 +585,15 @@ const SheetInitializer = {
     // Col C, D, E: Number (NO CURRENCY)
     sheet.getRange('C8:E' + (lastRow + 1)).setNumberFormat('#,##0');
     
-    // Widths
-    sheet.setColumnWidth(1, 200); // Danh mục
-    sheet.setColumnWidth(2, 80);  // % Nhóm
-    sheet.setColumnWidth(3, 120); // Ngân sách
-    sheet.setColumnWidth(4, 120); // Đã chi
-    sheet.setColumnWidth(5, 120); // Còn lại
-    sheet.setColumnWidth(6, 150); // Trạng thái
+    // Apply global formatting using SheetConfig
+    SheetUtils.applySheetFormat(sheet, 'BUDGET');
+    
+    // Set all rows to consistent height
+    const maxRows = sheet.getMaxRows();
+    for (let row = 1; row <= maxRows; row++) {
+      const height = (row === 1) ? GLOBAL_SHEET_CONFIG.HEADER_ROW_HEIGHT : GLOBAL_SHEET_CONFIG.DEFAULT_ROW_HEIGHT;
+      sheet.setRowHeight(row, height);
+    }
     
     return sheet;
   }

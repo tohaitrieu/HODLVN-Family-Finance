@@ -7,6 +7,16 @@
  * Mọi thao tác tạo sheet, đọc/ghi dữ liệu phải tham chiếu từ đây.
  */
 
+// GLOBAL FORMATTING CONFIGURATION
+const GLOBAL_SHEET_CONFIG = {
+  DEFAULT_ROW_HEIGHT: 28,
+  HEADER_ROW_HEIGHT: 32,
+  TITLE_ROW_HEIGHT: 35,
+  DEFAULT_CELL_BACKGROUND: '#fff1e5',
+  BORDER_COLOR: '#B0B0B0',
+  BORDER_STYLE: SpreadsheetApp.BorderStyle.SOLID
+};
+
 const SHEET_CONFIG = {
   
   // 1. THU NHẬP
@@ -192,7 +202,20 @@ const SHEET_CONFIG = {
     ]
   },
 
-  // 11. CHANGELOG
+  // 11. BUDGET
+  BUDGET: {
+    name: 'BUDGET',
+    columns: [
+      { key: 'category', header: 'Danh mục', width: 200, type: 'text' },
+      { key: 'percentage', header: '% Nhóm', width: 80, type: 'number', format: '0.0%' },
+      { key: 'budget', header: 'Ngân sách', width: 120, type: 'number', format: '#,##0' },
+      { key: 'spent', header: 'Đã chi', width: 120, type: 'number', format: '#,##0' },
+      { key: 'remaining', header: 'Còn lại', width: 120, type: 'number', format: '#,##0' },
+      { key: 'status', header: 'Trạng thái', width: 150, type: 'text' }
+    ]
+  },
+
+  // 12. CHANGELOG
   CHANGELOG: {
     name: 'LỊCH SỬ CẬP NHẬT',
     columns: [
