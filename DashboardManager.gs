@@ -914,160 +914,24 @@ const DashboardManager = {
     // Force calculation of formulas before creating chart
     SpreadsheetApp.flush();
     
-    // Chart positioned at C2 with data from A5:B10
-    const chartStartRow = 2; // Row 2
-    const chartStartCol = 3; // Column C
-    const chartOffsetX = 5; 
-    const chartOffsetY = 5; 
+    // Remove any existing charts first
+    const existingCharts = sheet.getCharts();
+    existingCharts.forEach(chart => sheet.removeChart(chart));
     
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth() + 1;
-    const currentYear = currentDate.getFullYear();
-    
-    // Verify data exists in range A5:B10 before creating chart
-    const dataRange = sheet.getRange('A5:B10');
-    const values = dataRange.getValues();
-    
-    let hasData = false;
-    for (let i = 0; i < values.length; i++) {
-      if (values[i][0] && values[i][1] !== null && values[i][1] !== undefined && values[i][1] !== '') {
-        hasData = true;
-        break;
-      }
-    }
-    
-    if (!hasData) {
-      Logger.log('⚠️ No data found in A5:B10 range for chart');
-      // Set some default values to ensure chart displays
-      sheet.getRange('B5').setValue(1000000); // Thu nhập
-      sheet.getRange('B6').setValue(800000);  // Chi phí
-      sheet.getRange('B7').setValue(200000);  // Tiền mặt
-      sheet.getRange('B8').setValue(500000);  // Nợ
-      sheet.getRange('B9').setValue(2000000); // Tài sản
-      sheet.getRange('B10').setValue(1500000); // VCSH
-    }
-    
-    // Create chart using A5:B10 data (A5:A10 = categories/X-axis, B5:B10 = values/Y-axis)
+    // Simple column chart positioned at C2
     const chart = sheet.newChart()
         .setChartType(Charts.ChartType.COLUMN)
-        
-        // Use A5:B10 data range: A5:A10 as categories (X), B5:B10 as values (Y)
         .addRange(sheet.getRange('A5:B10'))
-        
-        .setPosition(chartStartRow, chartStartCol, chartOffsetY, chartOffsetX)
-        
-        // Chart title
-        .setOption('title', '📊 TÀI CHÍNH ' + currentMonth + '/' + currentYear)
-        .setOption('titleTextStyle', { 
-          fontSize: 14, 
-          bold: true, 
-          color: '#333333',
-          fontName: 'Arial'
-        })
-        
-        // Updated size as requested: 520x252
+        .setPosition(2, 3, 0, 0) // Row 2, Column C, no offset
+        .setOption('title', 'TÀI CHÍNH')
         .setOption('width', 520)
         .setOption('height', 252)
-        
-        // Configure chart to properly read data
-        .setTransposeRowsAndColumns(false) // Keep rows as series
-        
-        // Legend settings - Hide legend since we have only one series
-        .setOption('legend', { 
-          position: 'none'
-        })
-        
-        // Configure X-axis (categories from A5:A10)
-        .setOption('hAxis', { 
-          title: 'Danh mục',
-          titleTextStyle: {
-            fontSize: 11,
-            color: '#333333',
-            italic: false
-          },
-          textStyle: {
-            fontSize: 9,
-            color: '#333333'
-          },
-          slantedText: true,
-          slantedTextAngle: 45
-        })
-        
-        // Configure Y-axis (values from B5:B10)
-        .setOption('vAxis', { 
-          title: 'Giá trị (VNĐ)',
-          titleTextStyle: {
-            fontSize: 11,
-            color: '#333333',
-            italic: false
-          },
-          textStyle: {
-            fontSize: 10,
-            color: '#333333'
-          },
-          format: '#,##0',
-          gridlines: {
-            color: '#E0E0E0',
-            count: 5
-          },
-          minorGridlines: {
-            count: 0
-          }
-        })
-        
-        // Chart area configuration
-        .setOption('chartArea', { 
-          left: 70, 
-          top: 40, 
-          width: '75%', 
-          height: '65%'
-        })
-        
-        // Color scheme for financial data
-        .setOption('series', {
-          0: {
-            color: '#4CAF50',
-            dataLabel: {
-              color: '#333333',
-              fontSize: 9
-            }
-          }
-        })
-        
-        // Background and styling
-        .setOption('backgroundColor', '#FAFAFA')
-        .setOption('animation', {
-          duration: 1000,
-          easing: 'out',
-          startup: true
-        })
-        
+        .setOption('legend.position', 'none')
         .build();
-      
+        
     sheet.insertChart(chart);
     
-    // Restore formulas if we had to set default values
-    if (!hasData) {
-      // Restore formulas from _setupSummarySection
-      sheet.getRange('B5').setFormula(
-        `=IFERROR(SUMIFS('${APP_CONFIG.SHEETS.INCOME}'!C:C,'${APP_CONFIG.SHEETS.INCOME}'!B:B,">="&DATE(YEAR(TODAY()),MONTH(TODAY()),1),'${APP_CONFIG.SHEETS.INCOME}'!B:B,"<="&EOMONTH(TODAY(),0)),0)`
-      );
-      sheet.getRange('B6').setFormula(
-        `=IFERROR(SUMIFS('${APP_CONFIG.SHEETS.EXPENSE}'!C:C,'${APP_CONFIG.SHEETS.EXPENSE}'!B:B,">="&DATE(YEAR(TODAY()),MONTH(TODAY()),1),'${APP_CONFIG.SHEETS.EXPENSE}'!B:B,"<="&EOMONTH(TODAY(),0)),0)`
-      );
-      sheet.getRange('B7').setFormula('=B5-B6');
-      sheet.getRange('B8').setFormula(
-        `=IFERROR(SUMIF('${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!L:L,"Chưa trả",'${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!K:K)+SUMIF('${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!L:L,"Đang trả",'${APP_CONFIG.SHEETS.DEBT_MANAGEMENT}'!K:K),0)`
-      );
-      sheet.getRange('B9').setFormula(
-        `=IFERROR((SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Mua",'${APP_CONFIG.SHEETS.STOCK}'!M:M)-SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Bán",'${APP_CONFIG.SHEETS.STOCK}'!M:M))+SUMIF('${APP_CONFIG.SHEETS.GOLD}'!D:D,"Mua",'${APP_CONFIG.SHEETS.GOLD}'!K:K)+SUMIF('${APP_CONFIG.SHEETS.CRYPTO}'!C:C,"Mua",'${APP_CONFIG.SHEETS.CRYPTO}'!M:M)+SUM('${APP_CONFIG.SHEETS.OTHER_INVESTMENT}'!D:D),0)`
-      );
-      sheet.getRange('B10').setFormula(
-        `=IFERROR(SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Mua",'${APP_CONFIG.SHEETS.STOCK}'!M:M)-SUMIF('${APP_CONFIG.SHEETS.STOCK}'!C:C,"Bán",'${APP_CONFIG.SHEETS.STOCK}'!M:M),0)`
-      );
-    }
-    
-    Logger.log('✅ Chart created with data from A5:B10');
+    Logger.log('✅ Simple chart created with data from A5:B10');
   },
   
   _formatSheet(sheet) {

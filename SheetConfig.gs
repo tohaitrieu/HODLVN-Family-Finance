@@ -217,11 +217,15 @@ const SHEET_CONFIG = {
 
   // 12. CHANGELOG
   CHANGELOG: {
-    name: 'LỊCH SỬ CẬP NHẬT',
+    name: 'LỊCH SỬ CẬP NHẬT / CHANGELOG',
     columns: [
-      { key: 'version', header: 'Phiên bản / Tính năng', width: 250, type: 'text' },
-      { key: 'detail', header: 'Chi tiết thay đổi', width: 400, type: 'text' },
-      { key: 'action', header: 'Hành động khuyến nghị', width: 300, type: 'text' }
+      { key: 'version', header: 'Version / Phiên bản', width: 150, type: 'text' },
+      { key: 'featureEn', header: 'Feature', width: 250, type: 'text' },
+      { key: 'featureVi', header: 'Tính năng', width: 250, type: 'text' },
+      { key: 'detailEn', header: 'Change Details', width: 300, type: 'text' },
+      { key: 'detailVi', header: 'Chi tiết thay đổi', width: 300, type: 'text' },
+      { key: 'actionEn', header: 'Recommended Action', width: 250, type: 'text' },
+      { key: 'actionVi', header: 'Hành động khuyến nghị', width: 250, type: 'text' }
     ]
   }
 };

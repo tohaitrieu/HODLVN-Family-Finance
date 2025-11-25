@@ -70,7 +70,7 @@ const APP_CONFIG = {
     LENDING_REPAYMENT: 'THU NỢ',
     BUDGET: 'BUDGET',
     DASHBOARD: 'TỔNG QUAN',
-    CHANGELOG: 'LỊCH SỬ CẬP NHẬT'
+    CHANGELOG: 'LỊCH SỬ CẬP NHẬT / CHANGELOG'
   },
   
   // Màu sắc theme
