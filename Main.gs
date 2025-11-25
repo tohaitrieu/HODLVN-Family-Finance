@@ -277,9 +277,22 @@ function mapLegacyTypeToId(typeName) {
  * Tạo menu khi mở file
  */
 function onOpen() {
-  // Kiểm tra và cập nhật Changelog nếu có phiên bản mới
-  ChangelogManager.checkVersionAndUpdate();
+  try {
+    // Kiểm tra và cập nhật Changelog nếu có phiên bản mới
+    if (typeof ChangelogManager !== 'undefined' && ChangelogManager.checkVersionAndUpdate) {
+      ChangelogManager.checkVersionAndUpdate();
+    }
+  } catch (e) {
+    console.log('Changelog update skipped: ' + e.toString());
+  }
 
+  createMenus();
+}
+
+/**
+ * Manually recreate menus (can be called from script editor)
+ */
+function createMenus() {
   const ui = SpreadsheetApp.getUi();
   
   // === MENU 1: THU - CHI ===
@@ -375,6 +388,25 @@ function onOpen() {
     .addItem('📖 Giới thiệu hệ thống', 'showAbout')
     
     .addToUi();
+}
+
+/**
+ * Force recreate menus (can be run manually if menus disappear)
+ */
+function forceRecreateMenus() {
+  // Clear any existing menus
+  const ui = SpreadsheetApp.getUi();
+  
+  // Force recreate
+  createMenus();
+  
+  // Show confirmation
+  ui.alert('✅ Menu đã được khôi phục!', 
+    'Các menu đã được tạo lại thành công. Nếu vẫn không thấy menu, vui lòng:\n\n' +
+    '1. Reload lại trang (F5 hoặc Cmd+R)\n' +
+    '2. Đóng và mở lại file\n\n' +
+    'Menu sẽ xuất hiện ở thanh menu chính.',
+    ui.ButtonSet.OK);
 }
 
 /**
