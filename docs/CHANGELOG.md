@@ -34,6 +34,17 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [3.0.1] - 2025-11-25
+
+### Fixed
+- **Budget Sheet Cell Format Issue**:
+  - Fixed cell B2 (Expected Income) displaying as percentage format (0.0%) instead of number format (#,##0).
+  - Root cause: `SheetUtils.applySheetFormat()` overrode B2's specific format with column B's percentage format.
+  - Solution: Re-apply B2 number format after `applySheetFormat()` call in `SheetInitializer.gs`.
+  - Affected file: `SheetInitializer.gs` lines 591-594.
+
+---
+
 ## [3.5.0] - 2025-11-23
 
 ### Lending Refactor & Dynamic Dashboard

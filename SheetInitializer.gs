@@ -438,7 +438,7 @@ const SheetInitializer = {
     // Section Header
     sheet.getRange('A7:F7').merge().setValue('📛 CHI TIÊU')
       .setFontWeight('bold')
-      .setHorizontalAlignment('center')
+      .setHorizontalAlignment('left')
       .setBackground('#EA4335')
       .setFontColor('#FFFFFF');
 
@@ -482,7 +482,7 @@ const SheetInitializer = {
     // Section Header
     sheet.getRange(investStartRow, 1, 1, 6).merge().setValue('💰 ĐẦU TƯ')
       .setFontWeight('bold')
-      .setHorizontalAlignment('center')
+      .setHorizontalAlignment('left')
       .setBackground('#34A853')
       .setFontColor('#FFFFFF');
       
@@ -538,7 +538,7 @@ const SheetInitializer = {
     // Section Header
     sheet.getRange(debtStartRow, 1, 1, 6).merge().setValue('💳 TRẢ NỢ')
       .setFontWeight('bold')
-      .setHorizontalAlignment('center')
+      .setHorizontalAlignment('left')
       .setBackground('#FBBC04')
       .setFontColor('#FFFFFF');
       
@@ -587,7 +587,12 @@ const SheetInitializer = {
     
     // Apply global formatting using SheetConfig
     SheetUtils.applySheetFormat(sheet, 'BUDGET');
-    
+
+    // Fix v251125: Re-apply B2 format after applySheetFormat() override
+    // B2 (Thu nhập dự kiến / Expected Income) should be plain number (#,##0), not percentage (0.0%)
+    // Root cause: applySheetFormat() applies column B percentage format to all rows from row 2
+    sheet.getRange('B2').setNumberFormat('#,##0');
+
     // Set all rows to consistent height
     const maxRows = sheet.getMaxRows();
     for (let row = 1; row <= maxRows; row++) {

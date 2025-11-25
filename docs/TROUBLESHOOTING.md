@@ -8,6 +8,7 @@ Tài liệu tổng hợp tất cả các lỗi đã gặp trong quá trình phá
 
 1. [Lỗi Nghiêm Trọng (Critical Issues)](#-lỗi-nghiêm-trọng-critical-issues)
 2. [Lỗi Thường Gặp (Common Bugs)](#-lỗi-thường-gặp-common-bugs)
+   - [Cell Format Override trong Sheet Initialization](#7--cell-format-override-trong-sheet-initialization)
 3. [Lỗi Forms & Data Entry](#-lỗi-forms--data-entry)
 4. [Lỗi Dashboard & Validation](#-lỗi-dashboard--validation)
 5. [Lỗi Authorization & Permissions](#-lỗi-authorization--permissions)
@@ -740,6 +741,85 @@ function addIncome(data) {
   // Proceed...
 }
 ```
+
+---
+
+### 7. ❌ Cell Format Override trong Sheet Initialization
+
+**Triệu chứng:**
+```
+- Cell B2 trong sheet BUDGET hiển thị 0.0% thay vì số nguyên
+- Expected: 25,000,000 (số tiền thu nhập dự kiến)
+- Actual: 0.0% (format phần trăm)
+```
+
+**Nguyên nhân:**
+
+```javascript
+// ❌ SheetInitializer.gs - Trước khi fix
+function initializeBudgetSheet() {
+  const sheet = ss.getSheetByName('BUDGET');
+
+  // Set cell B2 format
+  sheet.getRange('B2').setNumberFormat('#,##0');  // ← Set đúng format
+
+  // Apply sheet-wide formatting
+  SheetUtils.applySheetFormat(sheet, budgetConfig);
+  // ← Override B2 với column B format (percentage)
+  // ← Cell B2 giờ thành 0.0%
+}
+```
+
+**Giải thích chi tiết:**
+
+`SheetUtils.applySheetFormat()` apply format cho toàn bộ column theo config:
+- Column B trong BUDGET được set percentage format (cho các dòng budget %)
+- Function này override tất cả cells trong column B, kể cả B2
+- Cell B2 cần number format (#,##0) nhưng bị đè thành percentage (0.0%)
+
+**Giải pháp:**
+
+```javascript
+// ✅ SheetInitializer.gs - Sau khi fix
+function initializeBudgetSheet() {
+  const sheet = ss.getSheetByName('BUDGET');
+
+  // Apply sheet-wide formatting TRƯỚC
+  SheetUtils.applySheetFormat(sheet, budgetConfig);
+
+  // Re-apply specific cell formats SAU để override column format
+  sheet.getRange('B2').setNumberFormat('#,##0');  // ← Override lại
+}
+```
+
+**Cách verify fix:**
+```javascript
+function verifyBudgetCellFormat() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet()
+    .getSheetByName('BUDGET');
+
+  const b2Format = sheet.getRange('B2').getNumberFormat();
+  Logger.log('B2 format: ' + b2Format);
+  // Expected: "#,##0" hoặc "#,##0.00"
+  // NOT: "0.0%" or "0.00%"
+
+  if (b2Format.includes('%')) {
+    Logger.log('❌ FAILED: B2 still has percentage format');
+  } else {
+    Logger.log('✅ PASSED: B2 has number format');
+  }
+}
+```
+
+**Best Practice:**
+
+Khi có conflict giữa column format và specific cell format:
+1. Apply column/sheet-wide format TRƯỚC
+2. Apply specific cell format SAU để override
+3. Document các cells đặc biệt trong comments
+
+**Files bị ảnh hưởng:**
+- `SheetInitializer.gs` - Hàm `initializeBudgetSheet()` lines 591-594
 
 ---
 

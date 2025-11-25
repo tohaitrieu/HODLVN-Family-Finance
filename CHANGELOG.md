@@ -2,6 +2,14 @@
 
 Mọi thay đổi đáng chú ý của dự án sẽ được ghi lại trong file này.
 
+## [3.0.1] - 2025-11-25
+### Fixed
+- **Budget Sheet Cell Format Issue**:
+  - Fixed cell B2 (Expected Income) displaying as percentage format (0.0%) instead of number format (#,##0).
+  - Root cause: `SheetUtils.applySheetFormat()` overrode B2's format with column B's percentage format.
+  - Solution: Re-apply B2 number format after `applySheetFormat()` call in `SheetInitializer.gs`.
+  - Affected file: `SheetInitializer.gs` lines 591-594.
+
 ## [3.5.8] - 2025-11-24
 ### Dashboard Optimization & Code Cleanup
 - ✅ **OPTIMIZATION**: Custom Dashboard Functions Integration
