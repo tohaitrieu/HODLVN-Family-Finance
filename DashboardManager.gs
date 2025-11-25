@@ -926,7 +926,6 @@ const DashboardManager = {
         .setOption('title', 'TÀI CHÍNH')
         .setOption('width', 520)
         .setOption('height', 252)
-        .setOption('legend.position', 'none')
         .build();
         
     sheet.insertChart(chart);
