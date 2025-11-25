@@ -7,14 +7,14 @@
  */
 function MPRICE(input) {
   // 1) Lấy raw input,uppercase
-  const raw = (input.getValue) ? input.getValue() : input;
-  const symbol = String(raw).trim().toUpperCase();
+  var raw = (input.getValue) ? input.getValue() : input;
+  var symbol = String(raw).trim().toUpperCase();
 
   // 2) Danh sách chỉ số
-  const indexList = ['VNINDEX', 'VN30', 'VNMIDCAP', 'UPCOM'];
+  var indexList = ['VNINDEX', 'VN30', 'VNMIDCAP', 'UPCOM'];
 
   // 3) Xác định type & ticker
-  let type, ticker;
+  var type, ticker;
   if (indexList.includes(symbol)) {
     type = 'index';
     ticker = symbol;            // chỉ VNINDEX, VN30,...
@@ -24,8 +24,8 @@ function MPRICE(input) {
   }
 
   // 4) Build URL
-  const now = Math.floor(Date.now() / 1000);
-  const url = [
+  var now = Math.floor(Date.now() / 1000);
+  var url = [
     'https://apipubaws.tcbs.com.vn/stock-insight/v2/stock/bars?',
     'ticker=',     encodeURIComponent(ticker),
     '&type=',      encodeURIComponent(type),
@@ -35,11 +35,11 @@ function MPRICE(input) {
   ].join('');
 
   // 5) Fetch & parse
-  const resp = UrlFetchApp.fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-  const js   = JSON.parse(resp.getContentText());
-  const data = js.data;
+  var resp = UrlFetchApp.fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+  var js   = JSON.parse(resp.getContentText());
+  var data = js.data;
   if (!Array.isArray(data) || data.length === 0) {
-    throw new Error(`Không lấy được thị giá TCBS cho ${ticker}`);
+    throw new Error('Không lấy được thị giá TCBS cho ' + ticker);
   }
 
   // 6) Trả về close
