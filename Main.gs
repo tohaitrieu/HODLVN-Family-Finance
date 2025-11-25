@@ -302,28 +302,28 @@ function fixEverything() {
   const ui = SpreadsheetApp.getUi();
   
   // Step 1: Force save to ensure all code is loaded
-  SpreadsheetApp.getActiveSpreadsheet().toast('Fixing system...', 'Please wait', 5);
+  getSpreadsheet().toast('Fixing system...', 'Please wait', 5);
   
   // Step 2: Recreate menus
   try {
     createMenus();
-    SpreadsheetApp.getActiveSpreadsheet().toast('✅ Menus restored', 'Step 1/3', 2);
+    getSpreadsheet().toast('✅ Menus restored', 'Step 1/3', 2);
   } catch (e) {
-    SpreadsheetApp.getActiveSpreadsheet().toast('⚠️ Menu error: ' + e.toString(), 'Step 1/3', 3);
+    getSpreadsheet().toast('⚠️ Menu error: ' + e.toString(), 'Step 1/3', 3);
   }
   
   // Step 3: Force refresh custom functions
   try {
-    const dashboard = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('TỔNG QUAN');
+    const dashboard = getSpreadsheet().getSheetByName('TỔNG QUAN');
     if (dashboard) {
       // Touch refresh triggers
       dashboard.getRange('Z1').setValue(new Date());
       dashboard.getRange('Z2').setValue(new Date());
       SpreadsheetApp.flush();
     }
-    SpreadsheetApp.getActiveSpreadsheet().toast('✅ Functions refreshed', 'Step 2/3', 2);
+    getSpreadsheet().toast('✅ Functions refreshed', 'Step 2/3', 2);
   } catch (e) {
-    SpreadsheetApp.getActiveSpreadsheet().toast('⚠️ Function error: ' + e.toString(), 'Step 2/3', 3);
+    getSpreadsheet().toast('⚠️ Function error: ' + e.toString(), 'Step 2/3', 3);
   }
   
   // Step 4: Final message
@@ -463,7 +463,7 @@ function quickSetup() {
     );
     
     // 3. Refresh Dashboard to test formulas
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const dashboard = ss.getSheetByName('TỔNG QUAN');
     if (dashboard) {
       // Touch timestamp cells to force refresh
@@ -1210,7 +1210,7 @@ function showAbout() {
  */
 function updateChangelog() {
   ChangelogManager.updateChangelogSheet();
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APP_CONFIG.SHEETS.CHANGELOG);
+  const sheet = getSpreadsheet().getSheetByName(APP_CONFIG.SHEETS.CHANGELOG);
   if (sheet) {
     sheet.activate();
   }

@@ -55,7 +55,7 @@ function MPRICE(input) {
  * @customfunction
  */
 function CPRICE(input) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   // 1) Xác định symbol từ input
   var sym = input;
   if (typeof input === 'string' && input.includes('!')) {

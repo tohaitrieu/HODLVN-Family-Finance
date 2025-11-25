@@ -37,7 +37,7 @@ const DashboardManager = {
   
   setupDashboard() {
     try {
-      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const ss = getSpreadsheet();
       let sheet = ss.getSheetByName(APP_CONFIG.SHEETS.DASHBOARD);
       
       if (!sheet) {
@@ -612,7 +612,7 @@ const DashboardManager = {
   },
 
   _getCalendarEvents() {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const payables = [];
     const receivables = [];
     const today = new Date();
@@ -814,7 +814,7 @@ const DashboardManager = {
   },
   
   _getDebtItems() {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const debtSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
     if (!debtSheet) return [];
     

@@ -104,7 +104,7 @@ function formatNewRow(sheet, row, formats) {
  * ========================================
  */
 function testFindEmptyRow() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   
   // Test với sheet THU
   const incomeSheet = ss.getSheetByName('THU');
@@ -460,7 +460,7 @@ function log(message, data) {
 function showToast(message, title, timeoutSeconds) {
   title = title || 'Thông báo';
   timeoutSeconds = timeoutSeconds || 3;
-  SpreadsheetApp.getActiveSpreadsheet().toast(message, title, timeoutSeconds);
+  getSpreadsheet().toast(message, title, timeoutSeconds);
 }
 
 /**
@@ -565,8 +565,24 @@ function formatCurrency(amount) {
 
 /**
  * Lấy spreadsheet hiện tại
+ *
+ * Supports both standalone and library mode:
+ * - Standalone mode: Returns getActiveSpreadsheet() (default behavior)
+ * - Library mode: Returns openById(LIBRARY_SPREADSHEET_ID) if initLibrary() was called
+ *
+ * This fixes the issue where library functions write to caller's spreadsheet
+ * instead of the library's data spreadsheet.
+ *
+ * @returns {Spreadsheet} The target spreadsheet object
  */
 function getSpreadsheet() {
+  // Check if library mode is active (LIBRARY_SPREADSHEET_ID is defined in LibraryConfig.gs)
+  if (typeof LIBRARY_SPREADSHEET_ID !== 'undefined' && LIBRARY_SPREADSHEET_ID !== null) {
+    // Library mode: Use the configured spreadsheet ID
+    return SpreadsheetApp.openById(LIBRARY_SPREADSHEET_ID);
+  }
+
+  // Standalone mode: Use active spreadsheet (backward compatible)
   return SpreadsheetApp.getActiveSpreadsheet();
 }
 
@@ -575,6 +591,35 @@ function getSpreadsheet() {
  */
 function getSheet(sheetName) {
   return getSpreadsheet().getSheetByName(sheetName);
+}
+
+/**
+ * Log current spreadsheet context for debugging.
+ * Useful for troubleshooting library vs standalone mode issues.
+ *
+ * @example
+ * logSpreadsheetContext();
+ * // Logs: "📊 Spreadsheet Context: LIBRARY mode using 'My Finance Data' (ID: 1a2b3c...)"
+ */
+function logSpreadsheetContext() {
+  try {
+    const ss = getSpreadsheet();
+    const mode = (typeof LIBRARY_SPREADSHEET_ID !== 'undefined' && LIBRARY_SPREADSHEET_ID !== null) ? 'LIBRARY' : 'STANDALONE';
+    const name = ss.getName();
+    const id = ss.getId();
+
+    Logger.log('📊 Spreadsheet Context: ' + mode + ' mode using "' + name + '" (ID: ' + id + ')');
+    return {
+      mode: mode,
+      name: name,
+      id: id
+    };
+  } catch (error) {
+    Logger.log('❌ Error getting spreadsheet context: ' + error.message);
+    return {
+      error: error.message
+    };
+  }
 }
 
 /**

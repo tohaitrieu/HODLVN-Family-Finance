@@ -94,7 +94,7 @@ function processLendingForm(data) {
  */
 function getLendingList() {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APP_CONFIG.SHEETS.LENDING);
+    const sheet = getSpreadsheet().getSheetByName(APP_CONFIG.SHEETS.LENDING);
     if (!sheet) return ['Chưa có khoản cho vay'];
     
     const lastRow = sheet.getLastRow();
@@ -119,7 +119,7 @@ function getLendingList() {
  */
 function addLendingPayment(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const lendingSheet = ss.getSheetByName(APP_CONFIG.SHEETS.LENDING);
     const incomeSheet = ss.getSheetByName(APP_CONFIG.SHEETS.INCOME);
     

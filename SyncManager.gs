@@ -33,7 +33,7 @@ var SyncManager = {
     try {
       if (!e) return;
       
-      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const ss = getSpreadsheet();
       const sheet = ss.getActiveSheet();
       const sheetName = sheet.getName();
       
@@ -267,7 +267,7 @@ var SyncManager = {
    * Dùng để sửa lỗi khi đồng bộ thất bại
    */
   cleanOrphans: function() {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     let log = [];
     
     this.SYNC_PAIRS.forEach(pair => {

@@ -9,7 +9,7 @@
  */
 function normalizeAllData() {
   const ui = SpreadsheetApp.getUi();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   
   try {
     const toast = (msg) => ss.toast(msg, 'Chuẩn hóa dữ liệu', 3);
@@ -200,7 +200,7 @@ function _fixDateRange(range) {
  * @returns {Array} List of upcoming payments
  */
 function calculateNextDebtPayments() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   const debtSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
   
   if (!debtSheet) return [];

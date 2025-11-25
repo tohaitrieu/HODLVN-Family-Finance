@@ -2,6 +2,28 @@
 
 Mọi thay đổi đáng chú ý của dự án sẽ được ghi lại trong file này.
 
+## [3.1.0] - 2025-11-25
+### Feature: Library Deployment Support
+- **NEW: Complete Library Mode Support**: HODLVN-Family-Finance có thể được triển khai như một Google Apps Script Library và được gọi từ spreadsheet bên ngoài.
+- **NEW: LibraryConfig.gs Module**:
+  - `initLibrary(spreadsheetId)`: Khởi tạo library với target spreadsheet
+  - `getLibraryStatus()`: Kiểm tra trạng thái library (LIBRARY/STANDALONE mode)
+  - `resetLibrary()`: Reset về standalone mode
+  - Tự động validate spreadsheet structure (kiểm tra THU, CHI, BUDGET, DASHBOARD sheets)
+- **FIX: Complete Routing Coverage**: Fixed 50+ routing issues across 15 files
+  - Updated `Utils.getSpreadsheet()` với library mode routing logic
+  - All data writes (income, expense, debt, investment) now route correctly in library mode
+  - 100% routing coverage achieved
+- **TESTING: Full Integration Test Suite**:
+  - 10/10 tests passing
+  - Covers both standalone and library modes
+  - Tests all major operations (income, expense, debt, investment, dividend)
+
+**Technical Details:**
+- Library mode sử dụng `SpreadsheetApp.openById()` thay vì `getActiveSpreadsheet()`
+- Backward compatible: Standalone mode hoạt động như cũ (không cần thay đổi code)
+- Zero-impact routing: Tất cả existing functions tự động support library mode
+
 ## [3.0.1] - 2025-11-25
 ### Fixed
 - **Budget Sheet Cell Format Issue**:

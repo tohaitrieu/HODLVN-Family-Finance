@@ -18,7 +18,7 @@
  */
 function forceDashboardRecalc() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const dashboard = ss.getSheetByName(APP_CONFIG.SHEETS.DASHBOARD);
     
     if (!dashboard) {
@@ -117,7 +117,7 @@ function triggerDashboardRefresh() {
  */
 function _quickRefreshCustomFunctions() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const dashboard = ss.getSheetByName(APP_CONFIG.SHEETS.DASHBOARD);
     
     if (!dashboard) {

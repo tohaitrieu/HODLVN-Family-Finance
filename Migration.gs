@@ -22,7 +22,7 @@ var MIGRATION_CONFIG = {
  * Chạy migration để thêm Transaction ID cho dữ liệu cũ
  */
 function runMigration_AddTransactionIDs() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   const ui = SpreadsheetApp.getUi();
   
   try {

@@ -38,7 +38,7 @@ const ChangelogManager = {
    * Cập nhật sheet Changelog
    */
   updateChangelogSheet() {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     let sheet = ss.getSheetByName(APP_CONFIG.SHEETS.CHANGELOG);
     
     // Nếu chưa có sheet thì tạo mới

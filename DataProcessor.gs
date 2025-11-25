@@ -30,7 +30,7 @@
  */
 function getDebtList() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
     
     if (!sheet) {
@@ -76,7 +76,7 @@ function addIncome(data) {
       };
     }
     
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.INCOME);
     
     if (!sheet) {
@@ -145,7 +145,7 @@ function addExpense(data) {
       };
     }
     
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.EXPENSE);
     
     if (!sheet) {
@@ -218,7 +218,7 @@ function addDebt(data) {
       };
     }
     
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
     
     if (!sheet) {
@@ -336,7 +336,7 @@ function addDebtPayment(data) {
       };
     }
     
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_PAYMENT);
     
     if (!sheet) {
@@ -416,7 +416,7 @@ function addDebtPayment(data) {
  */
 function addLending(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.LENDING);
     
     if (!sheet) return { success: false, message: 'Sheet CHO VAY chưa tạo' };
@@ -494,7 +494,7 @@ function addLending(data) {
  */
 function addLendingRepayment(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.LENDING_REPAYMENT);
     
     if (!sheet) return { success: false, message: 'Sheet THU NỢ chưa tạo' };
@@ -564,7 +564,7 @@ function addStock(data) {
       };
     }
     
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.STOCK);
     
     if (!sheet) {
@@ -690,7 +690,7 @@ function addGold(data) {
       };
     }
     
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.GOLD);
     
     if (!sheet) {
@@ -798,7 +798,7 @@ function addCrypto(data) {
       };
     }
     
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.CRYPTO);
     
     if (!sheet) {
@@ -925,7 +925,7 @@ function addOtherInvestment(data) {
       };
     }
     
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.OTHER_INVESTMENT);
     
     if (!sheet) {
@@ -1006,7 +1006,7 @@ function addOtherInvestment(data) {
  */
 function getStocksForDividend() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(APP_CONFIG.SHEETS.STOCK);
     
     if (!sheet) {
@@ -1111,7 +1111,7 @@ function getStocksForDividend() {
  */
 function processDividend(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const stockSheet = ss.getSheetByName(APP_CONFIG.SHEETS.STOCK);
     
     if (!stockSheet) {

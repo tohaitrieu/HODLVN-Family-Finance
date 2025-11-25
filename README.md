@@ -274,11 +274,46 @@ HODLVN-Family-Finance/
 
 ---
 
+## 📦 Library Deployment (NEW in v3.1.0)
+
+HODLVN-Family-Finance giờ có thể được triển khai như một **Google Apps Script Library** và sử dụng từ nhiều spreadsheet khác nhau.
+
+### Tại sao sử dụng Library Mode?
+
+- ✅ **Quản lý nhiều spreadsheet**: Một codebase cho nhiều file dữ liệu
+- ✅ **Cập nhật dễ dàng**: Update code một lần, áp dụng cho tất cả
+- ✅ **Tách biệt code & data**: Code trong library, data trong spreadsheet riêng
+- ✅ **Chia sẻ với team**: Nhiều người dùng spreadsheet riêng, cùng một library
+
+### Quick Start
+
+```javascript
+// 1. Deploy code as Library (in Apps Script Editor)
+// 2. From external spreadsheet, call library:
+
+const FinanceLib = YOUR_LIBRARY_NAME;
+
+// Initialize with your data spreadsheet ID
+FinanceLib.initLibrary('YOUR_SPREADSHEET_ID_HERE');
+
+// Use normally
+FinanceLib.addIncome({
+  date: '2025-11-25',
+  amount: 1000000,
+  source: 'Salary'
+});
+```
+
+**📖 Chi tiết:** [LIBRARY_DEPLOYMENT.md](docs/LIBRARY_DEPLOYMENT.md)
+
+---
+
 ## 📚 Tài liệu chi tiết
 
 | Tài liệu | Mô tả | Link |
 |----------|-------|------|
 | 📥 **Installation Guide** | Hướng dẫn cài đặt từng bước chi tiết | [INSTALLATION.md](docs/INSTALLATION.md) |
+| 📦 **Library Deployment** | Hướng dẫn triển khai và sử dụng như Library | [LIBRARY_DEPLOYMENT.md](docs/LIBRARY_DEPLOYMENT.md) |
 | 📖 **User Guide** | Hướng dẫn sử dụng các tính năng | [USER_GUIDE.md](docs/USER_GUIDE.md) |
 | 🤝 **Lending Guide** | Hướng dẫn tính năng Cho vay | [LENDING.md](docs/LENDING.md) |
 | 🔧 **Technical Docs** | Tài liệu kỹ thuật cho developers | [TECHNICAL_DOCUMENTATION.md](docs/TECHNICAL_DOCUMENTATION.md) |

@@ -132,7 +132,7 @@ function testAddDebtManagement() {
  * ============================================
  */
 function testFormulaColumnJ() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   const sheet = ss.getSheetByName('QUẢN LÝ NỢ');
   
   if (!sheet) {
@@ -176,7 +176,7 @@ function testFormulaColumnJ() {
  */
 function updateDebtStatus(debtName, principal, interest) {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
+    const sheet = getSpreadsheet().getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
     if (!sheet) return;
 
     const lastRow = sheet.getLastRow();
@@ -225,7 +225,7 @@ function updateDebtStatus(debtName, principal, interest) {
  */
 function updateLendingStatus(borrowerName, principal, interest) {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APP_CONFIG.SHEETS.LENDING);
+    const sheet = getSpreadsheet().getSheetByName(APP_CONFIG.SHEETS.LENDING);
     if (!sheet) return;
 
     const lastRow = sheet.getLastRow();

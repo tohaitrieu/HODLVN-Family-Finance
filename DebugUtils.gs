@@ -12,7 +12,7 @@
  * Giúp xác định vấn đề với định dạng dữ liệu
  */
 function debugEventCalculation() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   const ui = SpreadsheetApp.getUi();
   
   let debugInfo = '=== THÔNG TIN DEBUG - KHOẢN NỢ & CHO VAY ===\n\n';
@@ -140,7 +140,7 @@ function checkSheet(ss, sheetName, isDebt) {
  * Nếu cột này đang có format phần trăm thay vì số tiền
  */
 function fixPrincipalColumnFormat() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   const ui = SpreadsheetApp.getUi();
   
   const result = ui.alert(

@@ -74,7 +74,7 @@ function _getDateFiltersFromParams(yearFilter, quarterFilter, monthFilter) {
  */
 function _getDateFilters() {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(APP_CONFIG.SHEETS.DASHBOARD);
+    const sheet = getSpreadsheet().getSheetByName(APP_CONFIG.SHEETS.DASHBOARD);
     if (!sheet) return null;
     
     const yearFilter = sheet.getRange('B2').getValue();
@@ -136,7 +136,7 @@ function _getDateFilters() {
  */
 function hffsIncome(yearFilter, quarterFilter, monthFilter, trigger) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const incomeSheet = ss.getSheetByName(APP_CONFIG.SHEETS.INCOME);
     
     if (!incomeSheet) return [['Lỗi: Sheet THU không tồn tại']];
@@ -191,7 +191,7 @@ function hffsIncome(yearFilter, quarterFilter, monthFilter, trigger) {
  */
 function hffsExpense(yearFilter, quarterFilter, monthFilter, trigger) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const expenseSheet = ss.getSheetByName(APP_CONFIG.SHEETS.EXPENSE);
     const budgetSheet = ss.getSheetByName(APP_CONFIG.SHEETS.BUDGET);
     const debtPaymentSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_PAYMENT);
@@ -296,7 +296,7 @@ function hffsExpense(yearFilter, quarterFilter, monthFilter, trigger) {
  */
 function hffsDebt(trigger) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const debtSheet = ss.getSheetByName(APP_CONFIG.SHEETS.DEBT_MANAGEMENT);
     
     if (!debtSheet) return [['Lỗi: Sheet QUẢN LÝ NỢ không tồn tại']];
@@ -348,7 +348,7 @@ function hffsDebt(trigger) {
  */
 function hffsAssets(trigger) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     
     const result = [];
     
@@ -547,7 +547,7 @@ function hffsAssets(trigger) {
 function hffsYearly(year, trigger) {
   try {
     const currentYear = year || new Date().getFullYear();
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     
     // Initialize monthly totals (index 0 = month 1, index 11 = month 12)
     const monthlyData = Array.from({length: 12}, () => ({

@@ -41,7 +41,7 @@ function mapLegacyTypeToId(typeName) {
 function AccPayable(debtData, forceRefresh) {
   // Make function volatile by referencing a refresh trigger
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const dashboard = ss.getSheetByName('TỔNG QUAN');
     if (dashboard) {
       // Read timestamp cell to force dependency (makes function volatile)
@@ -59,7 +59,7 @@ function AccPayable(debtData, forceRefresh) {
 function AccReceivable(lendingData, forceRefresh) {
   // Make function volatile by referencing a refresh trigger
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const dashboard = ss.getSheetByName('TỔNG QUAN');
     if (dashboard) {
       // Read timestamp cell to force dependency (makes function volatile)
