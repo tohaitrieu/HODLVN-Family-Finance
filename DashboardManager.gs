@@ -92,7 +92,7 @@ const DashboardManager = {
   
   _setupHeader(sheet) {
     // Title
-    sheet.getRange('A1:I1').merge()
+    sheet.getRange('A1:F1').merge()
       .setValue('📊 BÁO CÁO TÀI CHÍNH (CASHFLOW)')
       .setFontSize(14)
       .setFontWeight('bold')
